@@ -1,5 +1,11 @@
 /build/
 build-*
+
+/minimal_indexer/build/
+*.obj
+*.pdb
+*.exe
+
 /distr/
 /deps/
 
