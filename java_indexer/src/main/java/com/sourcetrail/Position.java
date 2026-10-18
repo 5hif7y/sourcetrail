@@ -1,15 +1,9 @@
 package com.sourcetrail;
 
-public class Position
+public record Position(int line, int column) 
 {
-	public int line = 0;
-	public int column = 0;
-
-	public Position() {}
-
-	public Position(int line, int column)
+	Position()
 	{
-		this.line = line;
-		this.column = column;
+		this(0, 0);
 	}
 }

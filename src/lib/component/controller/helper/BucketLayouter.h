@@ -63,10 +63,10 @@ private:
 	Vec2i m_viewSize;
 	std::map<int, std::map<int, Bucket>> m_buckets;
 
-	int m_i1;
-	int m_j1;
-	int m_i2;
-	int m_j2;
+	int m_i1 = 0;
+	int m_j1 = 0;
+	int m_i2 = 0;
+	int m_j2 = 0;
 
 	DummyNode* m_activeParentNode = nullptr;
 };

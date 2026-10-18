@@ -4,11 +4,10 @@
 
 #include "TimeStamp.h"
 #include "logging.h"
-#include "utilityApp.h"
 
-std::string SharedMemoryGarbageCollector::s_memoryNamePrefix = "grbg_cllctr_";
-std::string SharedMemoryGarbageCollector::s_instancesKeyName = "running_instances";
-std::string SharedMemoryGarbageCollector::s_timeStampsKeyName = "memory_to_timestamps";
+const std::string SharedMemoryGarbageCollector::s_memoryName = "grbg_cllctr";
+const std::string SharedMemoryGarbageCollector::s_instancesKeyName = "running_instances";
+const std::string SharedMemoryGarbageCollector::s_timeStampsKeyName = "memory_to_timestamps";
 
 const size_t SharedMemoryGarbageCollector::s_updateIntervalSeconds = 1;
 const size_t SharedMemoryGarbageCollector::s_deleteThresholdSeconds = 10;
@@ -47,12 +46,12 @@ SharedMemoryGarbageCollector* SharedMemoryGarbageCollector::getInstance()
 }
 
 SharedMemoryGarbageCollector::SharedMemoryGarbageCollector()
-	: m_memory(getMemoryName(), 65536 /* 64 kB */, SharedMemory::OPEN_OR_CREATE)
+	: m_memory(s_memoryName, 65536 /* 64 kB */, SharedMemory::OPEN_OR_CREATE)
 	, m_loopIsRunning(false)
 {
 }
 
-SharedMemoryGarbageCollector::~SharedMemoryGarbageCollector() {}
+SharedMemoryGarbageCollector::~SharedMemoryGarbageCollector() = default;
 
 void SharedMemoryGarbageCollector::run(const std::string& uuid)
 {
@@ -129,8 +128,8 @@ void SharedMemoryGarbageCollector::stop()
 
 	if (!otherRunningInstances)
 	{
-		LOG_INFO_STREAM(<< "delete garbage collector memory: " << getMemoryName());
-		SharedMemory::deleteSharedMemory(getMemoryName());
+		LOG_INFO_STREAM(<< "delete garbage collector memory: " << s_memoryName);
+		SharedMemory::deleteSharedMemory(s_memoryName);
 	}
 }
 
@@ -157,12 +156,6 @@ void SharedMemoryGarbageCollector::unregisterSharedMemory(const std::string& sha
 	}
 
 	update();
-}
-
-std::string SharedMemoryGarbageCollector::getMemoryName()
-{
-	return s_memoryNamePrefix +
-		(utility::getApplicationArchitectureType() == APPLICATION_ARCHITECTURE_X86_32 ? "32" : "64");
 }
 
 void SharedMemoryGarbageCollector::update()

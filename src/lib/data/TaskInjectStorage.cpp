@@ -9,9 +9,9 @@ TaskInjectStorage::TaskInjectStorage(
 {
 }
 
-void TaskInjectStorage::doEnter(std::shared_ptr<Blackboard> blackboard) {}
+void TaskInjectStorage::doEnter(std::shared_ptr<Blackboard>  /*blackboard*/) {}
 
-Task::TaskState TaskInjectStorage::doUpdate(std::shared_ptr<Blackboard> blackboard)
+Task::TaskState TaskInjectStorage::doUpdate(std::shared_ptr<Blackboard>  /*blackboard*/)
 {
 	if (m_storageProvider->getStorageCount() > 0)
 	{
@@ -29,11 +29,11 @@ Task::TaskState TaskInjectStorage::doUpdate(std::shared_ptr<Blackboard> blackboa
 	return STATE_FAILURE;
 }
 
-void TaskInjectStorage::doExit(std::shared_ptr<Blackboard> blackboard) {}
+void TaskInjectStorage::doExit(std::shared_ptr<Blackboard>  /*blackboard*/) {}
 
-void TaskInjectStorage::doReset(std::shared_ptr<Blackboard> blackboard) {}
+void TaskInjectStorage::doReset(std::shared_ptr<Blackboard>  /*blackboard*/) {}
 
-void TaskInjectStorage::handleMessage(MessageIndexingInterrupted* message)
+void TaskInjectStorage::handleMessage(MessageIndexingInterrupted*  /*message*/)
 {
 	m_storageProvider->clear();
 }

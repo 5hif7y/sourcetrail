@@ -220,7 +220,7 @@ void GraphFocusHandler::focusEdge(QtGraphEdge* edge)
 	}
 }
 
-void GraphFocusHandler::defocusEdge(QtGraphEdge* edge) {}
+void GraphFocusHandler::defocusEdge(QtGraphEdge*  /*edge*/) {}
 
 void GraphFocusHandler::defocusGraph()
 {
@@ -362,8 +362,6 @@ QtGraphNode* GraphFocusHandler::findNextNode(QtGraphEdge* edge, Direction direct
 			return edge->getTarget();
 		}
 	}
-
-	return nullptr;
 }
 
 QtGraphEdge* GraphFocusHandler::findNextEdge(QPointF pos, Direction direction, QtGraphEdge* previousEdge)
@@ -458,12 +456,10 @@ QtGraphNode* GraphFocusHandler::findChildNodeRecursive(const std::list<QtGraphNo
 QtGraphNode* GraphFocusHandler::findSibling(const QtGraphNode* node, Direction direction)
 {
 	QtGraphNode* nextSibling = nullptr;
-	Vec2i pos = node->getPosition();
 	Vec4i rect = node->getBoundingRect();
 	int minDist = 0;
 
-	for (auto siblings: getSiblingsHierarchyRecursive(node))
-	{
+	for (const auto &siblings : getSiblingsHierarchyRecursive(node)) {
 		for (QtGraphNode* sibling: siblings)
 		{
 			if (sibling == node || !sibling->isFocusable())

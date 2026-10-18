@@ -9,6 +9,7 @@
 #include "Bookmark.h"
 #include "BookmarkController.h"
 #include "ControllerProxy.h"
+#include "QtPushButton.h"
 
 class Bookmark;
 
@@ -18,10 +19,10 @@ class QtBookmark: public QFrame
 
 public:
 	QtBookmark(ControllerProxy<BookmarkController>* controllerProxy);
-	virtual ~QtBookmark();
+	~QtBookmark() override;
 
 	void setBookmark(const std::shared_ptr<Bookmark> bookmark);
-	Id getBookmarkId() const;
+	BookmarkId getBookmarkId() const;
 
 	QTreeWidgetItem* getTreeWidgetItem() const;
 	void setTreeWidgetItem(QTreeWidgetItem* treeWidgetItem);
@@ -30,14 +31,15 @@ public slots:
 	void commentToggled();
 
 protected:
-	virtual void resizeEvent(QResizeEvent* event) override;
-	virtual void showEvent(QShowEvent* event) override;
+	void resizeEvent(QResizeEvent* event) override;
+	void showEvent(QShowEvent* event) override;
 
-	virtual void enterEvent(QEvent* event) override;
-	virtual void leaveEvent(QEvent* event) override;
+	void enterEvent(QEnterEvent* event) override;
+	void leaveEvent(QEvent* event) override;
 
 private slots:
 	void activateClicked();
+	void activateDoubleClicked();
 	void editClicked();
 	void deleteClicked();
 	void elideButtonText();
@@ -49,7 +51,7 @@ private:
 
 	ControllerProxy<BookmarkController>* m_controllerProxy;
 
-	QPushButton* m_activateButton;
+	QtPushButton* m_activateButton;
 	QPushButton* m_editButton;
 	QPushButton* m_deleteButton;
 	QPushButton* m_toggleCommentButton;
@@ -62,12 +64,12 @@ private:
 	// pointer to the bookmark category item in the treeView, allows to refresh tree view when a
 	// node changes in size (e.g. toggle comment). Not a nice solution to the problem, but couldn't
 	// find anything better yet. (sizeHintChanged signal can't be emitted here...)
-	QTreeWidgetItem* m_treeWidgetItem;
+	QTreeWidgetItem* m_treeWidgetItem = nullptr;
 
-	std::wstring m_arrowImageName;
-	bool m_hovered;
+	std::string m_arrowImageName;
+	bool m_hovered = false;
 
-	bool m_ignoreNextResize;
+	bool m_ignoreNextResize = false;
 };
 
 #endif	  // QT_BOOKMARK_H

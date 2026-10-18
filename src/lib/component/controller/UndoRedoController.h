@@ -68,9 +68,9 @@ class UndoRedoController
 {
 public:
 	UndoRedoController(StorageAccess* storageAccess);
-	virtual ~UndoRedoController() = default;
+	~UndoRedoController() override = default;
 
-	Id getSchedulerId() const override;
+	TabId getSchedulerId() const override;
 
 	UndoRedoView* getView();
 
@@ -129,7 +129,7 @@ private:
 	bool sameMessageTypeAsLast(MessageBase* message) const;
 	MessageBase* lastMessage() const;
 
-	void updateHistoryMenu(std::shared_ptr<MessageBase> message);
+	static void updateHistoryMenu(std::shared_ptr<MessageBase> message);
 	void updateHistory();
 
 	void dump() const;

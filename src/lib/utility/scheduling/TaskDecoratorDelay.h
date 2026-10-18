@@ -22,7 +22,7 @@ private:
 	const size_t m_delayMS;
 
 	TimeStamp m_start;
-	bool m_delayComplete;
+	bool m_delayComplete = false;
 };
 
 #endif	  // TASK_DECORATOR_DELAY_H

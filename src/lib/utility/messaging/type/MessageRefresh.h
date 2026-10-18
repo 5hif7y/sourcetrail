@@ -11,7 +11,7 @@ public:
 		return "MessageRefresh";
 	}
 
-	MessageRefresh(): all(false) {}
+	MessageRefresh() = default;
 
 	MessageRefresh& refreshAll()
 	{
@@ -19,7 +19,7 @@ public:
 		return *this;
 	}
 
-	void print(std::wostream& os) const override
+	void print(std::ostream& os) const override
 	{
 		if (all)
 		{
@@ -27,7 +27,7 @@ public:
 		}
 	}
 
-	bool all;
+	bool all = false;
 };
 
 #endif	  // MESSAGE_REFRESH_H

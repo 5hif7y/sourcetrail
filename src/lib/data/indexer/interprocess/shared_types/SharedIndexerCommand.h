@@ -37,14 +37,14 @@ public:
 	FilePath getWorkingDirectory() const;
 	void setWorkingDirectory(const FilePath& workingDirectory);
 
-	std::vector<std::wstring> getCompilerFlags() const;
-	void setCompilerFlags(const std::vector<std::wstring>& compilerFlags);
+	std::vector<std::string> getCompilerFlags() const;
+	void setCompilerFlags(const std::vector<std::string>& compilerFlags);
 
 #endif	  // BUILD_CXX_LANGUAGE_PACKAGE
 #if BUILD_JAVA_LANGUAGE_PACKAGE
 
-	std::wstring getLanguageStandard() const;
-	void setLanguageStandard(const std::wstring& languageStandard);
+	std::string getLanguageStandard() const;
+	void setLanguageStandard(const std::string& languageStandard);
 
 	std::vector<FilePath> getClassPaths() const;
 	void setClassPaths(const std::vector<FilePath>& classPaths);
@@ -61,15 +61,12 @@ private:
 #if BUILD_JAVA_LANGUAGE_PACKAGE
 		JAVA,
 #endif	  // BUILD_JAVA_LANGUAGE_PACKAGE
-#if BUILD_PYTHON_LANGUAGE_PACKAGE
-		PYTHON,
-#endif	  // BUILD_PYTHON_LANGUAGE_PACKAGE
 	};
 
 	Type getType() const;
 	void setType(const Type type);
 
-	Type m_type;
+	Type m_type = Type::UNKNOWN;
 
 	// indexer command
 	SharedMemory::String m_sourceFilePath;

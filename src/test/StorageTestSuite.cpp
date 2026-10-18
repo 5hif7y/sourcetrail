@@ -1,9 +1,8 @@
-#include "catch.hpp"
+#include "Catch2.hpp"
 
 #include "utilityString.h"
 
 #include "IntermediateStorage.h"
-#include "ParseLocation.h"
 #include "PersistentStorage.h"
 
 namespace
@@ -12,7 +11,7 @@ class TestStorage: public PersistentStorage
 {
 public:
 	TestStorage()
-		: PersistentStorage(FilePath(L"data/test.sqlite"), FilePath(L"data/testBookmarks.sqlite"))
+		: PersistentStorage(FilePath("data/test.sqlite"), FilePath("data/testBookmarks.sqlite"))
 	{
 		clear();
 	}
@@ -28,45 +27,45 @@ public:
 	//}
 };
 
+/*
 ParseLocation validLocation(Id locationId = 0)
 {
 	return ParseLocation(1, 1, locationId, 1, locationId);
 }
+*/
 
-NameHierarchy createNameHierarchy(std::wstring s)
+NameHierarchy createNameHierarchy(std::string s)
 {
-	NameHierarchy nameHierarchy(NAME_DELIMITER_CXX);
-	for (std::wstring element:
-		 utility::splitToVector(s, nameDelimiterTypeToString(NAME_DELIMITER_CXX)))
-	{
+	NameHierarchy nameHierarchy(NameDelimiterType::CXX);
+	for (const std::string &element :
+		 utility::splitToVector(s, nameDelimiterTypeToString(NameDelimiterType::CXX))) {
 		nameHierarchy.push(element);
 	}
 	return nameHierarchy;
 }
 
-NameHierarchy createFunctionNameHierarchy(std::wstring ret, std::wstring name, std::wstring parameters)
+/*
+NameHierarchy createFunctionNameHierarchy(std::string ret, std::string name, std::string parameters)
 {
 	NameHierarchy nameHierarchy = createNameHierarchy(name);
-	std::wstring lastName = nameHierarchy.back().getName();
+	std::string lastName = nameHierarchy.back().getName();
 	nameHierarchy.pop();
 	nameHierarchy.push(NameElement(lastName, ret, parameters));
 	return nameHierarchy;
 }
+*/
+
 }	 // namespace
 
 TEST_CASE("storage saves file")
 {
 	TestStorage storage;
 
-	std::wstring filePath = L"path/to/test.h";
+	std::string filePath = "path/to/test.h";
 
 	std::shared_ptr<IntermediateStorage> intermediateStorage = std::make_shared<IntermediateStorage>();
-	Id id = intermediateStorage
-				->addNode(StorageNodeData(
-					nodeKindToInt(NODE_FILE),
-					NameHierarchy::serialize(NameHierarchy(filePath, NAME_DELIMITER_FILE))))
-				.first;
-	intermediateStorage->addFile(StorageFile(id, filePath, L"someLanguage", "someTime", true, true));
+	Id id = intermediateStorage->addNode(StorageNodeData(NODE_FILE, NameHierarchy::serialize(NameHierarchy(filePath, NameDelimiterType::FILE)))).first;
+	intermediateStorage->addFile(StorageFile(id, filePath, "someLanguage", "someTime", true, true));
 
 	storage.inject(intermediateStorage.get());
 
@@ -76,13 +75,12 @@ TEST_CASE("storage saves file")
 
 TEST_CASE("storage saves node")
 {
-	NameHierarchy a = createNameHierarchy(L"type");
+	NameHierarchy a = createNameHierarchy("type");
 
 	TestStorage storage;
 
 	std::shared_ptr<IntermediateStorage> intermediateStorage = std::make_shared<IntermediateStorage>();
-	intermediateStorage->addNode(
-		StorageNodeData(nodeKindToInt(NODE_TYPEDEF), NameHierarchy::serialize(a)));
+	intermediateStorage->addNode(StorageNodeData(NODE_TYPEDEF, NameHierarchy::serialize(a)));
 
 	storage.inject(intermediateStorage.get());
 
@@ -94,23 +92,19 @@ TEST_CASE("storage saves node")
 
 TEST_CASE("storage saves field as member")
 {
-	NameHierarchy a = createNameHierarchy(L"Struct");
-	NameHierarchy b = createNameHierarchy(L"Struct::m_field");
+	NameHierarchy a = createNameHierarchy("Struct");
+	NameHierarchy b = createNameHierarchy("Struct::m_field");
 
 	TestStorage storage;
 
 	std::shared_ptr<IntermediateStorage> intermediateStorage = std::make_shared<IntermediateStorage>();
 
-	Id aId = intermediateStorage
-				 ->addNode(StorageNodeData(nodeKindToInt(NODE_STRUCT), NameHierarchy::serialize(a)))
-				 .first;
-	intermediateStorage->addSymbol(StorageSymbol(aId, DEFINITION_EXPLICIT));
+	Id aId = intermediateStorage->addNode(StorageNodeData(NODE_STRUCT, NameHierarchy::serialize(a))).first;
+	intermediateStorage->addSymbol(StorageSymbol(aId, DefinitionKind::EXPLICIT));
 
-	Id bId = intermediateStorage
-				 ->addNode(StorageNodeData(nodeKindToInt(NODE_FIELD), NameHierarchy::serialize(b)))
-				 .first;
-	intermediateStorage->addSymbol(StorageSymbol(bId, DEFINITION_EXPLICIT));
-	intermediateStorage->addEdge(StorageEdgeData(Edge::typeToInt(Edge::EDGE_MEMBER), aId, bId));
+	Id bId = intermediateStorage->addNode(StorageNodeData(NODE_FIELD, NameHierarchy::serialize(b))).first;
+	intermediateStorage->addSymbol(StorageSymbol(bId, DefinitionKind::EXPLICIT));
+	intermediateStorage->addEdge(StorageEdgeData(Edge::EDGE_MEMBER, aId, bId));
 
 	storage.inject(intermediateStorage.get());
 	bool foundEdge = false;
@@ -120,7 +114,7 @@ TEST_CASE("storage saves field as member")
 	for (auto edge: storage.getStorageEdges())
 	{
 		if (edge.sourceNodeId == sourceId && edge.targetNodeId == targetId &&
-			edge.type == Edge::typeToInt(Edge::EDGE_MEMBER))
+			edge.type == Edge::EDGE_MEMBER)
 		{
 			foundEdge = true;
 		}
@@ -134,7 +128,7 @@ TEST_CASE("storage saves method static")
 	// Id id = storage.onMethodParsed(
 	//	validLocation(1),
 	//	ParseFunction(typeUsage("void"), createNameHierarchy("isMethod"), parameters("bool"), true),
-	//	ParserClient::ACCESS_NONE,
+	//	ParserClient::AccessKind::NONE,
 	//	ParserClient::ABSTRACTION_NONE,
 	//	validLocation(4)
 	//);
@@ -149,7 +143,7 @@ TEST_CASE("storage saves method static")
 TEST_CASE("storage clears single file data of single file storage")
 {
 	/*
-	m_filePath = FilePath(L"file.cpp");
+	m_filePath = FilePath("file.cpp");
 	TestStorage storage;
 	storage.onFunctionParsed(
 		validLocation(), ParseFunction(typeUsage("bool"), createNameHierarchy("isTrue"),

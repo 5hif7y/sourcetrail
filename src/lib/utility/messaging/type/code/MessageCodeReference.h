@@ -2,21 +2,21 @@
 #define MESSAGE_CODE_REFERENCE_H
 
 #include "Message.h"
-#include "TabId.h"
+#include "TabIds.h"
 
 class MessageCodeReference: public Message<MessageCodeReference>
 {
 public:
-	enum ReferenceType
+	enum class Type
 	{
-		REFERENCE_PREVIOUS,
-		REFERENCE_NEXT
+		PREVIOUS,
+		NEXT
 	};
 
-	MessageCodeReference(ReferenceType type, bool localReference)
+	MessageCodeReference(Type type, bool localReference)
 		: type(type), localReference(localReference)
 	{
-		setSchedulerId(TabId::currentTab());
+		setSchedulerId(TabIds::currentTab());
 	}
 
 	static const std::string getStaticType()
@@ -24,24 +24,24 @@ public:
 		return "MessageCodeReference";
 	}
 
-	virtual void print(std::wostream& os) const
+	void print(std::ostream& os) const override
 	{
-		if (type == REFERENCE_PREVIOUS)
+		if (type == Type::PREVIOUS)
 		{
-			os << L"previous";
+			os << "previous";
 		}
 		else
 		{
-			os << L"next";
+			os << "next";
 		}
 
 		if (localReference)
 		{
-			os << L" local";
+			os << " local";
 		}
 	}
 
-	const ReferenceType type;
+	const Type type;
 	bool localReference;
 };
 

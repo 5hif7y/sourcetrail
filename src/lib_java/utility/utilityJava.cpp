@@ -1,4 +1,4 @@
-#include "utilityGradle.h"
+#include "utilityJava.h"
 
 #include "Application.h"
 #include "ApplicationSettings.h"
@@ -6,73 +6,54 @@
 #include "JavaEnvironment.h"
 #include "JavaEnvironmentFactory.h"
 #include "MessageStatus.h"
+#include "Platform.h"
 #include "ResourcePaths.h"
 #include "ScopedFunctor.h"
-#include "SourceGroupSettingsWithClasspath.h"
 #include "TextAccess.h"
 #include "logging.h"
+#include "utilityGradle.h"
 #include "utilityString.h"
 
 namespace utility
 {
-std::vector<std::wstring> getRequiredJarNames()
+std::vector<std::string> getRequiredJarNames()
 {
 	return {
-		L"gradle-tooling-api-6.7.1.jar",
-		L"java-indexer.jar",
-		L"org.eclipse.core.commands-3.9.800.jar",
-		L"org.eclipse.core.contenttype-3.7.800.jar",
-		L"org.eclipse.core.expressions-3.7.0.jar",
-		L"org.eclipse.core.filesystem-1.7.700.jar",
-		L"org.eclipse.core.jobs-3.10.1000.jar",
-		L"org.eclipse.core.resources-3.13.900.jar",
-		L"org.eclipse.core.runtime-3.20.0.jar",
-		L"org.eclipse.equinox.app-1.5.0.jar",
-		L"org.eclipse.equinox.common-3.14.0.jar",
-		L"org.eclipse.equinox.preferences-3.8.100.jar",
-		L"org.eclipse.equinox.registry-3.10.0.jar",
-		L"org.eclipse.jdt.core-3.24.0.jar",
-		L"org.eclipse.osgi-3.16.100.jar",
-		L"org.eclipse.text-3.10.400.jar",
-		L"slf4j-api-1.7.28.jar",
-		L"slf4j-simple-1.7.30.jar"};
+		"java-indexer.jar"
+	};
 }
 
 std::string prepareJavaEnvironment()
+{
+	return prepareJavaEnvironment(ResourcePaths::getJavaDirectoryPath());
+}
+
+std::string prepareJavaEnvironment(const FilePath &javaDirectoryPath)
 {
 	std::string errorString;
 
 	if (!JavaEnvironmentFactory::getInstance())
 	{
-#ifdef _WIN32
-		const std::string separator = ";";
-#else
-		const std::string separator = ":";
-#endif
-
-		std::string classPath = "";
+		std::string classPath;
 		{
-			const std::vector<std::wstring> jarNames = getRequiredJarNames();
+			const std::vector<std::string> jarNames = getRequiredJarNames();
 			for (size_t i = 0; i < jarNames.size(); i++)
 			{
 				if (i != 0)
 				{
-					classPath += separator;
+					classPath += Platform::getJavaClassPathSeparator();
 				}
-				classPath +=
-					ResourcePaths::getJavaDirectoryPath().concatenate(L"lib/" + jarNames[i]).str();
+				classPath += javaDirectoryPath.getConcatenated("lib/" + jarNames[i]).str();
 			}
 		}
-
-		JavaEnvironmentFactory::createInstance(classPath, errorString);
+		JavaEnvironmentFactory::createInstance(classPath, &errorString);
 	}
-
 	return errorString;
 }
 
 bool prepareJavaEnvironmentAndDisplayOccurringErrors()
 {
-	const std::wstring errorString = utility::decodeFromUtf8(utility::prepareJavaEnvironment());
+	const std::string errorString = utility::prepareJavaEnvironment();
 
 	if (!errorString.empty())
 	{
@@ -82,13 +63,13 @@ bool prepareJavaEnvironmentAndDisplayOccurringErrors()
 
 	if (!JavaEnvironmentFactory::getInstance())
 	{
-		std::wstring dialogMessage =
-			L"Sourcetrail was unable to initialize Java environment on this machine.\n"
+		std::string dialogMessage =
+			"Sourcetrail was unable to initialize Java environment on this machine.\n"
 			"Please make sure to provide the correct Java Path in the preferences.";
 
 		if (!errorString.empty())
 		{
-			dialogMessage += L"\n\nError: " + errorString;
+			dialogMessage += "\n\nError: " + errorString;
 		}
 
 		MessageStatus(dialogMessage, true, false).dispatch();
@@ -103,9 +84,13 @@ std::set<FilePath> fetchRootDirectories(const std::set<FilePath>& sourceFilePath
 {
 	std::shared_ptr<DialogView> dialogView = Application::getInstance()->getDialogView(
 		DialogView::UseCase::PROJECT_SETUP);
-	dialogView->showUnknownProgressDialog(L"Preparing Project", L"Gathering Root\nDirectories");
+	dialogView->showUnknownProgressDialog("Preparing Project", "Gathering Root\nDirectories");
 
-	ScopedFunctor dialogHider([&dialogView]() { dialogView->hideUnknownProgressDialog(); });
+	[[maybe_unused]]
+	ScopedFunctor dialogHider([&dialogView]()
+	{
+		dialogView->hideUnknownProgressDialog();
+	});
 
 	std::set<FilePath> rootDirectories;
 
@@ -115,7 +100,7 @@ std::set<FilePath> fetchRootDirectories(const std::set<FilePath>& sourceFilePath
 	{
 		std::shared_ptr<TextAccess> textAccess = TextAccess::createFromFile(filePath);
 
-		std::string packageName = "";
+		std::string packageName;
 		javaEnvironment->callStaticStringMethod(
 			"com/sourcetrail/JavaIndexer", "getPackageName", packageName, textAccess->getText());
 
@@ -132,7 +117,7 @@ std::set<FilePath> fetchRootDirectories(const std::set<FilePath>& sourceFilePath
 			 it != packageNameParts.rend();
 			 it++)
 		{
-			if (rootPath.fileName() != utility::decodeFromUtf8(*it))
+			if (rootPath.fileName() != *it)
 			{
 				success = false;
 				break;
@@ -160,7 +145,7 @@ std::vector<FilePath> getClassPath(
 	{
 		if (classpath.exists())
 		{
-			LOG_INFO(L"Adding path to classpath: " + classpath.wstr());
+			LOG_INFO("Adding path to classpath: " + classpath.str());
 			classPath.push_back(classpath);
 		}
 	}
@@ -170,7 +155,7 @@ std::vector<FilePath> getClassPath(
 		for (const FilePath& systemLibraryPath:
 			 ApplicationSettings::getInstance()->getJreSystemLibraryPathsExpanded())
 		{
-			LOG_INFO(L"Adding JRE system library path to classpath: " + systemLibraryPath.wstr());
+			LOG_INFO("Adding JRE system library path to classpath: " + systemLibraryPath.str());
 			classPath.push_back(systemLibraryPath);
 		}
 	}
@@ -179,7 +164,7 @@ std::vector<FilePath> getClassPath(
 	{
 		if (rootDirectory.exists())
 		{
-			LOG_INFO(L"Adding root directory to classpath: " + rootDirectory.wstr());
+			LOG_INFO("Adding root directory to classpath: " + rootDirectory.str());
 			classPath.push_back(rootDirectory);
 		}
 	}
@@ -189,22 +174,14 @@ std::vector<FilePath> getClassPath(
 
 void setJavaHomeVariableIfNotExists()
 {
-#pragma warning(push)
-#pragma warning(disable : 4996)
-	if (getenv("JAVA_HOME") == nullptr)
-#pragma warning(pop)
+	if (qgetenv("JAVA_HOME").isNull())
 	{
 		const FilePath javaPath = ApplicationSettings::getInstance()->getJavaPath();
-		const FilePath javaHomePath =
-			javaPath.getParentDirectory().getParentDirectory().getParentDirectory();
+		const FilePath javaHomePath = javaPath.getParentDirectory().getParentDirectory().getParentDirectory();
 
-		LOG_WARNING(
-			"Environment variable \"JAVA_HOME\" not found on system. Setting value to \"" +
-			javaHomePath.str() + "\" for this process.");
-#pragma warning(push)
-#pragma warning(disable : 4996)
-		putenv(const_cast<char*>(("JAVA_HOME=" + javaHomePath.str()).c_str()));
-#pragma warning(pop)
+		LOG_WARNING( "Environment variable \"JAVA_HOME\" not found on system. Setting value to \"" + javaHomePath.str() + "\" for this process.");
+		qputenv("JAVA_HOME", javaHomePath.str());
 	}
 }
-}	 // namespace utility
+
+}

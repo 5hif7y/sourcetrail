@@ -6,14 +6,14 @@
 #include "FilePathFilter.h"
 #include "FileSystem.h"
 
-FileManager::FileManager() {}
+FileManager::FileManager() = default;
 
-FileManager::~FileManager() {}
+FileManager::~FileManager() = default;
 
 void FileManager::update(
 	const std::vector<FilePath>& sourcePaths,
 	const std::vector<FilePathFilter>& excludeFilters,
-	const std::vector<std::wstring>& sourceExtensions)
+	const std::vector<std::string>& sourceExtensions)
 {
 	m_sourcePaths = sourcePaths;
 	m_excludeFilters = excludeFilters;
@@ -41,12 +41,7 @@ std::vector<FilePath> FileManager::getSourcePaths() const
 
 bool FileManager::hasSourceFilePath(const FilePath& filePath) const
 {
-	if (m_allSourceFilePaths.find(filePath) != m_allSourceFilePaths.end())
-	{
-		return true;
-	}
-
-	return false;
+	return m_allSourceFilePaths.find(filePath) != m_allSourceFilePaths.end();
 }
 
 std::set<FilePath> FileManager::getAllSourceFilePaths() const

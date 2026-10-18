@@ -8,7 +8,7 @@
 class InterprocessIndexer
 {
 public:
-	InterprocessIndexer(const std::string& uuid, Id processId);
+	InterprocessIndexer(const std::string& uuid, ProcessId processId);
 
 	void work();
 
@@ -18,7 +18,7 @@ private:
 	InterprocessIntermediateStorageManager m_interprocessIntermediateStorageManager;
 
 	const std::string m_uuid;
-	const Id m_processId;
+	const ProcessId m_processId;
 };
 
 #endif	  // INTERPROCESS_INDEXER_H

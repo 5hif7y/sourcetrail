@@ -6,16 +6,16 @@
 class MessageIDECreateCDB: public Message<MessageIDECreateCDB>
 {
 public:
-	MessageIDECreateCDB() {}
+	MessageIDECreateCDB() = default;
 
 	static const std::string getStaticType()
 	{
 		return "MessageIDECreateCDB";
 	}
 
-	virtual void print(std::wostream& os) const
+	void print(std::ostream& os) const override
 	{
-		os << L"Create CDB from current solution";
+		os << "Create CDB from current solution";
 	}
 };
 

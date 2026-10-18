@@ -2,7 +2,7 @@
 #define MESSAGE_TO_NEXT_CODE_REFERENCE_H
 
 #include "Message.h"
-#include "TabId.h"
+#include "TabIds.h"
 
 class MessageToNextCodeReference: public Message<MessageToNextCodeReference>
 {
@@ -10,7 +10,7 @@ public:
 	MessageToNextCodeReference(const FilePath& filePath, size_t lineNumber, size_t columnNumber, bool next)
 		: filePath(filePath), lineNumber(lineNumber), columnNumber(columnNumber), next(next)
 	{
-		setSchedulerId(TabId::currentTab());
+		setSchedulerId(TabIds::currentTab());
 	}
 
 	static const std::string getStaticType()
@@ -18,17 +18,17 @@ public:
 		return "MessageToNextCodeReference";
 	}
 
-	virtual void print(std::wostream& os) const
+	void print(std::ostream& os) const override
 	{
-		os << filePath.wstr() << L' ' << lineNumber << L':' << columnNumber << L' ';
+		os << filePath.str() << ' ' << lineNumber << ':' << columnNumber << ' ';
 
 		if (next)
 		{
-			os << L"next";
+			os << "next";
 		}
 		else
 		{
-			os << L"previous";
+			os << "previous";
 		}
 	}
 

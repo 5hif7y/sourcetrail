@@ -1,26 +1,25 @@
 #include "NameHierarchy.h"
 
+#include "logging.h"
+#include "utilityMainFunction.h"
+
 #include <sstream>
 
-#include "logging.h"
-#include "utilityString.h"
+using namespace std;
 
-namespace
-{
-const std::wstring META_DELIMITER = L"\tm";
-const std::wstring NAME_DELIMITER = L"\tn";
-const std::wstring PART_DELIMITER = L"\ts";
-const std::wstring SIGNATURE_DELIMITER = L"\tp";
-}	 // namespace
+static const std::string_view META_DELIMITER      = "\tm";
+static const std::string_view NAME_DELIMITER      = "\tn";
+static const std::string_view PART_DELIMITER      = "\ts";
+static const std::string_view SIGNATURE_DELIMITER = "\tp";
 
-std::wstring NameHierarchy::serialize(const NameHierarchy& nameHierarchy)
+std::string NameHierarchy::serialize(const NameHierarchy &nameHierarchy)
 {
 	return serializeRange(nameHierarchy, 0, nameHierarchy.size());
 }
 
-std::wstring NameHierarchy::serializeRange(const NameHierarchy& nameHierarchy, size_t first, size_t last)
+std::string NameHierarchy::serializeRange(const NameHierarchy &nameHierarchy, size_t first, size_t last)
 {
-	std::wstringstream ss;
+	std::stringstream ss;
 	ss << nameHierarchy.getDelimiter();
 	ss << META_DELIMITER;
 	for (size_t i = first; i < last && i < nameHierarchy.size(); i++)
@@ -38,52 +37,47 @@ std::wstring NameHierarchy::serializeRange(const NameHierarchy& nameHierarchy, s
 	return ss.str();
 }
 
-NameHierarchy NameHierarchy::deserialize(const std::wstring& serializedName)
+NameHierarchy NameHierarchy::deserialize(const std::string &serializedName)
 {
 	size_t mpos = serializedName.find(META_DELIMITER);
-	if (mpos == std::wstring::npos)
+	if (mpos == std::string::npos)
 	{
-		LOG_ERROR(L"unable to deserialize name hierarchy: " + serializedName);	  // todo: obfuscate
-																				  // serializedName!
-		return NameHierarchy(NAME_DELIMITER_UNKNOWN);
+		LOG_ERROR("unable to deserialize name hierarchy: " + serializedName);
+		return NameHierarchy(NameDelimiterType::UNKNOWN);
 	}
 
 	NameHierarchy nameHierarchy(serializedName.substr(0, mpos));
 
 	size_t npos = mpos + META_DELIMITER.size();
-	while (npos != std::wstring::npos && npos < serializedName.size())
+	while (npos < serializedName.size())
 	{
 		// name
 		size_t spos = serializedName.find(PART_DELIMITER, npos);
-		if (spos == std::wstring::npos)
+		if (spos == std::string::npos)
 		{
-			LOG_ERROR(
-				L"unable to deserialize name hierarchy: " +
-				serializedName);	// todo: obfuscate serializedName!
-			return NameHierarchy(NAME_DELIMITER_UNKNOWN);
+			LOG_ERROR("unable to deserialize name hierarchy: " + serializedName);
+			return NameHierarchy(NameDelimiterType::UNKNOWN);
 		}
 
-		std::wstring name = serializedName.substr(npos, spos - npos);
+		std::string name = serializedName.substr(npos, spos - npos);
 		spos += PART_DELIMITER.size();
 
 		// signature
 		size_t ppos = serializedName.find(SIGNATURE_DELIMITER, spos);
-		if (ppos == std::wstring::npos)
+		if (ppos == std::string::npos)
 		{
-			LOG_ERROR(
-				L"unable to deserialize name hierarchy: " +
-				serializedName);	// todo: obfuscate serializedName!
-			return NameHierarchy(NAME_DELIMITER_UNKNOWN);
+			LOG_ERROR("unable to deserialize name hierarchy: " + serializedName);
+			return NameHierarchy(NameDelimiterType::UNKNOWN);
 		}
 
-		std::wstring prefix = serializedName.substr(spos, ppos - spos);
+		std::string prefix = serializedName.substr(spos, ppos - spos);
 		ppos += SIGNATURE_DELIMITER.size();
 
-		std::wstring postfix;
+		std::string postfix;
 		npos = serializedName.find(NAME_DELIMITER, ppos);
-		if (npos == std::wstring::npos)
+		if (npos == std::string::npos)
 		{
-			postfix = serializedName.substr(ppos, std::wstring::npos);
+			postfix = serializedName.substr(ppos, std::string::npos);
 		}
 		else
 		{
@@ -94,41 +88,19 @@ NameHierarchy NameHierarchy::deserialize(const std::wstring& serializedName)
 		nameHierarchy.push(NameElement(std::move(name), std::move(prefix), std::move(postfix)));
 	}
 
-	// TODO: replace duplicate main definition fix with better solution
-	if (nameHierarchy.size() == 1 && nameHierarchy.back().hasSignature() &&
-		!nameHierarchy.back().getName().empty() && nameHierarchy.back().getName()[0] == '.' &&
-		utility::isPrefix<std::wstring>(L".:main:.", nameHierarchy.back().getName()))
-	{
-		NameElement::Signature sig = nameHierarchy.back().getSignature();
-		nameHierarchy.pop();
-		nameHierarchy.push(NameElement(L"main", sig.getPrefix(), sig.getPostfix()));
-	}
+	if (isUniquifiedMainFunction(nameHierarchy))
+		deuniquifyMainFunction(&nameHierarchy);
 
 	return nameHierarchy;
 }
 
-const std::wstring& NameHierarchy::getDelimiter() const
-{
-	return m_delimiter;
-}
 
-void NameHierarchy::setDelimiter(std::wstring delimiter)
-{
-	m_delimiter = std::move(delimiter);
-}
-
-NameHierarchy::NameHierarchy(std::wstring delimiter): m_delimiter(std::move(delimiter)) {}
-
-NameHierarchy::NameHierarchy(const std::vector<std::wstring>& names, std::wstring delimiter)
+NameHierarchy::NameHierarchy(std::string delimiter)
 	: m_delimiter(std::move(delimiter))
 {
-	for (const std::wstring& name: names)
-	{
-		push(name);
-	}
 }
 
-NameHierarchy::NameHierarchy(std::wstring name, std::wstring delimiter)
+NameHierarchy::NameHierarchy(std::string name, std::string delimiter)
 	: m_delimiter(std::move(delimiter))
 {
 	push(std::move(name));
@@ -139,34 +111,27 @@ NameHierarchy::NameHierarchy(const NameDelimiterType delimiterType)
 {
 }
 
-NameHierarchy::NameHierarchy(std::wstring name, const NameDelimiterType delimiterType)
+NameHierarchy::NameHierarchy(std::string name, const NameDelimiterType delimiterType)
 	: NameHierarchy(name, nameDelimiterTypeToString(delimiterType))
 {
 }
 
-NameHierarchy::NameHierarchy(const std::vector<std::wstring>& names, const NameDelimiterType delimiterType)
-	: NameHierarchy(names, nameDelimiterTypeToString(delimiterType))
+void NameHierarchy::setDelimiter(std::string delimiter)
 {
+	m_delimiter = std::move(delimiter);
 }
 
-NameHierarchy::NameHierarchy(const NameHierarchy& other)
-	: m_elements(other.m_elements), m_delimiter(other.m_delimiter)
+const std::string &NameHierarchy::getDelimiter() const
 {
+	return m_delimiter;
 }
-
-NameHierarchy::NameHierarchy(NameHierarchy&& other)
-	: m_elements(std::move(other.m_elements)), m_delimiter(std::move(other.m_delimiter))
-{
-}
-
-NameHierarchy::~NameHierarchy() {}
 
 void NameHierarchy::push(NameElement element)
 {
 	m_elements.emplace_back(std::move(element));
 }
 
-void NameHierarchy::push(std::wstring name)
+void NameHierarchy::push(std::string name)
 {
 	m_elements.emplace_back(std::move(name));
 }
@@ -176,38 +141,19 @@ void NameHierarchy::pop()
 	m_elements.pop_back();
 }
 
-NameElement& NameHierarchy::back()
+NameElement &NameHierarchy::back()
 {
 	return m_elements.back();
 }
 
-const NameElement& NameHierarchy::back() const
+const NameElement &NameHierarchy::back() const
 {
 	return m_elements.back();
 }
 
-NameElement& NameHierarchy::operator[](size_t pos)
+const NameElement &NameHierarchy::operator[](size_t pos) const
 {
 	return m_elements[pos];
-}
-
-const NameElement& NameHierarchy::operator[](size_t pos) const
-{
-	return m_elements[pos];
-}
-
-NameHierarchy& NameHierarchy::operator=(const NameHierarchy& other)
-{
-	m_elements = other.m_elements;
-	m_delimiter = other.m_delimiter;
-	return *this;
-}
-
-NameHierarchy& NameHierarchy::operator=(NameHierarchy&& other)
-{
-	m_elements = std::move(other.m_elements);
-	m_delimiter = std::move(other.m_delimiter);
-	return *this;
 }
 
 NameHierarchy NameHierarchy::getRange(size_t first, size_t last) const
@@ -227,9 +173,9 @@ size_t NameHierarchy::size() const
 	return m_elements.size();
 }
 
-std::wstring NameHierarchy::getQualifiedName() const
+std::string NameHierarchy::getQualifiedName() const
 {
-	std::wstringstream ss;
+	std::stringstream ss;
 	for (size_t i = 0; i < m_elements.size(); i++)
 	{
 		if (i > 0)
@@ -241,47 +187,46 @@ std::wstring NameHierarchy::getQualifiedName() const
 	return ss.str();
 }
 
-std::wstring NameHierarchy::getQualifiedNameWithSignature() const
+std::string NameHierarchy::getQualifiedNameWithSignature() const
 {
-	std::wstring name = getQualifiedName();
-	if (m_elements.size())
+	std::string name = getQualifiedName();
+	if (m_elements.size() != 0)
 	{
-		name = m_elements.back().getSignature().qualifyName(
-			name);	  // todo: use separator for signature!
+		name = m_elements.back().getSignature().qualifyName(name); // todo: use separator for signature!
 	}
 	return name;
 }
 
-std::wstring NameHierarchy::getRawName() const
+std::string NameHierarchy::getRawName() const
 {
-	if (m_elements.size())
+	if (m_elements.size() != 0)
 	{
 		return m_elements.back().getName();
 	}
-	return L"";
+	return "";
 }
 
-std::wstring NameHierarchy::getRawNameWithSignature() const
+std::string NameHierarchy::getRawNameWithSignature() const
 {
-	if (m_elements.size())
+	if (m_elements.size() != 0)
 	{
 		return m_elements.back().getNameWithSignature();
 	}
-	return L"";
+	return "";
 }
 
-std::wstring NameHierarchy::getRawNameWithSignatureParameters() const
+std::string NameHierarchy::getRawNameWithSignatureParameters() const
 {
-	if (m_elements.size())
+	if (m_elements.size() != 0)
 	{
 		return m_elements.back().getNameWithSignatureParameters();
 	}
-	return L"";
+	return "";
 }
 
 bool NameHierarchy::hasSignature() const
 {
-	if (m_elements.size())
+	if (m_elements.size() != 0)
 	{
 		return m_elements.back().hasSignature();
 	}
@@ -291,9 +236,9 @@ bool NameHierarchy::hasSignature() const
 
 NameElement::Signature NameHierarchy::getSignature() const
 {
-	if (m_elements.size())
+	if (m_elements.size() != 0)
 	{
-		return m_elements.back().getSignature();	// todo: use separator for signature!
+		return m_elements.back().getSignature(); // todo: use separator for signature!
 	}
 
 	return NameElement::Signature();

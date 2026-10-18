@@ -15,7 +15,7 @@ public:
 		const QString& title,
 		const QString& description,
 		QtPathListBox::SelectionPolicyType selectionPolicy,
-		QWidget* parent = 0);
+		QWidget* parent = nullptr);
 
 	QSize sizeHint() const override;
 

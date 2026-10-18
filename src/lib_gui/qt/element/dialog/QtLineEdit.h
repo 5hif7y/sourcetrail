@@ -14,7 +14,7 @@ signals:
 	void focus();
 
 protected:
-	void focusInEvent(QFocusEvent* event);
+	void focusInEvent(QFocusEvent* event) override;
 };
 
 #endif	  // QT_LINE_EDIT_H

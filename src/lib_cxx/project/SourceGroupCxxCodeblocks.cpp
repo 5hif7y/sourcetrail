@@ -20,11 +20,11 @@ bool SourceGroupCxxCodeblocks::prepareIndexing()
 	FilePath codeblocksProjectPath = m_settings->getCodeblocksProjectPathExpandedAndAbsolute();
 	if (!codeblocksProjectPath.empty() && !codeblocksProjectPath.exists())
 	{
-		std::wstring error =
-			L"Can't refresh project. The referenced Code::Blocks project does not exist anymore: " +
-			codeblocksProjectPath.wstr();
+		std::string error =
+			"Can't refresh project. The referenced Code::Blocks project does not exist anymore: " +
+			codeblocksProjectPath.str();
 		MessageStatus(error, true).dispatch();
-		Application::getInstance()->handleDialog(error, {L"Ok"});
+		Application::getInstance()->handleDialog(error, {"Ok"});
 		return false;
 	}
 	return true;
@@ -71,9 +71,8 @@ std::shared_ptr<IndexerCommandProvider> SourceGroupCxxCodeblocks::getIndexerComm
 	if (std::shared_ptr<Codeblocks::Project> project = Codeblocks::Project::load(
 			m_settings->getCodeblocksProjectPathExpandedAndAbsolute()))
 	{
-		for (std::shared_ptr<IndexerCommandCxx> indexerCommand:
-			 project->getIndexerCommands(m_settings, ApplicationSettings::getInstance()))
-		{
+		for (const std::shared_ptr<IndexerCommandCxx> &indexerCommand :
+			 project->getIndexerCommands(m_settings, ApplicationSettings::getInstance())) {
 			if (info.filesToIndex.find(indexerCommand->getSourceFilePath()) != info.filesToIndex.end())
 			{
 				provider->addCommand(indexerCommand);

@@ -4,24 +4,24 @@
 
 CodeSnippetParams CodeSnippetParams::merge(const CodeSnippetParams& a, const CodeSnippetParams& b)
 {
-	const CodeSnippetParams* first = a.startLineNumber < b.startLineNumber ? &a : &b;
-	const CodeSnippetParams* second = a.startLineNumber > b.startLineNumber ? &a : &b;
+	const CodeSnippetParams *first = a.startLineNumber < b.startLineNumber ? &a : &b;
+	const CodeSnippetParams *second = a.startLineNumber > b.startLineNumber ? &a : &b;
 
-	SourceLocationFile* aFile = a.locationFile.get();
-	SourceLocationFile* bFile = b.locationFile.get();
+	SourceLocationFile *aFile = a.locationFile.get();
+	SourceLocationFile *bFile = b.locationFile.get();
 
-	std::shared_ptr<SourceLocationFile> locationFile = std::make_shared<SourceLocationFile>(
-		aFile->getFilePath(),
-		aFile->getLanguage(),
-		aFile->isWhole(),
-		aFile->isComplete(),
-		aFile->isIndexed());
+	std::shared_ptr<SourceLocationFile> locationFile = std::make_shared<SourceLocationFile>(aFile->getFilePath(), aFile->getLanguage(),
+		aFile->isWhole(), aFile->isComplete(), aFile->isIndexed());
 
-	aFile->forEachSourceLocation(
-		[&locationFile](SourceLocation* loc) { locationFile->addSourceLocationCopy(loc); });
+	aFile->forEachSourceLocation([&locationFile](SourceLocation *loc)
+	{
+		locationFile->addSourceLocationCopy(loc);
+	});
 
-	bFile->forEachSourceLocation(
-		[&locationFile](SourceLocation* loc) { locationFile->addSourceLocationCopy(loc); });
+	bFile->forEachSourceLocation([&locationFile](SourceLocation *loc)
+	{
+		locationFile->addSourceLocationCopy(loc);
+	});
 
 	std::string code = first->code;
 
@@ -31,7 +31,7 @@ CodeSnippetParams CodeSnippetParams::merge(const CodeSnippetParams& a, const Cod
 	{
 		secondCodeStartIndex = secondCode.find("\n", secondCodeStartIndex) + 1;
 	}
-	code += secondCode.substr(secondCodeStartIndex, secondCode.npos);
+	code += secondCode.substr(secondCodeStartIndex, std::string::npos);
 
 	CodeSnippetParams params;
 	params.startLineNumber = first->startLineNumber;

@@ -7,10 +7,10 @@ class ScreenSearchView: public View
 {
 public:
 	ScreenSearchView(ViewLayout* viewLayout);
-	virtual ~ScreenSearchView();
+	~ScreenSearchView() override;
 
 	// View implementation
-	virtual std::string getName() const;
+	std::string getName() const override;
 
 	virtual void setMatchCount(size_t matchCount) = 0;
 	virtual void setMatchIndex(size_t matchIndex) = 0;

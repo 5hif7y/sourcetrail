@@ -1,10 +1,11 @@
 #include "QtSearchView.h"
 
-#include "ResourcePaths.h"
-
 #include "QtSearchBar.h"
 #include "QtViewWidgetWrapper.h"
 #include "utilityQt.h"
+#include "QtResources.h"
+
+using namespace utility;
 
 QtSearchView::QtSearchView(ViewLayout* viewLayout): SearchView(viewLayout)
 {
@@ -24,14 +25,14 @@ void QtSearchView::refreshView()
 	});
 }
 
-std::wstring QtSearchView::getQuery() const
+std::string QtSearchView::getQuery() const
 {
-	return m_widget->query().toStdWString();
+	return m_widget->query().toStdString();
 }
 
 void QtSearchView::setMatches(const std::vector<SearchMatch>& matches)
 {
-	m_onQtThread([=]() { m_widget->setMatches(matches); });
+	m_onQtThread([=, this]() { m_widget->setMatches(matches); });
 }
 
 void QtSearchView::setFocus()
@@ -52,18 +53,17 @@ void QtSearchView::findFulltext()
 
 void QtSearchView::setAutocompletionList(const std::vector<SearchMatch>& autocompletionList)
 {
-	m_onQtThread([=]() { m_widget->setAutocompletionList(autocompletionList); });
+	m_onQtThread([=, this]() { m_widget->setAutocompletionList(autocompletionList); });
 }
 
 void QtSearchView::setStyleSheet()
 {
-	const std::string css = utility::getStyleSheet(
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"search_view/search_view.css"));
+	QString css = QtResources::loadStyleSheet(QtResources::SEARCH_VIEW_CSS);
 
-	m_widget->setStyleSheet(css.c_str());
+	m_widget->setStyleSheet(css);
 
 	if (m_widget->getCompleterPopup())
 	{
-		m_widget->getCompleterPopup()->setStyleSheet(css.c_str());
+		m_widget->getCompleterPopup()->setStyleSheet(css);
 	}
 }

@@ -56,9 +56,9 @@ class GraphController
 {
 public:
 	GraphController(StorageAccess* storageAccess);
-	~GraphController() = default;
+	~GraphController() override = default;
 
-	Id getSchedulerId() const override;
+	TabId getSchedulerId() const override;
 
 private:
 	void handleMessage(MessageActivateErrors* message) override;
@@ -111,11 +111,11 @@ private:
 		std::function<bool(const DummyNode::BundleInfo&, const Node*)> matcher,
 		size_t count,
 		bool countConnectedNodes,
-		const std::wstring& name);
-	std::shared_ptr<DummyNode> bundleNodesMatching(
+		const std::string& name);
+	static std::shared_ptr<DummyNode> bundleNodesMatching(
 		std::list<std::shared_ptr<DummyNode>>& nodes,
 		std::function<bool(const DummyNode*)> matcher,
-		const std::wstring& name);
+		const std::string& name);
 	std::shared_ptr<DummyNode> bundleByType(
 		std::list<std::shared_ptr<DummyNode>>& nodes,
 		const NodeType& type,
@@ -133,8 +133,8 @@ private:
 	void layoutNesting();
 	void extendEqualFunctionNames(const std::vector<std::shared_ptr<DummyNode>>& nodes) const;
 	Vec4i layoutNestingRecursive(DummyNode* node, int relayoutAccessMaxWidth = -1) const;
-	void addExpandToggleNode(DummyNode* node) const;
-	void layoutToGrid(DummyNode* node) const;
+	static void addExpandToggleNode(DummyNode* node);
+	static void layoutToGrid(DummyNode* node);
 
 	void layoutGraph(bool getSortedNodes = false);
 	void layoutList();
@@ -149,7 +149,7 @@ private:
 		MessageBase* message,
 		GraphView::GraphParams params,
 		bool withCharacterIndex,
-		const std::wstring& groupName);
+		const std::string& groupName);
 	void buildGraph(MessageBase* message, GraphView::GraphParams params);
 
 	void forEachDummyNodeRecursive(std::function<void(DummyNode*)> func);

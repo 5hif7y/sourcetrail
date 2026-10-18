@@ -7,7 +7,7 @@
 class SourceGroupSettingsWithCxxCdbPath: public SourceGroupSettingsComponent
 {
 public:
-	virtual ~SourceGroupSettingsWithCxxCdbPath() = default;
+	~SourceGroupSettingsWithCxxCdbPath() override = default;
 
 	FilePath getCompilationDatabasePath() const;
 	FilePath getCompilationDatabasePathExpandedAndAbsolute() const;

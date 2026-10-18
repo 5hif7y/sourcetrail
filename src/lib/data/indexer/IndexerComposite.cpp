@@ -4,7 +4,7 @@
 #include "IntermediateStorage.h"
 #include "logging.h"
 
-IndexerComposite::~IndexerComposite() {}
+IndexerComposite::~IndexerComposite() = default;
 
 IndexerCommandType IndexerComposite::getSupportedIndexerCommandType() const
 {

@@ -2,7 +2,7 @@
 #define MESSAGE_GRAPH_NODE_MOVE_H
 
 #include "Message.h"
-#include "TabId.h"
+#include "TabIds.h"
 #include "Vector2.h"
 #include "types.h"
 
@@ -11,7 +11,7 @@ class MessageGraphNodeMove: public Message<MessageGraphNodeMove>
 public:
 	MessageGraphNodeMove(Id tokenId, const Vec2i& delta): tokenId(tokenId), delta(delta)
 	{
-		setSchedulerId(TabId::currentTab());
+		setSchedulerId(TabIds::currentTab());
 	}
 
 	static const std::string getStaticType()
@@ -19,9 +19,9 @@ public:
 		return "MessageGraphNodeMove";
 	}
 
-	virtual void print(std::wostream& os) const
+	void print(std::ostream& os) const override
 	{
-		os << tokenId << L" " << delta.toWString();
+		os << tokenId << " " << delta.toString();
 	}
 
 	const Id tokenId;

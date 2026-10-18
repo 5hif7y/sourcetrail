@@ -3,28 +3,29 @@
 #include "FileSystem.h"
 #include "TimeStamp.h"
 #include "logging.h"
-#include "utilityString.h"
+#include "Id.h"
+
+// Ensure an Id can hold a SQLite integer:
+static_assert(sizeof(SqliteInteger) <= sizeof(Id::type));
 
 SqliteStorage::SqliteStorage(const FilePath& dbFilePath): m_dbFilePath(dbFilePath.getCanonical())
 {
 	if (!m_dbFilePath.getParentDirectory().empty() && !m_dbFilePath.getParentDirectory().exists())
 	{
-		FileSystem::createDirectory(m_dbFilePath.getParentDirectory());
+		FileSystem::createDirectories(m_dbFilePath.getParentDirectory());
 	}
 
 	try
 	{
-		m_database.open(utility::encodeToUtf8(m_dbFilePath.wstr()).c_str());
+		m_database.open(m_dbFilePath.str());
 	}
 	catch (CppSQLite3Exception& e)
 	{
-		LOG_ERROR(
-			L"Failed to load database file \"" + m_dbFilePath.wstr() + L"\" with message: " +
-			utility::decodeFromUtf8(e.errorMessage()));
+		LOG_ERROR("Failed to load database file \"" + m_dbFilePath.str() + "\" with message: " + e.errorMessage());
 		throw;
 	}
 
-	executeStatement("PRAGMA foreign_keys=ON;");
+	enablePragmas();
 }
 
 SqliteStorage::~SqliteStorage()
@@ -33,7 +34,7 @@ SqliteStorage::~SqliteStorage()
 	{
 		m_database.close();
 	}
-	catch (CppSQLite3Exception e)
+	catch (CppSQLite3Exception &e)
 	{
 		LOG_ERROR(e.errorMessage());
 	}
@@ -41,7 +42,8 @@ SqliteStorage::~SqliteStorage()
 
 void SqliteStorage::setup()
 {
-	executeStatement("PRAGMA foreign_keys=ON;");
+	enablePragmas();
+
 	setupMetaTable();
 
 	if (isEmpty() || !isIncompatible())
@@ -58,7 +60,8 @@ void SqliteStorage::setup()
 
 void SqliteStorage::clear()
 {
-	executeStatement("PRAGMA foreign_keys=OFF;");
+	disablePragmas();
+
 	clearMetaTable();
 	clearTables();
 
@@ -115,12 +118,7 @@ bool SqliteStorage::isEmpty() const
 bool SqliteStorage::isIncompatible() const
 {
 	size_t storageVersion = getVersion();
-	if (isEmpty() || storageVersion != getStaticVersion())
-	{
-		return true;
-	}
-
-	return false;
+	return isEmpty() || storageVersion != getStaticVersion();
 }
 
 void SqliteStorage::setTime()
@@ -169,9 +167,9 @@ bool SqliteStorage::executeStatement(const std::string& statement) const
 {
 	try
 	{
-		m_database.execDML(statement.c_str());
+		m_database.execDML(statement);
 	}
-	catch (CppSQLite3Exception e)
+	catch (CppSQLite3Exception &e)
 	{
 		LOG_ERROR(std::to_string(e.errorCode()) + ": " + e.errorMessage());
 		return false;
@@ -179,13 +177,13 @@ bool SqliteStorage::executeStatement(const std::string& statement) const
 	return true;
 }
 
-bool SqliteStorage::executeStatement(CppSQLite3Statement& statement) const
+bool SqliteStorage::executeStatement(CppSQLite3Statement& statement) 
 {
 	try
 	{
 		statement.execDML();
 	}
-	catch (CppSQLite3Exception e)
+	catch (CppSQLite3Exception &e)
 	{
 		LOG_ERROR(std::to_string(e.errorCode()) + ": " + e.errorMessage());
 		return false;
@@ -195,36 +193,35 @@ bool SqliteStorage::executeStatement(CppSQLite3Statement& statement) const
 	return true;
 }
 
-int SqliteStorage::executeStatementScalar(const std::string& statement, const int nullValue) const
+SqliteInteger SqliteStorage::executeStatementScalar(const std::string& statement, const int nullValue) const
 {
-	int ret = 0;
+	SqliteInteger ret = 0;
 	try
 	{
-		ret = m_database.execScalar(statement.c_str(), nullValue);
+		ret = m_database.execScalar(statement, nullValue);
 	}
-	catch (CppSQLite3Exception e)
+	catch (CppSQLite3Exception &e)
 	{
 		LOG_ERROR(std::to_string(e.errorCode()) + ": " + e.errorMessage());
 	}
 	return ret;
 }
 
-int SqliteStorage::executeStatementScalar(CppSQLite3Statement& statement, const int nullValue) const
+SqliteInteger SqliteStorage::executeStatementScalar(CppSQLite3Statement& statement, const int nullValue) 
 {
-	int ret = 0;
+	SqliteInteger ret = 0;
 	try
 	{
 		CppSQLite3Query q = executeQuery(statement);
 
 		if (q.eof() || q.numFields() < 1)
 		{
-			char error[] = "Invalid scalar query";
-			throw CppSQLite3Exception(CPPSQLITE_ERROR, error, false);
+			throw CppSQLite3Exception(CPPSQLITE_ERROR, "Invalid scalar query");
 		}
 
 		ret = q.getIntField(0, nullValue);
 	}
-	catch (CppSQLite3Exception e)
+	catch (CppSQLite3Exception &e)
 	{
 		LOG_ERROR(std::to_string(e.errorCode()) + ": " + e.errorMessage());
 	}
@@ -236,22 +233,22 @@ CppSQLite3Query SqliteStorage::executeQuery(const std::string& statement) const
 {
 	try
 	{
-		return m_database.execQuery(statement.c_str());
+		return m_database.execQuery(statement);
 	}
-	catch (CppSQLite3Exception e)
+	catch (CppSQLite3Exception &e)
 	{
 		LOG_ERROR(std::to_string(e.errorCode()) + ": " + e.errorMessage());
 	}
 	return CppSQLite3Query();
 }
 
-CppSQLite3Query SqliteStorage::executeQuery(CppSQLite3Statement& statement) const
+CppSQLite3Query SqliteStorage::executeQuery(CppSQLite3Statement& statement) 
 {
 	try
 	{
 		return statement.execQuery();
 	}
-	catch (CppSQLite3Exception e)
+	catch (CppSQLite3Exception &e)
 	{
 		LOG_ERROR(std::to_string(e.errorCode()) + ": " + e.errorMessage());
 	}
@@ -260,8 +257,7 @@ CppSQLite3Query SqliteStorage::executeQuery(CppSQLite3Statement& statement) cons
 
 bool SqliteStorage::hasTable(const std::string& tableName) const
 {
-	CppSQLite3Query q = executeQuery(
-		"SELECT name FROM sqlite_master WHERE type='table' AND name='" + tableName + "';");
+	CppSQLite3Query q = executeQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='" + tableName + "';");
 
 	if (!q.eof())
 	{
@@ -288,14 +284,30 @@ std::string SqliteStorage::getMetaValue(const std::string& key) const
 
 void SqliteStorage::insertOrUpdateMetaValue(const std::string& key, const std::string& value)
 {
-	CppSQLite3Statement stmt = m_database.compileStatement(
-		std::string("INSERT OR REPLACE INTO meta(id, key, value) VALUES("
-					"(SELECT id FROM meta WHERE key = ?), ?, ?"
-					");")
-			.c_str());
+	CppSQLite3Statement stmt = m_database.compileStatement("INSERT OR REPLACE INTO meta(id, key, value) VALUES((SELECT id FROM meta WHERE key = ?), ?, ?);");
 
-	stmt.bind(1, key.c_str());
-	stmt.bind(2, key.c_str());
-	stmt.bind(3, value.c_str());
+	stmt.bind(1, key);
+	stmt.bind(2, key);
+	stmt.bind(3, value);
 	executeStatement(stmt);
+}
+
+void SqliteStorage::enablePragmas() const
+{
+	executeStatement("PRAGMA FOREIGN_KEYS=ON;");
+
+	executeStatement("PRAGMA JOURNAL_MODE=WAL;");
+	executeStatement("PRAGMA SYNCHRONOUS=OFF;");
+	executeStatement("PRAGMA WAL_AUTOCHECKPOINT=10000;");
+
+	// These pragmas were tried, but didn't help much in reducing the indexing time on Windows:
+	//executeStatement("PRAGMA BUSY_TIMEOUT=5000;");
+	//executeStatement("PRAGMA CACHE_SIZE=-32768;");    // 32MB
+	//executeStatement("PRAGMA MMAP_SIZE=2147483648;"); // 2GB
+	//executeStatement("PRAGMA TEMP_STORE=MEMORY;");
+}
+
+void SqliteStorage::disablePragmas() const
+{
+	executeStatement("PRAGMA FOREIGN_KEYS=OFF;");
 }

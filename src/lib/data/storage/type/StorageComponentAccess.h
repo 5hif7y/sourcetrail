@@ -1,13 +1,14 @@
 #ifndef STORAGE_COMPONENT_ACCESS_H
 #define STORAGE_COMPONENT_ACCESS_H
 
-#include "types.h"
+#include "AccessKind.h"
+#include "Id.h"
 
 struct StorageComponentAccess
 {
-	StorageComponentAccess(): nodeId(0), type(0) {}
+	StorageComponentAccess(): nodeId(0), type(AccessKind::NONE) {}
 
-	StorageComponentAccess(Id nodeId, int type): nodeId(nodeId), type(type) {}
+	StorageComponentAccess(Id nodeId, AccessKind type): nodeId(nodeId), type(type) {}
 
 	bool operator<(const StorageComponentAccess& other) const
 	{
@@ -15,7 +16,7 @@ struct StorageComponentAccess
 	}
 
 	Id nodeId;
-	int type;
+	AccessKind type;
 };
 
 #endif	  // STORAGE_COMPONENT_ACCESS_H

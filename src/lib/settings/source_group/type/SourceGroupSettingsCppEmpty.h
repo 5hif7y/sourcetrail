@@ -26,7 +26,7 @@ class SourceGroupSettingsCppEmpty
 {
 public:
 	SourceGroupSettingsCppEmpty(const std::string& id, const ProjectSettings* projectSettings)
-		: SourceGroupSettingsWithComponents(SOURCE_GROUP_CPP_EMPTY, id, projectSettings)
+		: SourceGroupSettingsWithComponents(SourceGroupType::CXX_EMPTY, id, projectSettings)
 	{
 	}
 

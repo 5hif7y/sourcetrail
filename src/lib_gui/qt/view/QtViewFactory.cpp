@@ -31,7 +31,7 @@ std::shared_ptr<CompositeView> QtViewFactory::createCompositeView(
 	ViewLayout* viewLayout,
 	CompositeView::CompositeDirection direction,
 	const std::string& name,
-	const Id tabId) const
+	const TabId tabId) const
 {
 	return View::createAndAddToLayout<QtCompositeView>(viewLayout, direction, name, tabId);
 }

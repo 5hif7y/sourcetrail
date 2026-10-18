@@ -3,6 +3,8 @@
 
 #include <string>
 
+#include <QVariant>
+
 class FilePath;
 class QColor;
 class QIcon;
@@ -14,19 +16,37 @@ class ViewLayout;
 
 namespace utility
 {
-void setWidgetBackgroundColor(QWidget* widget, const std::string& color);
-void setWidgetRetainsSpaceWhenHidden(QWidget* widget);
+void setWidgetBackgroundColor(QWidget *widget, const std::string &color);
+void setWidgetRetainsSpaceWhenHidden(QWidget *widget);
 
-void loadFontsFromDirectory(const FilePath& path, const std::wstring& extension = L".otf");
+void loadFontsFromDirectory(const FilePath &path, const std::string &extension = ".otf");
 
-std::string getStyleSheet(const FilePath& path);
+QPixmap colorizePixmap(const QPixmap &pixmap, QColor color);
+QIcon createButtonIcon(const FilePath &iconPath, const std::string &colorId);
 
-QPixmap colorizePixmap(const QPixmap& pixmap, QColor color);
-QIcon createButtonIcon(const FilePath& iconPath, const std::string& colorId);
+QtMainWindow *getMainWindowforMainView(ViewLayout *viewLayout);
 
-QtMainWindow* getMainWindowforMainView(ViewLayout* viewLayout);
+void copyNewFilesFromDirectory(const QString &src, const QString &dst);
 
-void copyNewFilesFromDirectory(const QString& src, const QString& dst);
-}	 // namespace utility
+extern const char QT_AUTO_SCREEN_SCALE_FACTOR[];
 
-#endif	  // UTILITY_QT_H
+bool isQtAutoScreenScaleFactorEnabled();
+void setQtAutoScreenScaleFactorEnabled(bool enable);
+
+extern const char QT_SCALE_FACTOR[];
+
+std::optional<double> getQtScaleFactor();
+void setQtScaleFactor(double factor);
+
+
+
+template <typename T>
+T qt_variant_cast(const QVariant &variant)
+{
+	Q_ASSERT(variant.canConvert<T>());
+	return qvariant_cast<T>(variant);
+}
+
+}
+
+#endif // UTILITY_QT_H

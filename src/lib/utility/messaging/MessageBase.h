@@ -4,24 +4,13 @@
 #include <ostream>
 #include <sstream>
 
-#include "types.h"
-#include "utilityString.h"
+#include "Id.h"
+#include "TabIds.h"
 
 class MessageBase
 {
 public:
-	MessageBase()
-		: m_id(s_nextId++)
-		, m_schedulerId(0)
-		, m_isParallel(false)
-		, m_isReplayed(false)
-		, m_sendAsTask(true)
-		, m_keepContent(false)
-		, m_isLast(true)
-		, m_isLogged(true)
-	{
-	}
-
+	MessageBase() = default;
 	virtual ~MessageBase() = default;
 
 	virtual std::string getType() const = 0;
@@ -32,12 +21,12 @@ public:
 		return m_id;
 	}
 
-	Id getSchedulerId() const
+	TabId getSchedulerId() const
 	{
 		return m_schedulerId;
 	}
 
-	void setSchedulerId(Id schedulerId)
+	void setSchedulerId(TabId schedulerId)
 	{
 		m_schedulerId = schedulerId;
 	}
@@ -102,12 +91,14 @@ public:
 		return m_keepContent;
 	}
 
-	virtual void print(std::wostream& os) const = 0;
-
-	std::wstring str() const
+	virtual void print(std::ostream & /*os*/) const
 	{
-		std::wstringstream ss;
-		ss << utility::decodeFromUtf8(getType()) << L" ";
+	}
+
+	std::string str() const
+	{
+		std::stringstream ss;
+		ss << getType() << " ";
 		print(ss);
 		return ss.str();
 	}
@@ -115,17 +106,18 @@ public:
 private:
 	static Id s_nextId;
 
-	Id m_id;
-	Id m_schedulerId;
+	Id m_id = s_nextId++;
 
-	bool m_isParallel;
-	bool m_isReplayed;
+	TabId m_schedulerId = TabId::NONE;
 
-	bool m_sendAsTask;
-	bool m_keepContent;
+	bool m_isParallel = false;
+	bool m_isReplayed = false;
 
-	bool m_isLast;
-	bool m_isLogged;
+	bool m_sendAsTask = true;
+	bool m_keepContent = false;
+
+	bool m_isLast = true;
+	bool m_isLogged = true;
 };
 
 #endif	  // MESSAGE_BASE_H

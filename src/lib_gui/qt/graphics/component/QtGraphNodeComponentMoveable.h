@@ -9,11 +9,11 @@ class QtGraphNodeComponentMoveable: public QtGraphNodeComponent
 {
 public:
 	QtGraphNodeComponentMoveable(QtGraphNode* graphNode);
-	virtual ~QtGraphNodeComponentMoveable();
+	~QtGraphNodeComponentMoveable() override;
 
-	virtual void nodeMousePressEvent(QGraphicsSceneMouseEvent* event);
-	virtual void nodeMouseMoveEvent(QGraphicsSceneMouseEvent* event);
-	virtual void nodeMouseReleaseEvent(QGraphicsSceneMouseEvent* event);
+	void nodeMousePressEvent(QGraphicsSceneMouseEvent* event) override;
+	void nodeMouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
+	void nodeMouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
 
 private:
 	Vec2i m_mouseOffset;

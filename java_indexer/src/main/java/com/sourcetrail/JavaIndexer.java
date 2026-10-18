@@ -56,37 +56,31 @@ public class JavaIndexer
 		{
 			astVisitorClient.logInfo("indexing source file: " + filePath);
 
-			Path path = Paths.get(filePath);
-
-			ASTParser parser = ASTParser.newParser(AST.JLS_Latest);
-
-			parser.setResolveBindings(
-				true);	  // solve "bindings" like the declaration of the type used in a var decl
-			parser.setKind(
-				ASTParser.K_COMPILATION_UNIT);	  // specify to parse the entire compilation unit
-			parser.setBindingsRecovery(
-				true);	  // also return bindings that are not resolved completely
+			var parser = ASTParser.newParser(AST.getJLSLatest());
+			parser.setResolveBindings(true);	  // solve "bindings" like the declaration of the type used in a var decl
+			parser.setKind(ASTParser.K_COMPILATION_UNIT);	  // specify to parse the entire compilation unit
+			parser.setBindingsRecovery(true);	  // also return bindings that are not resolved completely
 			parser.setStatementsRecovery(true);
 
 			{
-				String convertedLanguageStandard = convertLanguageStandard(languageStandard);
-				astVisitorClient.logInfo("using language standard " + convertedLanguageStandard);
+				astVisitorClient.logInfo("using language standard " + languageStandard);
 
 				Hashtable<String, String> options = JavaCore.getOptions();
 				options.put(JavaCore.COMPILER_PB_ENABLE_PREVIEW_FEATURES, JavaCore.DISABLED);
 				options.put(JavaCore.COMPILER_PB_REPORT_PREVIEW_FEATURES, JavaCore.IGNORE);
-				options.put(JavaCore.COMPILER_SOURCE, convertedLanguageStandard);
-				options.put(JavaCore.COMPILER_CODEGEN_TARGET_PLATFORM, convertedLanguageStandard);
-				options.put(JavaCore.COMPILER_COMPLIANCE, convertedLanguageStandard);
+				options.put(JavaCore.COMPILER_SOURCE, languageStandard);
+				options.put(JavaCore.COMPILER_CODEGEN_TARGET_PLATFORM, languageStandard);
+				options.put(JavaCore.COMPILER_COMPLIANCE, languageStandard);
 				parser.setCompilerOptions(options);
 			}
 
+			Path path = Paths.get(filePath);
 			parser.setUnitName(path.getFileName().toString());
 
 			List<String> classpath = new ArrayList<>();
 			List<String> sources = new ArrayList<>();
 
-			for (String classPathEntry: classPath.split("\\;"))
+			for (String classPathEntry: classPath.split("\\" + Utility.getClassPathSeparator()))
 			{
 				if (classPathEntry.endsWith(".jar"))
 				{
@@ -107,43 +101,36 @@ public class JavaIndexer
 				}
 			}
 
-			parser.setEnvironment(
-				classpath.toArray(new String[0]), sources.toArray(new String[0]), null, true);
+			parser.setEnvironment(classpath.toArray(new String[0]), sources.toArray(new String[0]), null, true);
 			parser.setSource(fileContent.toCharArray());
 
-			CompilationUnit cu = (CompilationUnit)parser.createAST(null);
+			var compilationUnit = (CompilationUnit)parser.createAST(null);
 
 			ASTVisitor visitor;
 			if (verbose != 0)
-			{
-				visitor = new VerboseContextAwareAstVisitor(
-					astVisitorClient, path.toFile(), fileContent, cu);
-			}
+				visitor = new VerboseContextAwareAstVisitor(astVisitorClient, path.toFile(), fileContent, compilationUnit);
 			else
-			{
-				visitor = new ContextAwareAstVisitor(
-					astVisitorClient, path.toFile(), fileContent, cu);
-			}
+				visitor = new ContextAwareAstVisitor(astVisitorClient, path.toFile(), fileContent, compilationUnit);
 
 			astVisitorClient.logInfo("starting AST traversal");
 
-			cu.accept(visitor);
+			compilationUnit.accept(visitor);
 
-			for (IProblem problem: cu.getProblems())
+			for (IProblem problem: compilationUnit.getProblems())
 			{
 				if (problem.isError())
 				{
 					Range range = new Range(
-						cu.getLineNumber(problem.getSourceStart()),
-						cu.getColumnNumber(problem.getSourceStart() + 1),
-						cu.getLineNumber(problem.getSourceEnd()),
-						cu.getColumnNumber(problem.getSourceEnd()) + 1);
+						compilationUnit.getLineNumber(problem.getSourceStart()),
+						compilationUnit.getColumnNumber(problem.getSourceStart() + 1),
+						compilationUnit.getLineNumber(problem.getSourceEnd()),
+						compilationUnit.getColumnNumber(problem.getSourceEnd()) + 1);
 
 					astVisitorClient.recordError(problem.getMessage(), false, true, range);
 				}
 			}
 
-			for (Object commentObject: cu.getCommentList())
+			for (Object commentObject: compilationUnit.getCommentList())
 			{
 				if ((commentObject instanceof LineComment) || (commentObject instanceof BlockComment))
 				{
@@ -164,9 +151,8 @@ public class JavaIndexer
 	{
 		String packageName = "";
 
-		ASTParser parser = ASTParser.newParser(AST.JLS_Latest);
-		parser.setKind(
-			ASTParser.K_COMPILATION_UNIT);	  // specify to parse the entire compilation unit
+		ASTParser parser = ASTParser.newParser(AST.getJLSLatest());
+		parser.setKind(ASTParser.K_COMPILATION_UNIT);	  // specify to parse the entire compilation unit
 		parser.setSource(fileContent.toCharArray());
 		CompilationUnit cu = (CompilationUnit)parser.createAST(null);
 		PackageDeclaration packageDeclaration = cu.getPackage();
@@ -182,95 +168,48 @@ public class JavaIndexer
 		Runtime.getRuntime().gc();
 	}
 
-	private static String convertLanguageStandard(String s)
-	{
-		switch (s)
-		{
-		case "1":
-			return JavaCore.VERSION_1_1;
-		case "2":
-			return JavaCore.VERSION_1_2;
-		case "3":
-			return JavaCore.VERSION_1_3;
-		case "4":
-			return JavaCore.VERSION_1_4;
-		case "5":
-			return JavaCore.VERSION_1_5;
-		case "6":
-			return JavaCore.VERSION_1_6;
-		case "7":
-			return JavaCore.VERSION_1_7;
-		case "8":
-			return JavaCore.VERSION_1_8;
-		case "9":
-			return JavaCore.VERSION_9;
-		case "10":
-			return JavaCore.VERSION_10;
-		case "11":
-			return JavaCore.VERSION_11;
-		case "12":
-			return JavaCore.VERSION_12;
-		case "13":
-			return JavaCore.VERSION_13;
-		case "14":
-			return JavaCore.VERSION_14;
-		case "15":
-		default:
-			return JavaCore.VERSION_15;
-		}
-	}
-
 	private static File extractClassesJarFileFromAarFile(
 		Path aarFilePath, AstVisitorClient astVisitorClient) throws IOException
 	{
-		JarFile jarFile = new JarFile(aarFilePath.toString());
-		ZipEntry classesJarEntry = jarFile.getEntry("classes.jar");
-		if (classesJarEntry != null)
+		try (JarFile jarFile = new JarFile(aarFilePath.toString()))
 		{
-			InputStream inputStream = jarFile.getInputStream(classesJarEntry);
-			File tempFile = File.createTempFile(
-				"jar_file_from_" + Utility.getFilenameWithoutExtension(aarFilePath) + "_", ".jar");
-			tempFile.deleteOnExit();
-
-			byte[] buffer = new byte[8 * 1024];
-
-			try
+			ZipEntry classesJarEntry = jarFile.getEntry("classes.jar");
+			if (classesJarEntry != null)
 			{
-				OutputStream output = new FileOutputStream(tempFile);
-				try
+				try (InputStream inputStream = jarFile.getInputStream(classesJarEntry))
 				{
-					int bytesRead;
-					while ((bytesRead = inputStream.read(buffer)) != -1)
+					File tempFile = File.createTempFile(
+						"jar_file_from_" + Utility.getFilenameWithoutExtension(aarFilePath) + "_", ".jar");
+					tempFile.deleteOnExit();
+
+					byte[] buffer = new byte[8 * 1024];
+
+					try (OutputStream output = new FileOutputStream(tempFile))
 					{
-						output.write(buffer, 0, bytesRead);
+						int bytesRead;
+						while ((bytesRead = inputStream.read(buffer)) != -1)
+						{
+							output.write(buffer, 0, bytesRead);
+						}
 					}
-				}
-				finally
-				{
-					output.close();
+					astVisitorClient.logInfo(
+						"Extracted classes.jar file from \"" + aarFilePath.toString() + "\" to \"" +
+						tempFile.getAbsolutePath() + "\". "
+						+ "This file will be automatically deleted when the session ends.");
+
+					return tempFile;
 				}
 			}
-			finally
+			else
 			{
-				inputStream.close();
+				astVisitorClient.logError(
+					"Classpath entry \"" + aarFilePath +
+					"\" is malformed. No internal \"classes.jar\" entry could be found.");
 			}
+			jarFile.close();
 
-			astVisitorClient.logInfo(
-				"Extracted classes.jar file from \"" + aarFilePath.toString() + "\" to \"" +
-				tempFile.getAbsolutePath() + "\". "
-				+ "This file will be automatically deleted when the session ends.");
-
-			return tempFile;
+			return null;
 		}
-		else
-		{
-			astVisitorClient.logError(
-				"Classpath entry \"" + aarFilePath +
-				"\" is malformed. No internal \"classes.jar\" entry could be found.");
-		}
-		jarFile.close();
-
-		return null;
 	}
 
 	// the following methods are defined in the native c++ code

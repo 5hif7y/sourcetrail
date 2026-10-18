@@ -1,8 +1,8 @@
 #include "QtSmartSearchBox.h"
 
+#include <cstdlib>
 #include <deque>
 #include <regex>
-#include <stdlib.h>
 
 #include <QApplication>
 #include <QClipboard>
@@ -12,10 +12,14 @@
 #include "GraphViewStyle.h"
 #include "MessageFocusedSearchView.h"
 #include "NodeTypeSet.h"
+#include "compatibilityQt.h"
 #include "utility.h"
 #include "utilityString.h"
 
-QtSearchElement::QtSearchElement(const QString& text, QWidget* parent): QPushButton(text, parent)
+using namespace utility::compatibility;
+
+QtSearchElement::QtSearchElement(const QString& text, QWidget* parent)
+	: QPushButton(text, parent)
 {
 	show();
 	setCheckable(true);
@@ -49,7 +53,7 @@ void QtSmartSearchBox::startSearch()
 			}
 			else
 			{
-				QString text = QString::fromStdWString(match.name);
+				QString text = QString::fromStdString(match.name);
 				if (m_supportsFullTextSearch &&
 					!text.startsWith(SearchMatch::FULLTEXT_SEARCH_CHARACTER))
 				{
@@ -69,18 +73,11 @@ void QtSmartSearchBox::startSearch()
 	emit search(utility::toVector(m_matches), getMatchAcceptedNodeTypes());
 }
 
-QtSmartSearchBox::QtSmartSearchBox(const QString& placeholder, bool supportsFullTextSearch, QWidget* parent)
+QtSmartSearchBox::QtSmartSearchBox(QWidget* parent)
 	: QLineEdit(parent)
-	, m_placeholder(placeholder)
-	, m_supportsFullTextSearch(supportsFullTextSearch)
-	, m_allowTextChange(false)
-	, m_cursorIndex(0)
-	, m_shiftKeyDown(false)
-	, m_mousePressed(false)
-	, m_ignoreNextMousePress(false)
 {
 	setObjectName(QStringLiteral("search_box"));
-	setAttribute(Qt::WA_MacShowFocusRect, 0);	 // remove blue focus box on Mac
+	setAttribute(Qt::WA_MacShowFocusRect, false);	 // remove blue focus box on Mac
 
 	m_highlightRect = new QWidget(this);
 	m_highlightRect->setGeometry(0, 0, 0, 0);
@@ -95,7 +92,15 @@ QtSmartSearchBox::QtSmartSearchBox(const QString& placeholder, bool supportsFull
 	updatePlaceholder();
 }
 
-QtSmartSearchBox::~QtSmartSearchBox() {}
+void QtSmartSearchBox::setPlaceholderText(const QString &placeholder)
+{
+	m_placeholder = placeholder;
+}
+
+void QtSmartSearchBox::setFullTextSearchSupport(bool supportsFullTextSearch)
+{
+	m_supportsFullTextSearch = supportsFullTextSearch;
+}
 
 QCompleter* QtSmartSearchBox::getCompleter() const
 {
@@ -192,16 +197,16 @@ bool QtSmartSearchBox::event(QEvent* event)
 				{
 					addMatchAndUpdate(m_highlightedMatch);
 				}
-				else if (m_highlightedMatch.hasChildren && m_highlightedMatch.tokenNames.size())
+				else if (m_highlightedMatch.hasChildren && m_highlightedMatch.tokenNames.size() != 0)
 				{
-					setEditText(QString::fromStdWString(
+					setEditText(QString::fromStdString(
 						m_highlightedMatch.getFullName() +
 						m_highlightedMatch.tokenNames[0].getDelimiter()));
 					requestAutoCompletions();
 				}
 				else
 				{
-					setEditText(QString::fromStdWString(m_highlightedMatch.getFullName()));
+					setEditText(QString::fromStdString(m_highlightedMatch.getFullName()));
 					requestAutoCompletions();
 				}
 				return true;
@@ -463,9 +468,9 @@ void QtSmartSearchBox::keyPressEvent(QKeyEvent* event)
 	{
 		if (hasSelectedElements())
 		{
-			std::wstring str = getSelectedString();
+			std::string str = getSelectedString();
 			deleteSelectedElements();
-			QApplication::clipboard()->setText(QString::fromStdWString(str));
+			QApplication::clipboard()->setText(QString::fromStdString(str));
 			return;
 		}
 	}
@@ -473,8 +478,8 @@ void QtSmartSearchBox::keyPressEvent(QKeyEvent* event)
 	{
 		if (hasSelectedElements())
 		{
-			std::wstring str = getSelectedString();
-			QApplication::clipboard()->setText(QString::fromStdWString(str));
+			std::string str = getSelectedString();
+			QApplication::clipboard()->setText(QString::fromStdString(str));
 			return;
 		}
 	}
@@ -514,8 +519,8 @@ void QtSmartSearchBox::mouseMoveEvent(QMouseEvent* event)
 		return;
 	}
 
-	int lo = event->x() < m_mouseX ? event->x() : m_mouseX;
-	int hi = event->x() > m_mouseX ? event->x() : m_mouseX;
+	int lo = QMouseEvent_x(event) < m_mouseX ? QMouseEvent_x(event) : m_mouseX;
+	int hi = QMouseEvent_x(event) > m_mouseX ? QMouseEvent_x(event) : m_mouseX;
 
 	for (size_t i = 0; i < m_elements.size(); i++)
 	{
@@ -534,7 +539,7 @@ void QtSmartSearchBox::mousePressEvent(QMouseEvent* event)
 		QLineEdit::mousePressEvent(event);
 
 		m_mousePressed = true;
-		m_mouseX = event->x();
+		m_mouseX = QMouseEvent_x(event);
 	}
 
 	m_ignoreNextMousePress = false;
@@ -551,16 +556,16 @@ void QtSmartSearchBox::mouseReleaseEvent(QMouseEvent* event)
 
 	m_mousePressed = false;
 
-	if (abs(event->x() - m_mouseX) > 5)
+	if (abs(QMouseEvent_x(event) - m_mouseX) > 5)
 	{
 		return;
 	}
 
-	int minDist = event->x();
+	int minDist = QMouseEvent_x(event);
 	int pos = 0;
 	for (size_t i = 0; i < m_elements.size(); i++)
 	{
-		int dist = m_elements[i]->x() + m_elements[i]->width() - event->x();
+		int dist = m_elements[i]->x() + m_elements[i]->width() - QMouseEvent_x(event);
 		if (abs(dist) < abs(minDist))
 		{
 			pos = static_cast<int>(i) + 1;
@@ -589,7 +594,7 @@ void QtSmartSearchBox::onTextEdited(const QString& text)
 	bool matchesChanged = false;
 
 	SearchMatch match;
-	std::deque<SearchMatch> matches = getMatchesForInput(text.toStdWString());
+	std::deque<SearchMatch> matches = getMatchesForInput(text.toStdString());
 
 	while (!matches.empty())
 	{
@@ -606,7 +611,7 @@ void QtSmartSearchBox::onTextEdited(const QString& text)
 
 	if (matchesChanged)
 	{
-		setEditText(QString::fromStdWString(match.getFullName()));
+		setEditText(QString::fromStdString(match.getFullName()));
 		updateElements();
 	}
 	else
@@ -741,7 +746,7 @@ void QtSmartSearchBox::addMatch(const SearchMatch& match)
 	if (m_completer->popup()->isVisible())
 	{
 		const SearchMatch* mPtr = m_completer->getSearchMatchAt(0);
-		if (mPtr && utility::equalsCaseInsensitive(match.getFullName(), mPtr->getFullName()))
+		if (mPtr && utility::isCaseInsensitiveEqual(match.getFullName(), mPtr->getFullName()))
 		{
 			matchPtr = mPtr;
 		}
@@ -784,7 +789,7 @@ bool QtSmartSearchBox::editTextToElement()
 {
 	if (!text().isEmpty())
 	{
-		addMatch(SearchMatch(text().toStdWString()));
+		addMatch(SearchMatch(text().toStdString()));
 		clearLineEdit();
 		updateElements();
 
@@ -808,7 +813,7 @@ SearchMatch QtSmartSearchBox::editElement(QtSearchElement* element)
 	SearchMatch match = m_matches[m_cursorIndex];
 	m_matches.erase(m_matches.begin() + m_cursorIndex);
 
-	setEditText(QString::fromStdWString(match.getFullName()));
+	setEditText(QString::fromStdString(match.getFullName()));
 	updateElements();
 
 	return match;
@@ -816,7 +821,7 @@ SearchMatch QtSmartSearchBox::editElement(QtSearchElement* element)
 
 void QtSmartSearchBox::updateElements()
 {
-	for (auto e: m_elements)
+	for (auto *e: m_elements)
 	{
 		e->hide();
 		e->deleteLater();
@@ -828,49 +833,49 @@ void QtSmartSearchBox::updateElements()
 
 	for (const SearchMatch& match: m_matches)
 	{
-		std::wstring name = match.getFullName();
-		name = utility::replace(name, L"&", L"&&");
+		std::string name = match.getFullName();
+		name = utility::replace(name, "&", "&&");
 		if (match.isFilterCommand())
 		{
-			name += L':';
+			name += ':';
 		}
 
-		QtSearchElement* element = new QtSearchElement(QString::fromStdWString(name), this);
+		QtSearchElement* element = new QtSearchElement(QString::fromStdString(name), this);
+		element->setObjectName(QStringLiteral("search_box_element"));
 		m_elements.push_back(element);
-
-		std::string color;
-		std::string hoverColor;
+		
+		std::string backgroundColor;
+		std::string backgroundHoverColor;
 		std::string textColor = searchTextColor;
 		std::string textHoverColor = searchTextColor;
-
+		
 		if (match.searchType == SearchMatch::SEARCH_TOKEN)
 		{
-			color = GraphViewStyle::getNodeColor(match.nodeType.getUnderscoredTypeString(), false).fill;
-			hoverColor =
-				GraphViewStyle::getNodeColor(match.nodeType.getUnderscoredTypeString(), true).fill;
-			textColor =
-				GraphViewStyle::getNodeColor(match.nodeType.getUnderscoredTypeString(), false).text;
-			textHoverColor =
-				GraphViewStyle::getNodeColor(match.nodeType.getUnderscoredTypeString(), true).text;
+			backgroundColor = GraphViewStyle::getNodeColor(match.nodeType.getUnderscoredTypeString(), false).fill;
+			backgroundHoverColor = GraphViewStyle::getNodeColor(match.nodeType.getUnderscoredTypeString(), true).fill;
+			textColor = GraphViewStyle::getNodeColor(match.nodeType.getUnderscoredTypeString(), false).text;
+			textHoverColor = GraphViewStyle::getNodeColor(match.nodeType.getUnderscoredTypeString(), true).text;
 		}
 		else
 		{
-			const std::wstring typeName = match.getSearchTypeName();
-
-			color = scheme->getSearchTypeColor(utility::encodeToUtf8(typeName), "fill");
-			hoverColor = scheme->getSearchTypeColor(
-				utility::encodeToUtf8(typeName), "fill", "hover");
-			textColor = scheme->getSearchTypeColor(utility::encodeToUtf8(typeName), "text");
-			textHoverColor = scheme->getSearchTypeColor(
-				utility::encodeToUtf8(typeName), "text", "hover");
-			;
+			const std::string typeName = match.getSearchTypeName();
+			
+			backgroundColor = scheme->getSearchTypeColor(typeName, "fill");
+			backgroundHoverColor = scheme->getSearchTypeColor(typeName, "fill", "hover");
+			textColor = scheme->getSearchTypeColor(typeName, "text");
+			textHoverColor = scheme->getSearchTypeColor(typeName, "text", "hover");
 		}
-
+		// Properties are also set in 'search_view.css'
 		std::stringstream css;
-		css << "QPushButton { border: none; padding: 0px 4px; background-color:" << color
-			<< "; color:" << textColor << ";} ";
-		css << "QPushButton:hover { background-color:" << hoverColor << "; color:" << textHoverColor
-			<< ";} ";
+		css << "#search_box_element { ";
+		css << "background-color: " << backgroundColor << "; ";
+		css << "color: " << textColor << "; ";
+		css << "}";
+		
+		css << "#search_box_element:hover { ";
+		css << "background-color: " << backgroundHoverColor << "; ";
+		css << "color: " << textHoverColor << "; ";
+		css << "}";
 
 		element->setStyleSheet(css.str().c_str());
 
@@ -974,9 +979,9 @@ bool QtSmartSearchBox::hasSelectedElements() const
 	return false;
 }
 
-std::wstring QtSmartSearchBox::getSelectedString() const
+std::string QtSmartSearchBox::getSelectedString() const
 {
-	std::wstring str;
+	std::string str;
 	for (size_t i = 0; i < m_elements.size(); i++)
 	{
 		if (m_elements[i]->isChecked())
@@ -1048,11 +1053,11 @@ void QtSmartSearchBox::updatePlaceholder()
 {
 	if (text().isEmpty() && m_elements.empty())
 	{
-		setPlaceholderText(m_placeholder);
+		QLineEdit::setPlaceholderText(m_placeholder);
 	}
 	else
 	{
-		setPlaceholderText(QLatin1String(""));
+		QLineEdit::setPlaceholderText(QLatin1String(""));
 	}
 }
 
@@ -1066,7 +1071,7 @@ void QtSmartSearchBox::requestAutoCompletions()
 {
 	if (!text().isEmpty() && !text().startsWith(SearchMatch::FULLTEXT_SEARCH_CHARACTER))
 	{
-		emit autocomplete(text().toStdWString(), getMatchAcceptedNodeTypes());
+		emit autocomplete(text().toStdString(), getMatchAcceptedNodeTypes());
 	}
 	else
 	{
@@ -1082,32 +1087,27 @@ void QtSmartSearchBox::hideAutoCompletions()
 void QtSmartSearchBox::startFullTextSearch()
 {
 	if (!m_supportsFullTextSearch)
-	{
 		return;
-	}
 
-	std::wstring term = text().toStdWString().substr(1);
+	// Cut of first search character:
+	std::string term = text().toStdString().substr(1);
 	if (term.empty())
-	{
 		return;
-	}
 
 	bool caseSensitive = false;
 	if (term.at(0) == SearchMatch::FULLTEXT_SEARCH_CHARACTER)
 	{
+		// Cut of second search character:
 		term = term.substr(1);
 		if (term.empty())
-		{
 			return;
-		}
 
 		caseSensitive = true;
 	}
-
 	emit fullTextSearch(term, caseSensitive);
 }
 
-std::deque<SearchMatch> QtSmartSearchBox::getMatchesForInput(const std::wstring& text) const
+std::deque<SearchMatch> QtSmartSearchBox::getMatchesForInput(const std::string& text) 
 {
 	std::deque<SearchMatch> matches;
 	if (!text.empty())

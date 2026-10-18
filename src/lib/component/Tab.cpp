@@ -4,14 +4,14 @@
 #include "GraphView.h"
 
 Tab::Tab(
-	Id tabId,
+	TabId tabId,
 	const ViewFactory* viewFactory,
 	StorageAccess* storageAccess,
 	ScreenSearchSender* screenSearchSender)
 	: m_tabId(tabId)
 	, m_componentManager(viewFactory, storageAccess)
-	, m_parentLayout(nullptr)
-	, m_screenSearchSender(screenSearchSender)
+	, 
+	 m_screenSearchSender(screenSearchSender)
 {
 	m_componentManager.setupTab(this, m_tabId, m_screenSearchSender);
 	m_componentManager.refreshViews();
@@ -22,7 +22,7 @@ Tab::~Tab()
 	m_componentManager.teardownTab(m_screenSearchSender);
 }
 
-Id Tab::getSchedulerId() const
+TabId Tab::getSchedulerId() const
 {
 	return m_tabId;
 }
@@ -108,7 +108,7 @@ void Tab::handleMessage(MessageFocusView* message)
 	codeView->setNavigationFocus(type == MessageFocusView::ViewType::CODE);
 }
 
-void Tab::handleMessage(MessageRefreshUI* message)
+void Tab::handleMessage(MessageRefreshUI*  /*message*/)
 {
 	m_componentManager.refreshViews();
 }

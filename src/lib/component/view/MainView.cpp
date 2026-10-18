@@ -1,6 +1,6 @@
 #include "MainView.h"
 
-#include "TabId.h"
+#include "TabIds.h"
 
 MainView::MainView(const ViewFactory* viewFactory, StorageAccess* storageAccess)
 	: m_componentManager(viewFactory, storageAccess)
@@ -9,7 +9,7 @@ MainView::MainView(const ViewFactory* viewFactory, StorageAccess* storageAccess)
 
 void MainView::setup()
 {
-	m_componentManager.setupMain(this, TabId::app());
+	m_componentManager.setupMain(this, TabIds::app());
 
 	loadLayout();
 

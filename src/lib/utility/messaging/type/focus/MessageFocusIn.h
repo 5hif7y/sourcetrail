@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "Message.h"
-#include "TabId.h"
+#include "TabIds.h"
 #include "TooltipOrigin.h"
 #include "types.h"
 
@@ -15,7 +15,7 @@ public:
 		: tokenIds(tokenIds), origin(origin)
 	{
 		setIsLogged(false);
-		setSchedulerId(TabId::currentTab());
+		setSchedulerId(TabIds::currentTab());
 	}
 
 	static const std::string getStaticType()
@@ -23,11 +23,11 @@ public:
 		return "MessageFocusIn";
 	}
 
-	virtual void print(std::wostream& os) const
+	void print(std::ostream& os) const override
 	{
 		for (const Id& id: tokenIds)
 		{
-			os << id << L" ";
+			os << id << " ";
 		}
 	}
 

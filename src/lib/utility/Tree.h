@@ -4,7 +4,7 @@
 template <typename T>
 struct Tree
 {
-	Tree() {}
+	Tree() = default;
 	Tree(T data): data(data) {}
 	T data;
 	std::vector<Tree<T>> children;

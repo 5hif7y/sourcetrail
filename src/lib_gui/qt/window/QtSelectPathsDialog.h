@@ -10,7 +10,7 @@ class QtSelectPathsDialog: public QtTextEditDialog
 {
 	Q_OBJECT
 public:
-	QtSelectPathsDialog(const QString& title, const QString& description, QWidget* parent = 0);
+	QtSelectPathsDialog(const QString& title, const QString& description, QWidget* parent = nullptr);
 
 	std::vector<FilePath> getPathsList() const;
 	void setPathsList(
@@ -18,8 +18,8 @@ public:
 		const std::vector<FilePath>& checkedPaths,
 		const FilePath& rootPathForRelativePaths);
 
-	virtual void populateWindow(QWidget* widget) override;
-	virtual void windowReady() override;
+	void populateWindow(QWidget* widget) override;
+	void windowReady() override;
 
 private:
 	QListWidget* m_list;

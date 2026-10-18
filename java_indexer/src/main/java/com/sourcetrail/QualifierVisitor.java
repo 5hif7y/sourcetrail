@@ -105,7 +105,7 @@ public class QualifierVisitor
 		}
 	}
 
-	public void recordQualifierOfNode(ThisExpression node, FileContent fileContent)
+	public void recordQualifierOfNode(ThisExpression node, @SuppressWarnings("unused") FileContent fileContent)
 	{
 		if (node != null)
 		{

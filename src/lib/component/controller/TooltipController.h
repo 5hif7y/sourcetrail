@@ -32,22 +32,22 @@ class TooltipController
 {
 public:
 	TooltipController(StorageAccess* storageAccess);
-	virtual ~TooltipController();
+	~TooltipController() override;
 
 	// Controller
-	virtual void clear();
+	void clear() override;
 
 	// MessageListener
-	virtual void handleMessage(MessageActivateTokens* message);
-	virtual void handleMessage(MessageActivateLocalSymbols* message);
-	virtual void handleMessage(MessageFocusIn* message);
-	virtual void handleMessage(MessageFocusOut* message);
-	virtual void handleMessage(MessageGraphNodeExpand* message);
-	virtual void handleMessage(MessageScrollCode* message);
-	virtual void handleMessage(MessageScrollGraph* message);
-	virtual void handleMessage(MessageTooltipHide* message);
-	virtual void handleMessage(MessageTooltipShow* message);
-	virtual void handleMessage(MessageWindowFocus* message);
+	void handleMessage(MessageActivateTokens* message) override;
+	void handleMessage(MessageActivateLocalSymbols* message) override;
+	void handleMessage(MessageFocusIn* message) override;
+	void handleMessage(MessageFocusOut* message) override;
+	void handleMessage(MessageGraphNodeExpand* message) override;
+	void handleMessage(MessageScrollCode* message) override;
+	void handleMessage(MessageScrollGraph* message) override;
+	void handleMessage(MessageTooltipHide* message) override;
+	void handleMessage(MessageTooltipShow* message) override;
+	void handleMessage(MessageWindowFocus* message) override;
 
 private:
 	struct TooltipRequest
@@ -71,7 +71,7 @@ private:
 
 	std::unique_ptr<TooltipRequest> m_showRequest;
 	std::mutex m_showRequestMutex;
-	bool m_hideRequest;
+	bool m_hideRequest = false;
 };
 
 #endif	  // TOOLTIP_CONTROLLER_H

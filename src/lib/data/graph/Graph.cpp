@@ -2,7 +2,7 @@
 
 #include "logging.h"
 
-Graph::Graph(): m_trailMode(TRAIL_NONE) {}
+Graph::Graph() = default;
 
 Graph::~Graph()
 {
@@ -18,7 +18,7 @@ void Graph::clear()
 
 void Graph::forEachNode(std::function<void(Node*)> func) const
 {
-	for (const std::pair<Id, std::shared_ptr<Node>>& node: m_nodes)
+	for (const auto &node: m_nodes)
 	{
 		func(node.second.get());
 	}
@@ -26,7 +26,7 @@ void Graph::forEachNode(std::function<void(Node*)> func) const
 
 void Graph::forEachEdge(std::function<void(Edge*)> func) const
 {
-	for (const std::pair<Id, std::shared_ptr<Edge>>& edge: m_edges)
+	for (const auto &edge: m_edges)
 	{
 		func(edge.second.get());
 	}
@@ -300,27 +300,27 @@ void Graph::setHasTrailOrigin(bool hasOrigin)
 	m_hasTrailOrigin = hasOrigin;
 }
 
-void Graph::print(std::wostream& ostream) const
+void Graph::print(std::ostream& ostream) const
 {
-	ostream << L"Graph:\n";
-	ostream << L"nodes (" << getNodeCount() << L")\n";
-	forEachNode([&ostream](Node* n) { ostream << *n << L'\n'; });
+	ostream << "Graph:\n";
+	ostream << "nodes (" << getNodeCount() << ")\n";
+	forEachNode([&ostream](Node* n) { ostream << *n << '\n'; });
 
-	ostream << L"edges (" << getEdgeCount() << L")\n";
-	forEachEdge([&ostream](Edge* e) { ostream << *e << L'\n'; });
+	ostream << "edges (" << getEdgeCount() << ")\n";
+	forEachEdge([&ostream](Edge* e) { ostream << *e << '\n'; });
 }
 
-void Graph::printBasic(std::wostream& ostream) const
+void Graph::printBasic(std::ostream& ostream) const
 {
-	ostream << getNodeCount() << L" nodes:";
+	ostream << getNodeCount() << " nodes:";
 	forEachNode([&ostream](Node* n) {
-		ostream << L' ' << n->getReadableTypeString() << L':' << n->getFullName();
+		ostream << ' ' << n->getReadableTypeString() << ':' << n->getFullName();
 	});
 	ostream << '\n';
 
-	ostream << getEdgeCount() << L" edges:";
-	forEachEdge([&ostream](Edge* e) { ostream << L' ' << e->getName(); });
-	ostream << L'\n';
+	ostream << getEdgeCount() << " edges:";
+	forEachEdge([&ostream](Edge* e) { ostream << ' ' << e->getName(); });
+	ostream << '\n';
 }
 
 void Graph::removeEdgeInternal(Edge* edge)
@@ -332,7 +332,7 @@ void Graph::removeEdgeInternal(Edge* edge)
 	}
 }
 
-std::wostream& operator<<(std::wostream& ostream, const Graph& graph)
+std::ostream& operator<<(std::ostream& ostream, const Graph& graph)
 {
 	graph.print(ostream);
 	return ostream;

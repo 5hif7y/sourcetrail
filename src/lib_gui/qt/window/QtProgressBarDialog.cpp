@@ -4,8 +4,8 @@
 
 #include "QtProgressBar.h"
 
-QtProgressBarDialog::QtProgressBarDialog(float topRatio, bool hideable, QWidget* parent)
-	: QtIndexingDialog(true, parent), m_title(nullptr), m_topRatio(topRatio)
+QtProgressBarDialog::QtProgressBarDialog(float topRatio, bool  /*hideable*/, QWidget* parent)
+	: QtIndexingDialog(true, parent),  m_topRatio(topRatio)
 {
 	m_top = new QWidget(m_window);
 	m_top->setObjectName(QStringLiteral("topHalf"));
@@ -36,13 +36,13 @@ void QtProgressBarDialog::updateTitle(const QString& title)
 	}
 }
 
-std::wstring QtProgressBarDialog::getTitle() const
+std::string QtProgressBarDialog::getTitle() const
 {
 	if (m_title)
 	{
-		return m_title->text().toStdWString();
+		return m_title->text().toStdString();
 	}
-	return L"";
+	return "";
 }
 
 void QtProgressBarDialog::updateMessage(const QString& message)
@@ -53,13 +53,13 @@ void QtProgressBarDialog::updateMessage(const QString& message)
 	}
 }
 
-std::wstring QtProgressBarDialog::getMessage() const
+std::string QtProgressBarDialog::getMessage() const
 {
 	if (m_messageLabel)
 	{
-		return m_messageLabel->text().toStdWString();
+		return m_messageLabel->text().toStdString();
 	}
-	return L"";
+	return "";
 }
 
 void QtProgressBarDialog::setUnknownProgress()

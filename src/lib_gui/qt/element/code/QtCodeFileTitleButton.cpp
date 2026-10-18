@@ -1,25 +1,22 @@
 #include "QtCodeFileTitleButton.h"
 
-#include <QMouseEvent>
-
 #include "Application.h"
 #include "ApplicationSettings.h"
+#include "ColorScheme.h"
 #include "FileSystem.h"
 #include "MessageActivateFile.h"
 #include "MessageProjectEdit.h"
 #include "MessageTabOpenWith.h"
-#include "ResourcePaths.h"
-#include "utilityString.h"
-
-#include "Application.h"
-#include "ColorScheme.h"
 #include "Project.h"
 #include "QtContextMenu.h"
+#include "QtResources.h"
+
+#include <QMouseEvent>
+
+using namespace std;
 
 QtCodeFileTitleButton::QtCodeFileTitleButton(QWidget* parent)
 	: QtSelfRefreshIconButton(QLatin1String(""), FilePath(), "code/file/title", parent)
-	, m_isComplete(true)
-	, m_isIndexed(true)
 {
 	setObjectName(QStringLiteral("title_button"));
 	minimumSizeHint();	  // force font loading
@@ -31,11 +28,15 @@ QtCodeFileTitleButton::QtCodeFileTitleButton(QWidget* parent)
 
 	connect(this, &QtCodeFileTitleButton::clicked, this, &QtCodeFileTitleButton::clickedTitle);
 
-	m_openInTabAction = new QAction(QStringLiteral("Open in New Tab"), this);
-	m_openInTabAction->setStatusTip(QStringLiteral("Opens the file in a new tab"));
-	m_openInTabAction->setToolTip(QStringLiteral("Opens the file in a new tab"));
+	m_openInTabAction = new QAction(tr("Open in New Tab"), this);
+	m_openInTabAction->setStatusTip(tr("Opens the file in a new tab"));
+	m_openInTabAction->setToolTip(tr("Opens the file in a new tab"));
 	m_openInTabAction->setEnabled(false);
 	connect(m_openInTabAction, &QAction::triggered, this, &QtCodeFileTitleButton::openInTab);
+
+	m_hatchingBackgroundImages["bright"] = QtResources::CODE_VIEW_PATTERN_BRIGHT;
+	m_hatchingBackgroundImages["dark"] = QtResources::CODE_VIEW_PATTERN_DARK;
+	m_hatchingBackgroundImages["grey"] = QtResources::CODE_VIEW_PATTERN_GREY;
 }
 
 const FilePath& QtCodeFileTitleButton::getFilePath() const
@@ -60,12 +61,12 @@ void QtCodeFileTitleButton::setModificationTime(const TimeStamp modificationTime
 	}
 }
 
-void QtCodeFileTitleButton::setProject(const std::wstring& name)
+void QtCodeFileTitleButton::setProject(const std::string& name)
 {
 	m_filePath = FilePath();
 
-	setText(QString::fromStdWString(name));
-	setToolTip(QStringLiteral("edit project"));
+	setText(QString::fromStdString(name));
+	setToolTip(tr("edit project"));
 
 	updateIcon();
 }
@@ -113,24 +114,24 @@ void QtCodeFileTitleButton::updateTexts()
 		return;
 	}
 
-	std::wstring title = m_filePath.fileName();
-	std::wstring toolTip = L"file: " + m_filePath.wstr();
+	std::string title = m_filePath.fileName();
+	std::string toolTip = "file: " + m_filePath.str();
 
 	if (!m_isIndexed)
 	{
-		toolTip = L"non-indexed " + toolTip;
+		toolTip = "non-indexed " + toolTip;
 	}
 
 	if (!m_isComplete)
 	{
-		toolTip = L"incomplete " + toolTip;
+		toolTip = "incomplete " + toolTip;
 	}
 
 	if ((!m_filePath.recheckExists()) ||
 		(FileSystem::getLastWriteTime(m_filePath) > m_modificationTime))
 	{
-		title += L"*";
-		toolTip = L"out-of-date " + toolTip;
+		title += "*";
+		toolTip = "out-of-date " + toolTip;
 	}
 
 	if (ApplicationSettings::getInstance()->getShowDirectoryInCodeFileTitle())
@@ -138,30 +139,30 @@ void QtCodeFileTitleButton::updateTexts()
 		setAutoElide(true);
 
 		FilePath directoryPath = m_filePath.getParentDirectory();
-		std::wstring directory = directoryPath.wstr();
+		std::string directory = directoryPath.str();
 
 		FilePath projectPath = Application::getInstance()->getCurrentProjectPath();
-		std::wstring directoryRelative = directoryPath.getRelativeTo(projectPath).wstr();
+		std::string directoryRelative = directoryPath.getRelativeTo(projectPath).str();
 
 		if (directoryRelative.size() < directory.size())
 		{
 			directory = directoryRelative;
 		}
 
-		if (directory.size() && directory.back() == L'/')
+		if (directory.size() && directory.back() == '/')
 		{
 			directory.pop_back();
 		}
 
-		title = directory + L" - " + title;
+		title = directory + " - " + title;
 	}
 	else
 	{
 		setAutoElide(false);
 	}
 
-	setText(QString::fromStdWString(title));
-	setToolTip(QString::fromStdWString(toolTip));
+	setText(QString::fromStdString(title));
+	setToolTip(QString::fromStdString(toolTip));
 }
 
 void QtCodeFileTitleButton::updateFromOther(const QtCodeFileTitleButton* other)
@@ -172,7 +173,7 @@ void QtCodeFileTitleButton::updateFromOther(const QtCodeFileTitleButton* other)
 	}
 	else
 	{
-		setProject(other->text().toStdWString());
+		setProject(other->text().toStdString());
 	}
 
 	setModificationTime(other->m_modificationTime);
@@ -245,16 +246,15 @@ void QtCodeFileTitleButton::updateIcon()
 {
 	if (m_filePath.empty())
 	{
-		setIconPath(ResourcePaths::getGuiDirectoryPath().concatenate(L"code_view/images/edit.png"));
+		setIconPath(QtResources::CODE_VIEW_EDIT);
 	}
 	else if (!m_isComplete)
 	{
-		setIconPath(
-			ResourcePaths::getGuiDirectoryPath().concatenate(L"graph_view/images/file_incomplete.png"));
+		setIconPath(QtResources::GRAPH_VIEW_FILE_INCOMPLETE);
 	}
 	else
 	{
-		setIconPath(ResourcePaths::getGuiDirectoryPath().concatenate(L"code_view/images/file.png"));
+		setIconPath(QtResources::CODE_VIEW_FILE);
 	}
 }
 
@@ -262,14 +262,10 @@ void QtCodeFileTitleButton::updateHatching()
 {
 	if (!m_isIndexed)
 	{
-		FilePath hatchingFilePath = ResourcePaths::getGuiDirectoryPath().concatenate(
-			L"code_view/images/pattern_" +
-			utility::decodeFromUtf8(
-				ColorScheme::getInstance()->getColor("code/file/title/hatching")) +
-			L".png");
+		string hatchingColor = ColorScheme::getInstance()->getColor("code/file/title/hatching");
+		QString hatchingBackgroundImage = m_hatchingBackgroundImages[hatchingColor];
 
-		setStyleSheet(QString::fromStdWString(
-			L"#title_button { background-image: url(" + hatchingFilePath.wstr() + L"); }"));
+		setStyleSheet("#title_button { background-image: url(" + hatchingBackgroundImage + "); }");
 	}
 	else
 	{

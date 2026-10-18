@@ -11,7 +11,7 @@
 	{                                                                                              \
 		unsigned int i((idx));                                                                     \
 		checkIndexInRange(i, __FUNCTION__);                                                        \
-	} while (0)
+	} while (false)
 
 
 template <class T, unsigned int N>
@@ -21,6 +21,9 @@ public:
 	VectorBase();
 	VectorBase(const T values[N]);
 	VectorBase(const VectorBase<T, N>& vector);
+
+	VectorBase &operator = (const VectorBase &) = default;
+
 	~VectorBase();
 
 	T getValue(const unsigned int index) const;
@@ -88,7 +91,6 @@ public:
 	bool operator!=(const VectorBase<U, N>& other) const;
 
 	std::string toString() const;
-	std::wstring toWString() const;
 
 protected:
 	T m_values[N];
@@ -115,9 +117,7 @@ private:
 
 
 template <class T, unsigned int N>
-VectorBase<T, N>::VectorBase()
-{
-}
+VectorBase<T, N>::VectorBase() = default;
 
 template <class T, unsigned int N>
 VectorBase<T, N>::VectorBase(const T values[N])
@@ -132,9 +132,7 @@ VectorBase<T, N>::VectorBase(const VectorBase<T, N>& vector)
 }
 
 template <class T, unsigned int N>
-VectorBase<T, N>::~VectorBase()
-{
-}
+VectorBase<T, N>::~VectorBase() = default;
 
 template <class T, unsigned int N>
 T VectorBase<T, N>::getValue(const unsigned int index) const
@@ -325,7 +323,7 @@ bool VectorBase<T, N>::isSame(const VectorBase<T, N>& other) const
 
 template <class T, unsigned int N>
 template <class U>
-bool VectorBase<T, N>::isSame(const VectorBase<U, N>& other) const
+bool VectorBase<T, N>::isSame(const VectorBase<U, N>&  /*other*/) const
 {
 	return false;
 }
@@ -438,21 +436,6 @@ std::string VectorBase<T, N>::toString() const
 		result << m_values[i] << ", ";
 	}
 	result << m_values[N - 1] << "]";
-
-	return result.str();
-}
-
-template <class T, unsigned int N>
-std::wstring VectorBase<T, N>::toWString() const
-{
-	std::wstringstream result;
-	result << L"[";
-
-	for (unsigned int i = 0; i < N - 1; i++)
-	{
-		result << m_values[i] << L", ";
-	}
-	result << m_values[N - 1] << L"]";
 
 	return result.str();
 }

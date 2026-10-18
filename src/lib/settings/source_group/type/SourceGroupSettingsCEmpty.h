@@ -22,7 +22,7 @@ class SourceGroupSettingsCEmpty
 {
 public:
 	SourceGroupSettingsCEmpty(const std::string& id, const ProjectSettings* projectSettings)
-		: SourceGroupSettingsWithComponents(SOURCE_GROUP_C_EMPTY, id, projectSettings)
+		: SourceGroupSettingsWithComponents(SourceGroupType::C_EMPTY, id, projectSettings)
 	{
 	}
 

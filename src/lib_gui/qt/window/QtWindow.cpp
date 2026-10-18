@@ -1,37 +1,29 @@
 #include "QtWindow.h"
 
+#include "QtDeviceScaledPixmap.h"
+#include "utilityQt.h"
+#include "QtResources.h"
+
 #include <QLabel>
 #include <QPushButton>
 #include <QScrollArea>
 
-#include "ApplicationSettings.h"
-#include "QtDeviceScaledPixmap.h"
-#include "ResourcePaths.h"
-#include "utilityQt.h"
+using namespace utility;
 
 QtWindow::QtWindow(bool isSubWindow, QWidget* parent)
 	: QtWindowBase(isSubWindow, parent)
-	, m_title(nullptr)
-	, m_subTitle(nullptr)
-	, m_nextButton(nullptr)
-	, m_previousButton(nullptr)
-	, m_closeButton(nullptr)
-	, m_cancelAble(true)
-	, m_scrollAble(false)
-	, m_hasLogo(false)
 {
 }
 
 void QtWindow::setup()
 {
-	setStyleSheet(
-		utility::getStyleSheet(ResourcePaths::getGuiDirectoryPath().concatenate(L"window/window.css")).c_str());
+	setStyleSheet(QtResources::loadStyleSheet(QtResources::WINDOW_CSS));
 
-	QVBoxLayout* layout = new QVBoxLayout();
+	QVBoxLayout *layout = new QVBoxLayout();
 	layout->setContentsMargins(10, 10, 10, 10);
 
 	{
-		QHBoxLayout* hlayout = new QHBoxLayout();
+		QHBoxLayout *hlayout = new QHBoxLayout();
 		hlayout->setContentsMargins(0, 0, 0, 0);
 
 		m_title = new QLabel();
@@ -49,12 +41,12 @@ void QtWindow::setup()
 
 	layout->addSpacing(10);
 
-	QWidget* contentWidget = new QWidget();
+	QWidget *contentWidget = new QWidget();
 	contentWidget->setObjectName(QStringLiteral("form"));
 
 	populateWindow(contentWidget);
 
-	QScrollArea* scrollArea = new QScrollArea();
+	QScrollArea *scrollArea = new QScrollArea();
 	scrollArea->setFrameShadow(QFrame::Plain);
 	scrollArea->setObjectName(QStringLiteral("formArea"));
 	scrollArea->setWidgetResizable(true);
@@ -72,7 +64,7 @@ void QtWindow::setup()
 		scrollArea->setObjectName(QStringLiteral("scrollArea"));
 	}
 
-	QHBoxLayout* buttonLayout = createButtons();
+	QHBoxLayout *buttonLayout = createButtons();
 	layout->addLayout(buttonLayout);
 
 	m_content->setLayout(layout);
@@ -105,13 +97,13 @@ void QtWindow::updateTitle(const QString& title)
 	}
 }
 
-std::wstring QtWindow::getTitle() const
+std::string QtWindow::getTitle() const
 {
 	if (m_title)
 	{
-		return m_title->text().toStdWString();
+		return m_title->text().toStdString();
 	}
-	return L"";
+	return "";
 }
 
 void QtWindow::updateSubTitle(const QString& subTitle)
@@ -218,7 +210,7 @@ void QtWindow::setCloseDefault(bool isDefault)
 	}
 }
 
-void QtWindow::closeEvent(QCloseEvent* event)
+void QtWindow::closeEvent(QCloseEvent*  /*event*/)
 {
 	handleClose();
 }
@@ -309,7 +301,7 @@ void QtWindow::keyPressEvent(QKeyEvent* event)
 	QWidget::keyPressEvent(event);
 }
 
-void QtWindow::populateWindow(QWidget* widget) {}
+void QtWindow::populateWindow(QWidget*  /*widget*/) {}
 
 void QtWindow::windowReady() {}
 
@@ -345,8 +337,7 @@ void QtWindow::setupDone()
 
 void QtWindow::addLogo()
 {
-	QtDeviceScaledPixmap sourcetrailLogo(
-		QString::fromStdWString(ResourcePaths::getGuiDirectoryPath().concatenate(L"window/logo.png").wstr()));
+	QtDeviceScaledPixmap sourcetrailLogo(QString::fromUtf8(QtResources::WINDOW_LOGO));
 	sourcetrailLogo.scaleToWidth(240);
 
 	QLabel* sourcetrailLogoLabel = new QLabel(this);

@@ -1,17 +1,19 @@
 #include "QtScreenSearchView.h"
 
-#include <QToolBar>
-
 #include "QtMainView.h"
 #include "QtMainWindow.h"
 #include "QtScreenSearchBox.h"
 #include "QtViewWidgetWrapper.h"
-#include "ResourcePaths.h"
-#include "TabId.h"
+#include "TabIds.h"
 #include "utilityQt.h"
+#include "QtResources.h"
+
+#include <QToolBar>
+
+using namespace utility;
 
 QtScreenSearchView::QtScreenSearchView(ViewLayout* viewLayout)
-	: ScreenSearchView(viewLayout), m_controllerProxy(this, TabId::app())
+	: ScreenSearchView(viewLayout), m_controllerProxy(this, TabIds::app())
 {
 	m_widget = new QtScreenSearchBox(&m_controllerProxy);
 
@@ -38,22 +40,20 @@ void QtScreenSearchView::createWidgetWrapper()
 
 void QtScreenSearchView::refreshView()
 {
-	m_onQtThread([=]() {
-		m_bar->setStyleSheet(
-			utility::getStyleSheet(ResourcePaths::getGuiDirectoryPath().concatenate(
-									   L"screen_search_view/screen_search_view.css"))
-				.c_str());
+	m_onQtThread([=, this]()
+	{
+		m_bar->setStyleSheet(QtResources::loadStyleSheet(QtResources::SCREEN_SEARCH_VIEW_CSS));
 	});
 }
 
 void QtScreenSearchView::setMatchCount(size_t matchCount)
 {
-	m_onQtThread([=]() { m_widget->setMatchCount(matchCount); });
+	m_onQtThread([=, this]() { m_widget->setMatchCount(matchCount); });
 }
 
 void QtScreenSearchView::setMatchIndex(size_t matchIndex)
 {
-	m_onQtThread([=]() { m_widget->setMatchIndex(matchIndex); });
+	m_onQtThread([=, this]() { m_widget->setMatchIndex(matchIndex); });
 }
 
 void QtScreenSearchView::addResponder(const std::string& name)

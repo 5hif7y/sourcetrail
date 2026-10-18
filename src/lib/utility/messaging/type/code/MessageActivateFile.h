@@ -3,7 +3,7 @@
 
 #include "FilePath.h"
 #include "Message.h"
-#include "TabId.h"
+#include "TabIds.h"
 
 class MessageActivateFile: public Message<MessageActivateFile>
 {
@@ -11,7 +11,7 @@ public:
 	MessageActivateFile(const FilePath& filePath, unsigned int line = 0)
 		: filePath(filePath), line(line)
 	{
-		setSchedulerId(TabId::currentTab());
+		setSchedulerId(TabIds::currentTab());
 	}
 
 	static const std::string getStaticType()
@@ -19,9 +19,9 @@ public:
 		return "MessageActivateFile";
 	}
 
-	virtual void print(std::wostream& os) const
+	void print(std::ostream& os) const override
 	{
-		os << filePath.wstr();
+		os << filePath.str();
 	}
 
 	const FilePath filePath;

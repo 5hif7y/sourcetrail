@@ -3,13 +3,13 @@
 
 #include <string>
 
-enum SourceGroupStatusType
+enum class SourceGroupStatusType
 {
-	SOURCE_GROUP_STATUS_ENABLED,
-	SOURCE_GROUP_STATUS_DISABLED
+	ENABLED,
+	DISABLED
 };
 
 std::string sourceGroupStatusTypeToString(SourceGroupStatusType v);
-SourceGroupStatusType stringToSourceGroupStatusType(std::string v);
+SourceGroupStatusType stringToSourceGroupStatusType(const std::string &v);
 
 #endif	  // SOURCE_GROUP_STATUS_TYPE_H

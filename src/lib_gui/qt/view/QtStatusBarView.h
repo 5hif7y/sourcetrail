@@ -1,7 +1,6 @@
 #ifndef QT_STATUS_BAR_VIEW_H
 #define QT_STATUS_BAR_VIEW_H
 
-#include <memory>
 #include <string>
 
 #include "ErrorCountInfo.h"
@@ -13,25 +12,27 @@ class QtStatusBarView: public StatusBarView
 {
 public:
 	QtStatusBarView(ViewLayout* viewLayout);
-	~QtStatusBarView() = default;
+	~QtStatusBarView() override = default;
 
 	// View implementation
 	void createWidgetWrapper() override;
 	void refreshView() override;
 
 	// StatusBar view implementation
-	void showMessage(const std::wstring& message, bool isError, bool showLoader) override;
+	void showMessage(const std::string& message, bool isError, bool showLoader) override;
 	void setErrorCount(ErrorCountInfo errorCount) override;
 
-	void showIdeStatus(const std::wstring& message) override;
+	void showIdeStatus(const std::string& message) override;
 
 	void showIndexingProgress(size_t progressPercent) override;
 	void hideIndexingProgress() override;
 
+	void showTextEncoding(const std::string &encoding) override;
+	
 private:
 	QtThreadedLambdaFunctor m_onQtThread;
 
-	QtStatusBar* m_widget;
+	QtStatusBar* m_statusBar;
 };
 
 #endif	  // !QT_STATUS_BAR_VIEW_H

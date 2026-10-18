@@ -31,7 +31,7 @@ class QtListBox: public QFrame
 
 public:
 	QtListBox(QWidget* parent, const QString& listName);
-	virtual ~QtListBox() = default;
+	~QtListBox() override = default;
 
 	void clear();
 

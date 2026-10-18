@@ -16,7 +16,7 @@ class SourceGroupSettingsCustomCommand
 {
 public:
 	SourceGroupSettingsCustomCommand(const std::string& id, const ProjectSettings* projectSettings)
-		: SourceGroupSettingsWithComponents(SOURCE_GROUP_CUSTOM_COMMAND, id, projectSettings)
+		: SourceGroupSettingsWithComponents(SourceGroupType::CUSTOM_COMMAND, id, projectSettings)
 	{
 	}
 

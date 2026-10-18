@@ -1,16 +1,16 @@
 #include "QtCodeFileTitleBar.h"
 
-#include <QHBoxLayout>
-#include <QLabel>
-#include <QStyle>
-#include <QVariant>
-
 #include "Application.h"
 #include "MessageErrorsForFile.h"
 #include "Project.h"
 #include "QtIconStateButton.h"
+#include "QtResources.h"
 #include "QtSelfRefreshIconButton.h"
-#include "ResourcePaths.h"
+
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QStyle>
+#include <QVariant>
 
 QtCodeFileTitleBar::QtCodeFileTitleBar(QWidget* parent, bool isHovering, bool isSingle)
 	: QtHoverButton(parent)
@@ -30,15 +30,13 @@ QtCodeFileTitleBar::QtCodeFileTitleBar(QWidget* parent, bool isHovering, bool is
 	titleLayout->setAlignment(Qt::AlignLeft);
 	setLayout(titleLayout);
 
-	FilePath imageDir = ResourcePaths::getGuiDirectoryPath().concatenate(L"code_view/images/");
-
 	m_expandButton = new QtSelfRefreshIconButton(
 		QLatin1String(""),
-		imageDir.getConcatenated(L"snippet_arrow_right.png"),
+		QtResources::CODE_VIEW_SNIPPET_ARROW_RIGHT,
 		"code/file/title",
 		this);
 	m_collapseButton = new QtSelfRefreshIconButton(
-		QLatin1String(""), imageDir.getConcatenated(L"snippet_arrow_down.png"), "code/file/title", this);
+		QLatin1String(""), QtResources::CODE_VIEW_SNIPPET_ARROW_DOWN, "code/file/title", this);
 
 	m_expandButton->setToolTip(QStringLiteral("expand"));
 	m_collapseButton->setToolTip(QStringLiteral("collapse"));
@@ -92,24 +90,24 @@ QtCodeFileTitleBar::QtCodeFileTitleBar(QWidget* parent, bool isHovering, bool is
 
 	m_snippetButton = new QtIconStateButton(this);
 	m_snippetButton->addState(
-		QtIconStateButton::STATE_DEFAULT, imageDir.getConcatenated(L"snippet_active.png"));
+		QtIconStateButton::STATE_DEFAULT, QtResources::CODE_VIEW_SNIPPET_ACTIVE);
 	m_snippetButton->addState(
 		QtIconStateButton::STATE_HOVERED,
-		imageDir.getConcatenated(L"snippet_inactive.png"),
+		QtResources::CODE_VIEW_SNIPPET_INACTIVE,
 		inactiveColor);
 	m_snippetButton->addState(
-		QtIconStateButton::STATE_DISABLED, imageDir.getConcatenated(L"snippet_inactive.png"));
+		QtIconStateButton::STATE_DISABLED, QtResources::CODE_VIEW_SNIPPET_INACTIVE);
 	m_snippetButton->setToolTip(QStringLiteral("show snippets"));
 
 	m_maximizeButton = new QtIconStateButton(this);
 	m_maximizeButton->addState(
-		QtIconStateButton::STATE_DEFAULT, imageDir.getConcatenated(L"maximize_active.png"));
+		QtIconStateButton::STATE_DEFAULT, QtResources::CODE_VIEW_MAXIMIZE_ACTIVE);
 	m_maximizeButton->addState(
 		QtIconStateButton::STATE_HOVERED,
-		imageDir.getConcatenated(L"maximize_inactive.png"),
+		QtResources::CODE_VIEW_MAXIMIZE_INACTIVE,
 		inactiveColor);
 	m_maximizeButton->addState(
-		QtIconStateButton::STATE_DISABLED, imageDir.getConcatenated(L"maximize_inactive.png"));
+		QtIconStateButton::STATE_DISABLED, QtResources::CODE_VIEW_MAXIMIZE_INACTIVE);
 	m_maximizeButton->setToolTip(QStringLiteral("maximize"));
 
 	for (QtIconStateButton* button: {m_snippetButton, m_maximizeButton})

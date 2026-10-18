@@ -4,7 +4,7 @@
 #include "Message.h"
 #include "MessageActivateBase.h"
 #include "NodeType.h"
-#include "TabId.h"
+#include "TabIds.h"
 #include "types.h"
 
 class MessageActivateTrail
@@ -23,7 +23,7 @@ public:
 		, horizontalLayout(horizontalLayout)
 		, custom(false)
 	{
-		setSchedulerId(TabId::currentTab());
+		setSchedulerId(TabIds::currentTab());
 	}
 
 	MessageActivateTrail(
@@ -43,7 +43,7 @@ public:
 		, horizontalLayout(horizontalLayout)
 		, custom(true)
 	{
-		setSchedulerId(TabId::currentTab());
+		setSchedulerId(TabIds::currentTab());
 	}
 
 	static const std::string getStaticType()

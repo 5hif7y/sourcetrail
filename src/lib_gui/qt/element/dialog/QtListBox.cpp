@@ -1,17 +1,19 @@
 #include "QtListBox.h"
 
+#include "QtIconButton.h"
+#include "QtResources.h"
+#include "QtStringListBoxItem.h"
+#include "QtTextEditDialog.h"
+#include "utilityQt.h"
+#include "utilityString.h"
+
 #include <QBoxLayout>
 #include <QLabel>
 #include <QScrollBar>
 
-#include "QtIconButton.h"
-#include "QtStringListBoxItem.h"
-#include "QtTextEditDialog.h"
-#include "ResourcePaths.h"
-#include "utilityQt.h"
-#include "utilityString.h"
+using namespace utility;
 
-void QtListWidget::mouseDoubleClickEvent(QMouseEvent* event)
+void QtListWidget::mouseDoubleClickEvent(QMouseEvent*  /*event*/)
 {
 	QModelIndex index;
 	emit doubleClicked(index);
@@ -33,43 +35,40 @@ void QtListWidget::wheelEvent(QWheelEvent* event)
 	}
 }
 
-QtListBox::QtListBox(QWidget* parent, const QString& listName): QFrame(parent), m_listName(listName)
+QtListBox::QtListBox(QWidget *parent, const QString &listName)
+	: QFrame(parent)
+	, m_listName(listName)
 {
-	QBoxLayout* layout = new QVBoxLayout();
+	QBoxLayout *layout = new QVBoxLayout();
 	layout->setSpacing(0);
 	layout->setContentsMargins(0, 6, 0, 0);
 	layout->setAlignment(Qt::AlignTop);
 
 	m_list = new QtListWidget(this);
 	m_list->setObjectName(QStringLiteral("list"));
-	m_list->setAttribute(Qt::WA_MacShowFocusRect, 0);
+	m_list->setAttribute(Qt::WA_MacShowFocusRect, false);
 	connect(m_list, &QListWidget::doubleClicked, this, &QtListBox::doubleClicked);
 
-	setStyleSheet(
-		utility::getStyleSheet(ResourcePaths::getGuiDirectoryPath().concatenate(L"window/listbox.css")).c_str());
+	setStyleSheet(QtResources::loadStyleSheet(QtResources::WINDOW_LISTBOX_CSS));
 	layout->addWidget(m_list, 5);
 
-	QWidget* buttonContainer = new QWidget(this);
+	QWidget *buttonContainer = new QWidget(this);
 	buttonContainer->setObjectName(QStringLiteral("bar"));
 
-	QHBoxLayout* barLayout = new QHBoxLayout();
+	QHBoxLayout *barLayout = new QHBoxLayout();
 	barLayout->setContentsMargins(8, 4, 8, 2);
 	barLayout->setSpacing(0);
 
-	m_addButton = new QtIconButton(
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"window/plus.png"),
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"window/plus_hover.png"));
+	m_addButton = new QtIconButton(QtResources::WINDOW_PLUS, QtResources::WINDOW_PLUS_HOVER);
 	m_addButton->setIconSize(QSize(16, 16));
 	m_addButton->setObjectName(QStringLiteral("plusButton"));
-	m_addButton->setToolTip(QStringLiteral("add line"));
+	m_addButton->setToolTip(tr("add line"));
 	barLayout->addWidget(m_addButton);
 
-	m_removeButton = new QtIconButton(
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"window/minus.png"),
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"window/minus_hover.png"));
+	m_removeButton = new QtIconButton(QtResources::WINDOW_MINUS, QtResources::WINDOW_MINUS_HOVER);
 	m_removeButton->setIconSize(QSize(16, 16));
 	m_removeButton->setObjectName(QStringLiteral("minusButton"));
-	m_removeButton->setToolTip(QStringLiteral("remove line"));
+	m_removeButton->setToolTip(tr("remove line"));
 	barLayout->addWidget(m_removeButton);
 
 	barLayout->addStretch();
@@ -77,11 +76,10 @@ QtListBox::QtListBox(QWidget* parent, const QString& listName): QFrame(parent), 
 	m_innerBarLayout = new QHBoxLayout();
 	barLayout->addLayout(m_innerBarLayout);
 
-	QPushButton* editButton = new QtIconButton(
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"code_view/images/edit.png"), FilePath());
+	QPushButton *editButton = new QtIconButton(QtResources::CODE_VIEW_EDIT, FilePath());
 	editButton->setIconSize(QSize(16, 16));
 	editButton->setObjectName(QStringLiteral("editButton"));
-	editButton->setToolTip(QStringLiteral("edit plain text"));
+	editButton->setToolTip(tr("edit plain text"));
 	barLayout->addWidget(editButton);
 
 	buttonContainer->setLayout(barLayout);
@@ -170,24 +168,24 @@ void QtListBox::showEditDialog()
 			m_listName, "Edit the list in plain text. Each line is one item.");
 		m_editDialog->setup();
 
-		std::vector<std::wstring> list;
+		std::vector<std::string> list;
 		for (int i = 0; i < m_list->count(); ++i)
 		{
 			QtListBoxItem* item = dynamic_cast<QtListBoxItem*>(m_list->itemWidget(m_list->item(i)));
 			if (!item->getReadOnly())
 			{
-				list.push_back(item->getText().toStdWString());
+				list.push_back(item->getText().toStdString());
 			}
 		}
 
-		m_editDialog->setText(utility::join(list, L"\n"));
+		m_editDialog->setText(utility::join(list, "\n"));
 
 		connect(
 			m_editDialog.get(), &QtTextEditDialog::canceled, this, &QtListBox::canceledEditDialog);
 		connect(m_editDialog.get(), &QtTextEditDialog::finished, this, &QtListBox::savedEditDialog);
 	}
 
-	m_editDialog->showWindow();
+	m_editDialog->show();
 	m_editDialog->raise();
 }
 
@@ -201,17 +199,17 @@ void QtListBox::canceledEditDialog()
 
 void QtListBox::savedEditDialog()
 {
-	std::vector<std::wstring> readOnlyLines;
+	std::vector<std::string> readOnlyLines;
 	for (int i = 0; i < m_list->count(); ++i)
 	{
 		QtListBoxItem* item = dynamic_cast<QtListBoxItem*>(m_list->itemWidget(m_list->item(i)));
 		if (item->getReadOnly())
 		{
-			readOnlyLines.push_back(item->getText().toStdWString());
+			readOnlyLines.push_back(item->getText().toStdString());
 		}
 	}
 
-	std::vector<std::wstring> lines = utility::splitToVector(m_editDialog->getText(), L"\n");
+	std::vector<std::string> lines = utility::splitToVector(m_editDialog->getText(), "\n");
 	for (size_t i = 0; i < lines.size(); i++)
 	{
 		lines[i] = utility::trim(lines[i]);
@@ -225,15 +223,15 @@ void QtListBox::savedEditDialog()
 
 	clear();
 
-	for (const std::wstring& line: readOnlyLines)
+	for (const std::string& line: readOnlyLines)
 	{
-		QtListBoxItem* itemWidget = addListBoxItemWithText(QString::fromStdWString(line));
+		QtListBoxItem* itemWidget = addListBoxItemWithText(QString::fromStdString(line));
 		itemWidget->setReadOnly(true);
 	}
 
-	for (const std::wstring& line: lines)
+	for (const std::string& line: lines)
 	{
-		QtListBoxItem* itemWidget = addListBoxItemWithText(QString::fromStdWString(line));
+		QtListBoxItem* itemWidget = addListBoxItemWithText(QString::fromStdString(line));
 		itemWidget->setReadOnly(false);
 	}
 

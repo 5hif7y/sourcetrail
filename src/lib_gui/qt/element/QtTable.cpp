@@ -16,7 +16,7 @@ class SelectableCellDelegate: public QStyledItemDelegate
 public:
 	SelectableCellDelegate(QObject* parent = Q_NULLPTR);
 	QWidget* createEditor(
-		QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const;
+		QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
 };
 
 SelectableCellDelegate::SelectableCellDelegate(QObject* parent): QStyledItemDelegate(parent) {}
@@ -33,7 +33,7 @@ QWidget* SelectableCellDelegate::createEditor(
 	return editor;
 }
 
-QtTable::QtTable(QWidget* parent): QTableView(parent), m_rowsToFill(0)
+QtTable::QtTable(QWidget* parent): QTableView(parent) 
 {
 	setAlternatingRowColors(true);
 	setShowGrid(false);
@@ -53,7 +53,7 @@ QtTable::QtTable(QWidget* parent): QTableView(parent), m_rowsToFill(0)
 	connect(horizontalHeader(), &QHeaderView::sectionResized, this, &QtTable::columnResized);
 }
 
-QtTable::~QtTable() {}
+QtTable::~QtTable() = default;
 
 void QtTable::updateRows()
 {
@@ -123,7 +123,7 @@ bool QtTable::hasSelection() const
 	return this->selectionModel()->hasSelection();
 }
 
-void QtTable::columnResized(int column, int oldWidth, int newWidth)
+void QtTable::columnResized(int  /*column*/, int  /*oldWidth*/, int  /*newWidth*/)
 {
 	resizeRowsToContents();
 }

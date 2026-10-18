@@ -1,44 +1,20 @@
 #include "SourceGroupSettingsWithJavaStandard.h"
 
-#include "ProjectSettings.h"
+#include "ConfigManager.h"
+#include "ToolChain.h"
 
-std::wstring SourceGroupSettingsWithJavaStandard::getDefaultJavaStandardStatic()
-{
-	return L"15";
-}
-
-std::wstring SourceGroupSettingsWithJavaStandard::getJavaStandard() const
+std::string SourceGroupSettingsWithJavaStandard::getJavaStandard() const
 {
 	if (m_javaStandard.empty())
 	{
-		return getDefaultJavaStandard();
+		return EclipseCompiler::getLatestJavaStandard();
 	}
 	return m_javaStandard;
 }
 
-void SourceGroupSettingsWithJavaStandard::setJavaStandard(const std::wstring& standard)
+void SourceGroupSettingsWithJavaStandard::setJavaStandard(const std::string& standard)
 {
 	m_javaStandard = standard;
-}
-
-std::vector<std::wstring> SourceGroupSettingsWithJavaStandard::getAvailableJavaStandards() const
-{
-	return {
-		L"15",
-		L"14",
-		L"13",
-		L"12",
-		L"11",
-		L"10",
-		L"9",
-		L"8",
-		L"7",
-		L"6",
-		L"5",
-		L"4",
-		L"3",
-		L"2",
-		L"1"};
 }
 
 bool SourceGroupSettingsWithJavaStandard::equals(const SourceGroupSettingsBase* other) const
@@ -51,7 +27,7 @@ bool SourceGroupSettingsWithJavaStandard::equals(const SourceGroupSettingsBase* 
 
 void SourceGroupSettingsWithJavaStandard::load(const ConfigManager* config, const std::string& key)
 {
-	setJavaStandard(config->getValueOrDefault<std::wstring>(key + "/java_standard", L""));
+	setJavaStandard(config->getValueOrDefault<std::string>(key + "/java_standard", ""));
 }
 
 void SourceGroupSettingsWithJavaStandard::save(ConfigManager* config, const std::string& key)
@@ -59,7 +35,3 @@ void SourceGroupSettingsWithJavaStandard::save(ConfigManager* config, const std:
 	config->setValue(key + "/java_standard", getJavaStandard());
 }
 
-std::wstring SourceGroupSettingsWithJavaStandard::getDefaultJavaStandard() const
-{
-	return getDefaultJavaStandardStatic();
-}

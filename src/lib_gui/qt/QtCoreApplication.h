@@ -18,12 +18,12 @@ class QtCoreApplication
 
 public:
 	QtCoreApplication(int argc, char** argv);
-	virtual ~QtCoreApplication() = default;
+	~QtCoreApplication() override = default;
 
 private:
-	virtual void handleMessage(MessageQuitApplication* message);
-	virtual void handleMessage(MessageIndexingStatus* message);
-	virtual void handleMessage(MessageStatus* message);
+	void handleMessage(MessageQuitApplication* message) override;
+	void handleMessage(MessageIndexingStatus* message) override;
+	void handleMessage(MessageStatus* message) override;
 };
 
 #endif	  // QT_COREAPPLICATION

@@ -24,7 +24,7 @@ QtFilesAndDirectoriesDialog::QtFilesAndDirectoriesDialog(QWidget* parent): QFile
 	}
 }
 
-QtFilesAndDirectoriesDialog::~QtFilesAndDirectoriesDialog() {}
+QtFilesAndDirectoriesDialog::~QtFilesAndDirectoriesDialog() = default;
 
 void QtFilesAndDirectoriesDialog::chooseClicked()
 {

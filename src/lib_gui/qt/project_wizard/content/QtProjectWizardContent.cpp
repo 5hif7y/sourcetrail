@@ -9,12 +9,11 @@
 QtProjectWizardContent::QtProjectWizardContent(QtProjectWizardWindow* window)
 	: QWidget(window)
 	, m_window(window)
-	, m_showFilesFunctor(
-		  std::bind(&QtProjectWizardContent::showFilesDialog, this, std::placeholders::_1))
+	, m_showFilesFunctor([this](const std::vector<FilePath> &filePaths) { showFilesDialog(filePaths); })
 {
 }
 
-void QtProjectWizardContent::populate(QGridLayout* layout, int& row) {}
+void QtProjectWizardContent::populate(QGridLayout*  /*layout*/, int&  /*row*/) {}
 
 void QtProjectWizardContent::windowReady() {}
 
@@ -54,7 +53,7 @@ void QtProjectWizardContent::setIsRequired(bool isRequired)
 	m_isRequired = isRequired;
 }
 
-QLabel* QtProjectWizardContent::createFormTitle(const QString& name) const
+QLabel* QtProjectWizardContent::createFormTitle(const QString& name)
 {
 	QLabel* label = new QLabel(name);
 	label->setObjectName(QStringLiteral("titleLabel"));
@@ -72,7 +71,7 @@ QLabel* QtProjectWizardContent::createFormLabel(QString name) const
 	return createFormSubLabel(name);
 }
 
-QLabel* QtProjectWizardContent::createFormSubLabel(const QString& name) const
+QLabel* QtProjectWizardContent::createFormSubLabel(const QString& name)
 {
 	QLabel* label = new QLabel(name);
 	label->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
@@ -82,7 +81,7 @@ QLabel* QtProjectWizardContent::createFormSubLabel(const QString& name) const
 }
 
 QToolButton* QtProjectWizardContent::createSourceGroupButton(
-	const QString& name, const QString& iconPath) const
+	const QString& name, const QString& iconPath)
 {
 	QToolButton* button = new QToolButton();
 	button->setObjectName(QStringLiteral("sourceGroupButton"));
@@ -118,7 +117,7 @@ QPushButton* QtProjectWizardContent::addFilesButton(const QString& name, QGridLa
 	return button;
 }
 
-QFrame* QtProjectWizardContent::addSeparator(QGridLayout* layout, int row) const
+QFrame* QtProjectWizardContent::addSeparator(QGridLayout* layout, int row)
 {
 	QFrame* separator = new QFrame();
 	separator->setFrameShape(QFrame::HLine);
@@ -152,7 +151,7 @@ void QtProjectWizardContent::showFilesDialog(const std::vector<FilePath>& filePa
 			m_window);
 		m_filesDialog->setup();
 
-		m_filesDialog->setText(utility::join(utility::toWStrings(filePaths), L"\n"));
+		m_filesDialog->setText(utility::join(utility::toStrings(filePaths), "\n"));
 		m_filesDialog->setCloseVisible(false);
 		m_filesDialog->setReadOnly(true);
 
@@ -168,7 +167,7 @@ void QtProjectWizardContent::showFilesDialog(const std::vector<FilePath>& filePa
 			&QtProjectWizardContent::closedFilesDialog);
 	}
 
-	m_filesDialog->showWindow();
+	m_filesDialog->show();
 	m_filesDialog->raise();
 }
 

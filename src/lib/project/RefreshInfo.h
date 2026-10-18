@@ -5,12 +5,12 @@
 
 #include "FilePath.h"
 
-enum RefreshMode
+enum class RefreshMode
 {
-	REFRESH_NONE,
-	REFRESH_UPDATED_FILES,
-	REFRESH_UPDATED_AND_INCOMPLETE_FILES,
-	REFRESH_ALL_FILES
+	NONE,
+	UPDATED_FILES,
+	UPDATED_AND_INCOMPLETE_FILES,
+	ALL_FILES
 };
 
 struct RefreshInfo
@@ -19,8 +19,7 @@ struct RefreshInfo
 	std::set<FilePath> filesToClear;
 	std::set<FilePath> nonIndexedFilesToClear;
 
-	RefreshMode mode = REFRESH_NONE;
-	bool shallow = false;
+	RefreshMode mode = RefreshMode::NONE;
 };
 
 #endif	  // REFRESH_INFO_H

@@ -8,7 +8,7 @@ class QtKnownProgressDialog: public QtProgressBarDialog
 	Q_OBJECT
 
 public:
-	QtKnownProgressDialog(bool hideable, QWidget* parent = 0);
+	QtKnownProgressDialog(bool hideable, QWidget* parent = nullptr);
 	QSize sizeHint() const override;
 
 protected:

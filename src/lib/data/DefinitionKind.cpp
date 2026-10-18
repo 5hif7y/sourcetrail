@@ -1,20 +1,18 @@
 #include "DefinitionKind.h"
 
-int definitionKindToInt(DefinitionKind definitionKind)
+namespace
 {
-	return definitionKind;
+
+const DefinitionKind DEFINITION_KINDS[] = {
+	DefinitionKind::NONE,
+	DefinitionKind::IMPLICIT,
+	DefinitionKind::EXPLICIT
+};
+
 }
 
-DefinitionKind intToDefinitionKind(int definitionKind)
+template<>
+DefinitionKind intToEnum(int value)
 {
-	switch (definitionKind)
-	{
-	case DEFINITION_NONE:
-		return DEFINITION_NONE;
-	case DEFINITION_IMPLICIT:
-		return DEFINITION_IMPLICIT;
-	case DEFINITION_EXPLICIT:
-		return DEFINITION_EXPLICIT;
-	}
-	return DEFINITION_NONE;
+	return lookupEnum(value, DEFINITION_KINDS, DefinitionKind::NONE);
 }

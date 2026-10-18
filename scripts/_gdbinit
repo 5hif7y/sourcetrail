@@ -1,0 +1,4 @@
+# If gdb doesn't load this file, then add 'set auto-load safe-path .' to ~/.gdbinit
+#
+# Ignore/Pass JVM signals:
+handle SIGSEGV nostop noprint pass

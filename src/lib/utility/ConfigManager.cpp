@@ -45,21 +45,10 @@ bool ConfigManager::getValue(const std::string& key, std::string& value) const
 	{
 		if (m_warnOnEmptyKey)
 		{
-			// LOG_WARNING("value " + key + " is not present in config.");
+			LOG_WARNING("value " + key + " is not present in config.");
 		}
 		return false;
 	}
-}
-
-bool ConfigManager::getValue(const std::string& key, std::wstring& value) const
-{
-	std::string valueString;
-	if (getValue(key, valueString))
-	{
-		value = utility::decodeFromUtf8(valueString.c_str());
-		return true;
-	}
-	return false;
 }
 
 bool ConfigManager::getValue(const std::string& key, int& value) const
@@ -99,7 +88,7 @@ bool ConfigManager::getValue(const std::string& key, bool& value) const
 
 bool ConfigManager::getValue(const std::string& key, FilePath& value) const
 {
-	std::wstring valueString;
+	std::string valueString;
 	if (getValue(key, valueString))
 	{
 		value = FilePath(valueString);
@@ -130,26 +119,11 @@ bool ConfigManager::getValues(const std::string& key, std::vector<std::string>& 
 	{
 		if (m_warnOnEmptyKey)
 		{
-			// LOG_WARNING("value " + key + " is not present in config.");
+			LOG_WARNING("value " + key + " is not present in config.");
 		}
 		return false;
 	}
 }
-
-bool ConfigManager::getValues(const std::string& key, std::vector<std::wstring>& values) const
-{
-	std::vector<std::string> valuesStringVector;
-	if (getValues(key, valuesStringVector))
-	{
-		for (const std::string& valueString: valuesStringVector)
-		{
-			values.push_back(utility::decodeFromUtf8(valueString));
-		}
-		return true;
-	}
-	return false;
-}
-
 
 bool ConfigManager::getValues(const std::string& key, std::vector<int>& values) const
 {
@@ -195,10 +169,10 @@ bool ConfigManager::getValues(const std::string& key, std::vector<bool>& values)
 
 bool ConfigManager::getValues(const std::string& key, std::vector<FilePath>& values) const
 {
-	std::vector<std::wstring> valuesStringVector;
+	std::vector<std::string> valuesStringVector;
 	if (getValues(key, valuesStringVector))
 	{
-		for (const std::wstring& valueString: valuesStringVector)
+		for (const std::string& valueString: valuesStringVector)
 		{
 			values.push_back(FilePath(valueString));
 		}
@@ -221,11 +195,6 @@ void ConfigManager::setValue(const std::string& key, const std::string& value)
 	}
 }
 
-void ConfigManager::setValue(const std::string& key, const std::wstring& value)
-{
-	setValue(key, utility::encodeToUtf8(value));
-}
-
 void ConfigManager::setValue(const std::string& key, const int value)
 {
 	setValue(key, std::to_string(value));
@@ -245,7 +214,7 @@ void ConfigManager::setValue(const std::string& key, const bool value)
 
 void ConfigManager::setValue(const std::string& key, const FilePath& value)
 {
-	setValue(key, value.wstr());
+	setValue(key, value.str());
 }
 
 void ConfigManager::setValues(const std::string& key, const std::vector<std::string>& values)
@@ -260,16 +229,6 @@ void ConfigManager::setValues(const std::string& key, const std::vector<std::str
 	{
 		m_values.emplace(key, s);
 	}
-}
-
-void ConfigManager::setValues(const std::string& key, const std::vector<std::wstring>& values)
-{
-	std::vector<std::string> stringValues;
-	for (std::wstring v: values)
-	{
-		stringValues.push_back(utility::encodeToUtf8(v));
-	}
-	setValues(key, stringValues);
 }
 
 void ConfigManager::setValues(const std::string& key, const std::vector<int>& values)
@@ -304,10 +263,10 @@ void ConfigManager::setValues(const std::string& key, const std::vector<bool>& v
 
 void ConfigManager::setValues(const std::string& key, const std::vector<FilePath>& values)
 {
-	std::vector<std::wstring> stringValues;
+	std::vector<std::string> stringValues;
 	for (const FilePath& p: values)
 	{
-		stringValues.push_back(p.wstr());
+		stringValues.push_back(p.str());
 	}
 	setValues(key, stringValues);
 }
@@ -351,7 +310,7 @@ std::vector<std::string> ConfigManager::getSublevelKeys(const std::string& key) 
 bool ConfigManager::load(const std::shared_ptr<TextAccess> textAccess)
 {
 	TiXmlDocument doc;
-	const char* pTest = doc.Parse(textAccess->getText().c_str(), 0, TIXML_ENCODING_UTF8);
+	const char* pTest = doc.Parse(textAccess->getText().c_str(), nullptr, TIXML_ENCODING_UTF8);
 	if (pTest != nullptr)
 	{
 		TiXmlHandle docHandle(&doc);
@@ -377,7 +336,7 @@ bool ConfigManager::load(const std::shared_ptr<TextAccess> textAccess)
 
 bool ConfigManager::save(const std::string filepath)
 {
-	std::string output("");
+	std::string output;
 	return createXmlDocument(true, filepath, output);
 }
 
@@ -386,12 +345,9 @@ void ConfigManager::setWarnOnEmptyKey(bool warnOnEmptyKey) const
 	m_warnOnEmptyKey = warnOnEmptyKey;
 }
 
-ConfigManager::ConfigManager(): m_warnOnEmptyKey(true) {}
+ConfigManager::ConfigManager() = default;
 
-ConfigManager::ConfigManager(const ConfigManager& other)
-	: m_values(other.m_values), m_warnOnEmptyKey(other.m_warnOnEmptyKey)
-{
-}
+ConfigManager::ConfigManager(const ConfigManager& other) = default;
 
 bool ConfigManager::createXmlDocument(bool saveAsFile, const std::string filepath, std::string& output)
 {

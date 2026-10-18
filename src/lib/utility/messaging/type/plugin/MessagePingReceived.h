@@ -6,14 +6,14 @@
 class MessagePingReceived: public Message<MessagePingReceived>
 {
 public:
-	MessagePingReceived(): ideName(L"") {}
+	MessagePingReceived() = default;
 
 	static const std::string getStaticType()
 	{
 		return "MessagePingReceived";
 	}
 
-	std::wstring ideName;
+	std::string ideName;
 };
 
 #endif	  // MESSAGE_PING_RECEIVED_H

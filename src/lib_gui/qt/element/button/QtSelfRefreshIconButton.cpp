@@ -42,7 +42,7 @@ void QtSelfRefreshIconButton::setAutoElide(bool autoElide)
 	m_autoElide = autoElide;
 }
 
-void QtSelfRefreshIconButton::handleMessage(MessageRefreshUI* message)
+void QtSelfRefreshIconButton::handleMessage(MessageRefreshUI*  /*message*/)
 {
 	m_onQtThread([this]() { refresh(); });
 }

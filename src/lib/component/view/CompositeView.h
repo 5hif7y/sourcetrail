@@ -19,12 +19,12 @@ public:
 		DIRECTION_HORIZONTAL,
 		DIRECTION_VERTICAL
 	};
-
+	
 	CompositeView(
-		ViewLayout* viewLayout, CompositeDirection direction, const std::string& name, Id tabId);
-	virtual ~CompositeView();
+		ViewLayout* viewLayout, CompositeDirection direction, const std::string& name, TabId tabId);
+	~CompositeView() override;
 
-	Id getSchedulerId() const override;
+	TabId getSchedulerId() const override;
 
 	CompositeDirection getDirection() const;
 	const std::vector<View*>& getViews() const;
@@ -34,7 +34,7 @@ public:
 	virtual void showFocusIndicator(bool focus) = 0;
 
 	// View implementation
-	virtual std::string getName() const override;
+	std::string getName() const override;
 
 	// ViewLayout implementation
 	void addView(View* view) override;
@@ -51,7 +51,7 @@ private:
 	std::vector<View*> m_views;
 	CompositeDirection m_direction;
 	const std::string m_name;
-	const Id m_tabId;
+	const TabId m_tabId;
 };
 
 #endif	  // COMPOSITE_VIEW_H

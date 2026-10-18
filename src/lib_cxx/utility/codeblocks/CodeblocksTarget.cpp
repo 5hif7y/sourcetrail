@@ -3,7 +3,6 @@
 #include "tinyxml.h"
 
 #include "CodeblocksCompiler.h"
-#include "utilityString.h"
 
 namespace Codeblocks
 {
@@ -27,7 +26,7 @@ std::shared_ptr<Target> Target::create(const TiXmlElement* element)
 		{
 			return std::shared_ptr<Target>();
 		}
-		target->m_title = utility::decodeFromUtf8(value);
+		target->m_title = value;
 	}
 
 	{
@@ -39,7 +38,7 @@ std::shared_ptr<Target> Target::create(const TiXmlElement* element)
 				if (optionElement->QueryIntAttribute("projectCompilerOptionsRelation", &value) ==
 					TIXML_SUCCESS)
 				{
-					target->m_projectCompilerOptionsRelation = intToTargetRelationType(value);
+					target->m_projectCompilerOptionsRelation = intToEnum<TargetRelationType>(value);
 				}
 			}
 			{
@@ -47,7 +46,7 @@ std::shared_ptr<Target> Target::create(const TiXmlElement* element)
 				if (optionElement->QueryIntAttribute("projectIncludeDirsRelation", &value) ==
 					TIXML_SUCCESS)
 				{
-					target->m_projectIncludeDirsRelation = intToTargetRelationType(value);
+					target->m_projectIncludeDirsRelation = intToEnum<TargetRelationType>(value);
 				}
 			}
 
@@ -69,7 +68,7 @@ std::shared_ptr<Target> Target::create(const TiXmlElement* element)
 	return target;
 }
 
-std::wstring Target::getTitle() const
+std::string Target::getTitle() const
 {
 	return m_title;
 }
@@ -79,10 +78,5 @@ std::shared_ptr<const Compiler> Target::getCompiler() const
 	return m_compiler;
 }
 
-Target::Target()
-	: m_title()
-	, m_projectCompilerOptionsRelation(CODEBLOCKS_TARGET_RELATION_TARGET_AFTER_PROJECT)
-	, m_projectIncludeDirsRelation(CODEBLOCKS_TARGET_RELATION_TARGET_AFTER_PROJECT)
-{
-}
+Target::Target() = default;
 }	 // namespace Codeblocks

@@ -2,16 +2,16 @@
 #define STORAGE_SYMBOL_H
 
 #include "DefinitionKind.h"
-#include "types.h"
+#include "Id.h"
 
 struct StorageSymbol
 {
-	StorageSymbol(): id(0), definitionKind(definitionKindToInt(DEFINITION_NONE)) {}
+	StorageSymbol(): id(0), definitionKind(DefinitionKind::NONE) {}
 
-	StorageSymbol(Id id, int definitionKind): id(id), definitionKind(definitionKind) {}
+	StorageSymbol(Id id, DefinitionKind definitionKind): id(id), definitionKind(definitionKind) {}
 
 	Id id;
-	int definitionKind;
+	DefinitionKind definitionKind;
 };
 
 #endif	  // STORAGE_SYMBOL_H

@@ -2,7 +2,7 @@
 #define MESSAGE_ACTIVATE_NODES_H
 
 #include "Message.h"
-#include "TabId.h"
+#include "TabIds.h"
 #include "types.h"
 
 class MessageActivateNodes: public Message<MessageActivateNodes>
@@ -10,7 +10,7 @@ class MessageActivateNodes: public Message<MessageActivateNodes>
 public:
 	struct ActiveNode
 	{
-		ActiveNode(): nodeId(0), nameHierarchy(NAME_DELIMITER_UNKNOWN) {}
+		ActiveNode(): nodeId(0), nameHierarchy(NameDelimiterType::UNKNOWN) {}
 		Id nodeId;
 		NameHierarchy nameHierarchy;
 	};
@@ -22,7 +22,7 @@ public:
 			addNode(tokenId);
 		}
 
-		setSchedulerId(TabId::currentTab());
+		setSchedulerId(TabIds::currentTab());
 	}
 
 	void addNode(Id tokenId)
@@ -45,11 +45,11 @@ public:
 		return "MessageActivateNodes";
 	}
 
-	virtual void print(std::wostream& os) const
+	void print(std::ostream& os) const override
 	{
 		for (const ActiveNode& node: nodes)
 		{
-			os << node.nodeId << L" ";
+			os << node.nodeId << " ";
 		}
 	}
 

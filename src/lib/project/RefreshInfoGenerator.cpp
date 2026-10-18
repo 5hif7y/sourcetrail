@@ -28,9 +28,9 @@ RefreshInfo RefreshInfoGenerator::getRefreshInfoForUpdatedFiles(
 				utility::convert<FileInfo, FilePath>(
 					fileInfosFromStorage, [](const FileInfo& info) { return info.path; }));
 
-			for (std::shared_ptr<SourceGroup> sourceGroup: sourceGroups)
+			for (const std::shared_ptr<SourceGroup> &sourceGroup: sourceGroups)
 			{
-				if (sourceGroup->getStatus() == SOURCE_GROUP_STATUS_ENABLED)
+				if (sourceGroup->getStatus() == SourceGroupStatusType::ENABLED)
 				{
 					utility::append(
 						alreadyKnownPaths,
@@ -129,9 +129,9 @@ RefreshInfo RefreshInfoGenerator::getRefreshInfoForUpdatedFiles(
 
 	// 4) Store and return this information
 	RefreshInfo info;
-	info.mode = REFRESH_UPDATED_FILES;
+	info.mode = RefreshMode::UPDATED_FILES;
 	info.filesToIndex = filesToIndex;
-	for (const FilePath fileToClear: filesToClear)
+	for (const FilePath &fileToClear: filesToClear)
 	{
 		if (storage->getFilePathIndexed(fileToClear))
 		{
@@ -151,7 +151,7 @@ RefreshInfo RefreshInfoGenerator::getRefreshInfoForIncompleteFiles(
 	std::shared_ptr<const PersistentStorage> storage)
 {
 	RefreshInfo info = getRefreshInfoForUpdatedFiles(sourceGroups, storage);
-	info.mode = REFRESH_UPDATED_AND_INCOMPLETE_FILES;
+	info.mode = RefreshMode::UPDATED_AND_INCOMPLETE_FILES;
 
 	std::set<FilePath> incompleteFiles;
 	{
@@ -185,9 +185,9 @@ RefreshInfo RefreshInfoGenerator::getRefreshInfoForIncompleteFiles(
 			}
 		}
 
-		for (const std::shared_ptr<const SourceGroup>& sourceGroup: sourceGroups)
+		for (const std::shared_ptr<SourceGroup>& sourceGroup: sourceGroups)
 		{
-			if (sourceGroup->getStatus() == SOURCE_GROUP_STATUS_ENABLED)
+			if (sourceGroup->getStatus() == SourceGroupStatusType::ENABLED)
 			{
 				utility::append(
 					info.filesToIndex,
@@ -203,7 +203,7 @@ RefreshInfo RefreshInfoGenerator::getRefreshInfoForAllFiles(
 	const std::vector<std::shared_ptr<SourceGroup>>& sourceGroups)
 {
 	RefreshInfo info;
-	info.mode = REFRESH_ALL_FILES;
+	info.mode = RefreshMode::ALL_FILES;
 	info.filesToIndex = getAllSourceFilePaths(sourceGroups);
 	return info;
 }
@@ -213,9 +213,9 @@ std::set<FilePath> RefreshInfoGenerator::getAllSourceFilePaths(
 {
 	std::set<FilePath> allSourceFilePaths;
 
-	for (const std::shared_ptr<const SourceGroup>& sourceGroup: sourceGroups)
+	for (const std::shared_ptr<SourceGroup>& sourceGroup: sourceGroups)
 	{
-		if (sourceGroup->getStatus() == SOURCE_GROUP_STATUS_ENABLED)
+		if (sourceGroup->getStatus() == SourceGroupStatusType::ENABLED)
 		{
 			for (const FilePath& sourceFilePath: sourceGroup->getAllSourceFilePaths())
 			{

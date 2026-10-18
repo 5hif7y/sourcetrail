@@ -8,7 +8,7 @@
 
 SearchController::SearchController(StorageAccess* storageAccess): m_storageAccess(storageAccess) {}
 
-Id SearchController::getSchedulerId() const
+TabId SearchController::getSchedulerId() const
 {
 	return Controller::getTabId();
 }
@@ -59,7 +59,7 @@ void SearchController::handleMessage(MessageSearchAutocomplete* message)
 		return;
 	}
 
-	LOG_INFO(L"autocomplete string: \"" + message->query + L"\"");
+	LOG_INFO("autocomplete string: \"" + message->query + "\"");
 	view->setAutocompletionList(m_storageAccess->getAutocompletionMatches(
 		message->query, message->acceptedNodeTypes, true));
 }

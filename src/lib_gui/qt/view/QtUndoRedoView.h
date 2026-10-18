@@ -12,7 +12,7 @@ class QtUndoRedoView: public UndoRedoView
 {
 public:
 	QtUndoRedoView(ViewLayout* viewLayout);
-	~QtUndoRedoView() = default;
+	~QtUndoRedoView() override = default;
 
 	// View implementation
 	void createWidgetWrapper() override;

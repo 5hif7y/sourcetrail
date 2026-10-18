@@ -4,7 +4,14 @@
 #include <string>
 
 #include "SharedMemory.h"
-#include "types.h"
+#include "utilityEnum.h"
+
+enum class ProcessId : std::size_t 
+{
+	NONE = 0,
+	
+	INVALID = MAX_ENUM_VALUE<ProcessId>
+};
 
 class BaseInterprocessDataManager
 {
@@ -13,18 +20,18 @@ public:
 		const std::string& sharedMemoryName,
 		size_t initialSharedMemorySize,
 		const std::string& instanceUuid,
-		Id processId,
+		ProcessId processId,
 		bool isOwner);
 
 	virtual ~BaseInterprocessDataManager() = default;
 
-	Id getProcessId() const;
+	ProcessId getProcessId() const;
 
 protected:
 	SharedMemory m_sharedMemory;
 
 	const std::string m_instanceUuid;
-	const Id m_processId;
+	const ProcessId m_processId;
 };
 
 #endif	  // BASE_INTERPROCESS_DATA_MANAGER_H

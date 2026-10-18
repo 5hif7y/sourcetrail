@@ -52,7 +52,7 @@ void QtIconStateButton::changeEvent(QEvent* event)
 	}
 }
 
-void QtIconStateButton::enterEvent(QEvent* event)
+void QtIconStateButton::enterEvent(QEnterEvent *event)
 {
 	if (!isEnabled())
 	{
@@ -92,7 +92,7 @@ void QtIconStateButton::leaveEvent(QEvent* event)
 
 void QtIconStateButton::setState(const State& state)
 {
-	QPixmap pixmap = QPixmap(QString::fromStdWString(state.iconPath.wstr()));
+	QPixmap pixmap = QPixmap(QString::fromStdString(state.iconPath.str()));
 
 	if (state.color != Qt::transparent)
 	{

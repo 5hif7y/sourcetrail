@@ -14,9 +14,9 @@ TokenComponentBundledEdges::Direction TokenComponentBundledEdges::opposite(Direc
 	return direction;
 }
 
-TokenComponentBundledEdges::TokenComponentBundledEdges(): m_direction(DIRECTION_INVALID) {}
+TokenComponentBundledEdges::TokenComponentBundledEdges() = default;
 
-TokenComponentBundledEdges::~TokenComponentBundledEdges() {}
+TokenComponentBundledEdges::~TokenComponentBundledEdges() = default;
 
 std::shared_ptr<TokenComponent> TokenComponentBundledEdges::copy() const
 {
@@ -32,7 +32,7 @@ std::set<Id> TokenComponentBundledEdges::getBundledEdgesIds() const
 {
 	std::set<Id> ids;
 
-	for (const std::pair<Id, Direction>& p: m_ids)
+	for (const auto &p: m_ids)
 	{
 		ids.insert(p.first);
 	}
@@ -63,7 +63,7 @@ TokenComponentBundledEdges::Direction TokenComponentBundledEdges::getDirection()
 
 	m_direction = DIRECTION_NONE;
 
-	for (const std::pair<Id, Direction>& p: m_ids)
+	for (const auto &p: m_ids)
 	{
 		if (m_direction == DIRECTION_NONE)
 		{

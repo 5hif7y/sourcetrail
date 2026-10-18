@@ -2,9 +2,9 @@
 
 #include "RefreshView.h"
 
-RefreshController::RefreshController() {}
+RefreshController::RefreshController() = default;
 
-RefreshController::~RefreshController() {}
+RefreshController::~RefreshController() = default;
 
 void RefreshController::clear() {}
 

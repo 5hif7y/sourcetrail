@@ -53,7 +53,7 @@ std::vector<std::string> getValuesOfAllXmlElementsOnPath(
 	std::string text = textAccess->getText();
 
 	TiXmlDocument doc;
-	const char* pTest = doc.Parse(text.c_str(), 0, TIXML_ENCODING_LEGACY);
+	const char* pTest = doc.Parse(text.c_str(), nullptr, TIXML_ENCODING_LEGACY);
 	if (pTest != nullptr)
 	{
 		TiXmlHandle docHandle(&doc);
@@ -116,7 +116,7 @@ std::vector<std::string> getValuesOfAllXmlTagsByName(
 	std::string text = textAccess->getText();
 
 	TiXmlDocument doc;
-	const char* pTest = doc.Parse(text.c_str(), 0, TIXML_ENCODING_UTF8);
+	const char* pTest = doc.Parse(text.c_str(), nullptr, TIXML_ENCODING_UTF8);
 	if (pTest != nullptr)
 	{
 		TiXmlHandle docHandle(&doc);

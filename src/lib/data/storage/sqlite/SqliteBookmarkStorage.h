@@ -1,21 +1,19 @@
 #ifndef SQLITE_BOOKMARK_STORAGE_H
 #define SQLITE_BOOKMARK_STORAGE_H
 
+#include "Bookmark.h"
 #include "SqliteStorage.h"
 #include "StorageBookmark.h"
 #include "StorageBookmarkCategory.h"
 #include "StorageBookmarkedEdge.h"
 #include "StorageBookmarkedNode.h"
-#include "types.h"
 
 class SqliteBookmarkStorage: public SqliteStorage
 {
 public:
 	SqliteBookmarkStorage(const FilePath& dbFilePath);
 
-	virtual size_t getStaticVersion() const;
-
-	void migrateIfNecessary();
+	size_t getStaticVersion() const override;
 
 	StorageBookmarkCategory addBookmarkCategory(const StorageBookmarkCategoryData& data);
 	StorageBookmark addBookmark(const StorageBookmarkData& data);
@@ -23,25 +21,24 @@ public:
 	StorageBookmarkedEdge addBookmarkedEdge(const StorageBookmarkedEdgeData data);
 
 	void removeBookmarkCategory(Id id);
-	void removeBookmark(const Id id);
+	void removeBookmark(const BookmarkId bookmarkId);
 
 	std::vector<StorageBookmark> getAllBookmarks() const;
 	std::vector<StorageBookmarkedNode> getAllBookmarkedNodes() const;
 	std::vector<StorageBookmarkedEdge> getAllBookmarkedEdges() const;
-
+	
 	void updateBookmark(
-		const Id bookmarkId, const std::wstring& name, const std::wstring& comment, const Id categoryId);
+		const BookmarkId bookmarkId, const std::string& name, const std::string& comment, const Id categoryId);
 
 	std::vector<StorageBookmarkCategory> getAllBookmarkCategories() const;
-	StorageBookmarkCategory getBookmarkCategoryByName(const std::wstring& name) const;
+	StorageBookmarkCategory getBookmarkCategoryByName(const std::string& name) const;
 
 private:
 	static const size_t s_storageVersion;
 
-	virtual std::vector<std::pair<int, SqliteDatabaseIndex>> getIndices() const;
-	virtual void clearTables();
-	virtual void setupTables();
-	virtual void setupPrecompiledStatements();
+	void clearTables() override;
+	void setupTables() override;
+	void setupPrecompiledStatements() override;
 
 	// void updateBookmarkMetaData(const BookmarkMetaData& metaData);
 

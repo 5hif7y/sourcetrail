@@ -24,7 +24,7 @@ void QtProjectWizardContentExtensions::populate(QGridLayout* layout, int& row)
 	QLabel* sourceLabel = createFormLabel(QStringLiteral("Source File Extensions"));
 	layout->addWidget(sourceLabel, row, QtProjectWizardWindow::FRONT_COL, Qt::AlignTop);
 
-	QString cxxAddition("");
+	QString cxxAddition;
 #if BUILD_CXX_LANGUAGE_PACKAGE
 	if (std::dynamic_pointer_cast<SourceGroupSettingsWithSourceExtensionsC>(m_settings) ||
 		std::dynamic_pointer_cast<SourceGroupSettingsWithSourceExtensionsCpp>(m_settings) ||

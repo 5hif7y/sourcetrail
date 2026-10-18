@@ -18,7 +18,7 @@ class SourceGroupSettingsCxxCdb
 {
 public:
 	SourceGroupSettingsCxxCdb(const std::string& id, const ProjectSettings* projectSettings)
-		: SourceGroupSettingsWithComponents(SOURCE_GROUP_CXX_CDB, id, projectSettings)
+		: SourceGroupSettingsWithComponents(SourceGroupType::CXX_CDB, id, projectSettings)
 	{
 	}
 

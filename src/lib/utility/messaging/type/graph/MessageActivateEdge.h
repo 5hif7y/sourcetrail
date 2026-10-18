@@ -5,9 +5,7 @@
 #include "NameHierarchy.h"
 
 #include "Message.h"
-#include "TabId.h"
-#include "types.h"
-#include "utilityString.h"
+#include "TabIds.h"
 
 class MessageActivateEdge: public Message<MessageActivateEdge>
 {
@@ -27,7 +25,7 @@ public:
 			setKeepContent(true);
 		}
 
-		setSchedulerId(TabId::currentTab());
+		setSchedulerId(TabIds::currentTab());
 	}
 
 	static const std::string getStaticType()
@@ -40,17 +38,17 @@ public:
 		return type == Edge::EDGE_BUNDLED_EDGES;
 	}
 
-	std::wstring getFullName() const
+	std::string getFullName() const
 	{
-		std::wstring name = Edge::getReadableTypeString(type) + L":";
-		name += sourceNameHierarchy.getQualifiedNameWithSignature() + L"->";
+		std::string name = Edge::getReadableTypeString(type) + ":";
+		name += sourceNameHierarchy.getQualifiedNameWithSignature() + "->";
 		name += targetNameHierarchy.getQualifiedNameWithSignature();
 		return name;
 	}
 
-	virtual void print(std::wostream& os) const
+	void print(std::ostream& os) const override
 	{
-		os << tokenId << L" - " << getFullName();
+		os << tokenId << " - " << getFullName();
 	}
 
 	const Id tokenId;

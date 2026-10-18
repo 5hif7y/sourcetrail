@@ -3,7 +3,6 @@
 
 #include "Vector2.h"
 #include "Vector4.h"
-#include "types.h"
 #include "utility.h"
 #include "utilityString.h"
 
@@ -40,7 +39,7 @@ public:
 				return a->isBundleNode();
 			}
 
-			return utility::caseInsensitiveLess(a->name, b->name);
+			return utility::isCaseInsensitiveLess(a->name, b->name);
 		}
 	};
 
@@ -48,14 +47,7 @@ public:
 
 	struct BundleInfo
 	{
-		BundleInfo()
-			: isActive(false)
-			, isDefined(false)
-			, layoutVertical(false)
-			, isReferenced(false)
-			, isReferencing(false)
-		{
-		}
+		BundleInfo() = default;
 
 		static BundleInfo averageBundleInfo(const std::vector<DummyNode::BundleInfo>& bundleInfos)
 		{
@@ -93,35 +85,19 @@ public:
 			return info;
 		}
 
-		bool isActive;
-		bool isDefined;
-		bool layoutVertical;
-		bool isReferenced;
-		bool isReferencing;
+		bool isActive = false;
+		bool isDefined = false;
+		bool layoutVertical = false;
+		bool isReferenced = false;
+		bool isReferencing = false;
 	};
 
 	DummyNode(Type type)
 		: type(type)
-		, visible(false)
-		, hidden(false)
-		, childVisible(false)
 		, tokenId(0)
-		, data(nullptr)
-		, active(false)
-		, connected(false)
-		, expanded(false)
-		, autoExpanded(false)
-		, hasParent(true)
-		, accessKind(ACCESS_NONE)
-		, invisibleSubNodeCount(0)
 		, bundleId(0)
-		, bundledNodeCount(0)
 		, bundledNodeType(NODE_SYMBOL)
-		, qualifierName(NAME_DELIMITER_UNKNOWN)
-		, groupType(GroupType::DEFAULT)
-		, groupLayout(GroupLayout::LIST)
-		, interactive(true)
-		, fontSizeDiff(5)
+		, qualifierName(NameDelimiterType::UNKNOWN)
 	{
 	}
 
@@ -458,29 +434,29 @@ public:
 	Vec2i position;
 	Vec2i size;
 
-	bool visible;
-	bool hidden;
-	bool childVisible;
+	bool visible = false;
+	bool hidden = false;
+	bool childVisible = false;
 
 	Id tokenId;
 
 	std::vector<std::shared_ptr<DummyNode>> subNodes;
 
 	// GraphNode
-	const Node* data;
-	std::wstring name;
+	const Node* data = nullptr;
+	std::string name;
 
-	bool active;
-	bool connected;
-	bool expanded;
-	bool autoExpanded;
-	bool hasParent;
+	bool active = false;
+	bool connected = false;
+	bool expanded = false;
+	bool autoExpanded = false;
+	bool hasParent = true;
 
 	// AccessNode
-	AccessKind accessKind;
+	AccessKind accessKind = AccessKind::NONE;
 
 	// ExpandToggleNode
-	size_t invisibleSubNodeCount;
+	size_t invisibleSubNodeCount = 0;
 
 	// Bundling
 	BundleInfo bundleInfo;
@@ -491,20 +467,20 @@ public:
 
 	// BundleNode
 	BundledNodesSet bundledNodes;
-	size_t bundledNodeCount;
+	size_t bundledNodeCount = 0;
 	NodeType bundledNodeType;
 
 	// QualifierNode
 	NameHierarchy qualifierName;
 
 	// GroupNode
-	GroupType groupType;
-	GroupLayout groupLayout;
+	GroupType groupType = GroupType::DEFAULT;
+	GroupLayout groupLayout = GroupLayout::LIST;
 	std::vector<Id> hiddenEdgeIds;
-	bool interactive;
+	bool interactive = true;
 
 	// TextNode
-	int fontSizeDiff;
+	int fontSizeDiff = 5;
 };
 
 #endif	  // DUMMY_NODE_H

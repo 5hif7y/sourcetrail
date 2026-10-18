@@ -10,7 +10,7 @@ class ConfigManager;
 class SourceGroupSettingsComponent: virtual public SourceGroupSettingsBase
 {
 public:
-	virtual ~SourceGroupSettingsComponent() = default;
+	~SourceGroupSettingsComponent() override = default;
 
 protected:
 	virtual void load(const ConfigManager* config, const std::string& key) = 0;

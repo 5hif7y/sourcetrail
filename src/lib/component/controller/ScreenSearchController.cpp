@@ -56,7 +56,7 @@ void ScreenSearchController::removeResponder(ScreenSearchResponder* responder)
 	}
 }
 
-void ScreenSearchController::search(const std::wstring& query, const std::set<std::string>& responderNames)
+void ScreenSearchController::search(const std::string& query, const std::set<std::string>& responderNames)
 {
 	clearMatches();
 
@@ -146,47 +146,47 @@ size_t ScreenSearchController::getResponderId(ScreenSearchResponder* responder) 
 	return 0;
 }
 
-void ScreenSearchController::handleActivation(const MessageActivateBase* message)
+void ScreenSearchController::handleActivation(const MessageActivateBase*  /*message*/)
 {
 	clearMatches();
 }
 
-void ScreenSearchController::handleMessage(MessageActivateLocalSymbols* message)
+void ScreenSearchController::handleMessage(MessageActivateLocalSymbols*  /*message*/)
 {
 	clearMatches();
 }
 
-void ScreenSearchController::handleMessage(MessageActivateTrailEdge* message)
+void ScreenSearchController::handleMessage(MessageActivateTrailEdge*  /*message*/)
 {
 	clearMatches();
 }
 
-void ScreenSearchController::handleMessage(MessageChangeFileView* message)
+void ScreenSearchController::handleMessage(MessageChangeFileView*  /*message*/)
 {
 	clearMatches();
 }
 
-void ScreenSearchController::handleMessage(MessageCodeShowDefinition* message)
+void ScreenSearchController::handleMessage(MessageCodeShowDefinition*  /*message*/)
 {
 	clearMatches();
 }
 
-void ScreenSearchController::handleMessage(MessageDeactivateEdge* message)
+void ScreenSearchController::handleMessage(MessageDeactivateEdge*  /*message*/)
 {
 	clearMatches();
 }
 
-void ScreenSearchController::handleMessage(MessageGraphNodeBundleSplit* message)
+void ScreenSearchController::handleMessage(MessageGraphNodeBundleSplit*  /*message*/)
 {
 	clearMatches();
 }
 
-void ScreenSearchController::handleMessage(MessageGraphNodeExpand* message)
+void ScreenSearchController::handleMessage(MessageGraphNodeExpand*  /*message*/)
 {
 	clearMatches();
 }
 
-void ScreenSearchController::handleMessage(MessageGraphNodeHide* message)
+void ScreenSearchController::handleMessage(MessageGraphNodeHide*  /*message*/)
 {
 	clearMatches();
 }

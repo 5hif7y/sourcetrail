@@ -18,10 +18,10 @@ public:
 		QtProjectWizardWindow* window);
 
 	// QtProjectWizardContent implementation
-	virtual void populate(QGridLayout* layout, int& row) override;
+	void populate(QGridLayout* layout, int& row) override;
 
-	virtual void load() override;
-	virtual void save() override;
+	void load() override;
+	void save() override;
 
 private:
 	std::shared_ptr<SourceGroupSettingsWithSourceExtensions> m_settings;

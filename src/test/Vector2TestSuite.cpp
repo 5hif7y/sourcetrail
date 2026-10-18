@@ -1,4 +1,4 @@
-#include "catch.hpp"
+#include "Catch2.hpp"
 
 #include "Vector2.h"
 
@@ -54,12 +54,12 @@ TEST_CASE("vector2 normalization")
 
 	float targetXY = 1.0f / std::sqrt(2.0f);
 
-	REQUIRE(targetXY == Approx(vec0.normalized().x));
-	REQUIRE(targetXY == Approx(vec0.normalized().y));
+	REQUIRE(targetXY == Catch2::Approx(vec0.normalized().x));
+	REQUIRE(targetXY == Catch2::Approx(vec0.normalized().y));
 
 	vec0.normalize();
-	REQUIRE(targetXY == Approx(vec0.x));
-	REQUIRE(targetXY == Approx(vec0.y));
+	REQUIRE(targetXY == Catch2::Approx(vec0.x));
+	REQUIRE(targetXY == Catch2::Approx(vec0.y));
 
 	float x = 17.53f;
 	float y = 42.42f;
@@ -68,8 +68,8 @@ TEST_CASE("vector2 normalization")
 	float targetX = x / std::sqrt(x * x + y * y);
 	float targetY = y / std::sqrt(x * x + y * y);
 	vec0.normalize();
-	REQUIRE(targetX == Approx(vec0.x));
-	REQUIRE(targetY == Approx(vec0.y));
+	REQUIRE(targetX == Catch2::Approx(vec0.x));
+	REQUIRE(targetY == Catch2::Approx(vec0.y));
 }
 
 TEST_CASE("vector2 comparison")
@@ -193,11 +193,8 @@ TEST_CASE("scalar multiplication operators")
 	REQUIRE(-84.0f == vec0.x);
 	REQUIRE(84.0f == vec0.y);
 
-#pragma warning(push)
-#pragma warning(disable : 4244)
 	Vec2i vec2(-2, 2);
 	Vec2i vec3 = vec2 * 42.4f;
-#pragma warning(pop)
 
 	REQUIRE(-84 == (int)vec3.x);
 	REQUIRE(84 == (int)vec3.y);

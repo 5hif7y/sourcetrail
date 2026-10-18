@@ -11,21 +11,21 @@ class QtGraphNodeQualifier: public QtGraphNode
 	Q_OBJECT
 public:
 	QtGraphNodeQualifier(const NameHierarchy& name);
-	virtual ~QtGraphNodeQualifier();
+	~QtGraphNodeQualifier() override;
 
 	// QtGraphNode implementation
-	virtual bool isQualifierNode() const;
+	bool isQualifierNode() const override;
 
-	virtual bool setPosition(const Vec2i& pos);
+	bool setPosition(const Vec2i& pos) override;
 
-	virtual void onClick();
-	virtual void updateStyle();
+	void onClick() override;
+	void updateStyle() override;
 
 protected:
-	virtual void hoverEnterEvent(QGraphicsSceneHoverEvent* event);
-	virtual void hoverLeaveEvent(QGraphicsSceneHoverEvent* event);
+	void hoverEnterEvent(QGraphicsSceneHoverEvent* event) override;
+	void hoverLeaveEvent(QGraphicsSceneHoverEvent* event) override;
 
-	virtual void matchName(const std::wstring& query, std::vector<QtGraphNode*>* matchedNodes) {}
+	void matchName(const std::string&  /*query*/, std::vector<QtGraphNode*>*  /*matchedNodes*/) override {}
 
 private:
 	const NameHierarchy m_qualifierName;

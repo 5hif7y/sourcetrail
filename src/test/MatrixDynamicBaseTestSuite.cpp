@@ -1,4 +1,4 @@
-#include "catch.hpp"
+#include "Catch2.hpp"
 
 #include "MatrixDynamicBase.h"
 #include "logging.h"

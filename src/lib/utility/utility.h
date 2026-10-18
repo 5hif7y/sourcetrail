@@ -2,17 +2,13 @@
 #define UTILITY_H
 
 #include <algorithm>
-#include <cstdarg>
-#include <deque>
 #include <functional>
-#include <list>
 #include <map>
 #include <set>
 #include <unordered_set>
 #include <vector>
 
 #include "FilePath.h"
-#include "utilityString.h"
 
 namespace utility
 {
@@ -44,14 +40,15 @@ void append(std::unordered_set<T>& a, const std::unordered_set<T>& b);
 template <typename T>
 std::vector<T> unique(const std::vector<T>& a);
 
-template <typename T>
-std::vector<T> toVector(const std::deque<T>& d);
-
-template <typename T>
-std::vector<T> toVector(const std::set<T>& d);
-
-template <typename T>
-std::vector<T> toVector(const std::list<T>& d);
+template <typename Container, typename T = typename Container::value_type>
+std::vector<T> toVector(const Container& d)
+{
+	std::vector<T> v;
+	v.reserve(d.size());
+	for (const T &e : d)
+		v.push_back(e);
+	return v;
+}
 
 template <typename T>
 std::set<T> toSet(const std::vector<T>& d);
@@ -85,11 +82,6 @@ template <typename T>
 std::vector<std::string> toStrings(const std::vector<T>& d);
 template <>
 std::vector<std::string> toStrings(const std::vector<FilePath>& d);
-
-template <typename T>
-std::vector<std::wstring> toWStrings(const std::vector<T>& d);
-template <>
-std::vector<std::wstring> toWStrings(const std::vector<FilePath>& d);
 
 template <typename T>
 bool isPermutation(const std::vector<T>& a, const std::vector<T>& b)
@@ -134,7 +126,7 @@ template <typename T>
 std::vector<std::vector<T>> utility::splitToEquallySizedParts(
 	const std::vector<T>& values, const size_t desiredPartCount)
 {
-	const size_t partCount = std::max<size_t>(1, std::min(desiredPartCount, values.size()));
+	const size_t partCount = std::max<size_t>(1, (std::min)(desiredPartCount, values.size()));
 
 	std::vector<std::vector<T>> parts;
 	for (size_t i = 0; i < partCount; i++)
@@ -220,39 +212,12 @@ std::vector<T> utility::unique(const std::vector<T>& a)
 	}
 
 	std::vector<T> r(i, T());
-	for (const std::pair<T, size_t>& p: unique)
+	for (const std::pair<const T, size_t>& p: unique)
 	{
 		r[p.second] = p.first;
 	}
 
 	return r;
-}
-
-template <typename T>
-std::vector<T> utility::toVector(const std::deque<T>& d)
-{
-	std::vector<T> v;
-	v.reserve(d.size());
-	v.insert(v.begin(), d.begin(), d.end());
-	return v;
-}
-
-template <typename T>
-std::vector<T> utility::toVector(const std::set<T>& d)
-{
-	std::vector<T> v;
-	v.reserve(d.size());
-	v.insert(v.begin(), d.begin(), d.end());
-	return v;
-}
-
-template <typename T>
-std::vector<T> utility::toVector(const std::list<T>& d)
-{
-	std::vector<T> v;
-	v.reserve(d.size());
-	v.insert(v.begin(), d.begin(), d.end());
-	return v;
 }
 
 template <typename T>
@@ -283,13 +248,12 @@ std::vector<T> utility::createVectorFromElements(const Args&... args)
 }
 
 template <typename SourceType, typename TargetType>
-std::vector<TargetType> utility::convert(
-	const std::vector<SourceType>& sourceContainer,
-	std::function<TargetType(const SourceType&)> conversion)
+std::vector<TargetType> utility::convert(const std::vector<SourceType> &sourceContainer, std::function<TargetType(const SourceType &)> conversion)
 {
 	std::vector<TargetType> targetContainer;
 	targetContainer.reserve(sourceContainer.size());
-	for (const SourceType& sourceElement: sourceContainer)
+	
+	for (const SourceType &sourceElement : sourceContainer)
 	{
 		targetContainer.emplace_back(conversion(sourceElement));
 	}
@@ -297,37 +261,14 @@ std::vector<TargetType> utility::convert(
 }
 
 template <typename SourceType, typename TargetType>
-std::vector<TargetType> utility::convert(const std::vector<SourceType>& sourceContainer)
+std::vector<TargetType> utility::convert(const std::vector<SourceType> &sourceContainer)
 {
 	std::vector<TargetType> targetContainer;
 	targetContainer.reserve(sourceContainer.size());
-	for (const SourceType& sourceElement: sourceContainer)
+	
+	for (const SourceType &sourceElement : sourceContainer)
 	{
 		targetContainer.emplace_back(TargetType(sourceElement));
-	}
-	return targetContainer;
-}
-
-template <typename SourceType, typename TargetType>
-std::set<TargetType> utility::convert(
-	const std::set<SourceType>& sourceContainer,
-	std::function<TargetType(const SourceType&)> conversion)
-{
-	std::set<TargetType> targetContainer;
-	for (const SourceType& sourceElement: sourceContainer)
-	{
-		targetContainer.insert(conversion(sourceElement));
-	}
-	return targetContainer;
-}
-
-template <typename SourceType, typename TargetType>
-std::set<TargetType> utility::convert(const std::set<SourceType>& sourceContainer)
-{
-	std::set<TargetType> targetContainer;
-	for (const SourceType& sourceElement: sourceContainer)
-	{
-		targetContainer.insert(TargetType(sourceElement));
 	}
 	return targetContainer;
 }
@@ -335,26 +276,15 @@ std::set<TargetType> utility::convert(const std::set<SourceType>& sourceContaine
 template <typename T>
 std::vector<std::string> utility::toStrings(const std::vector<T>& d)
 {
-	return convert<T, std::string>(d, [](T t) { return std::to_string(t); });
+	using std::to_string;
+
+	return convert<T, std::string>(d, [](T t) { return to_string(t); });
 }
 
 template <>
 inline std::vector<std::string> utility::toStrings<FilePath>(const std::vector<FilePath>& d)
 {
-	return convert<FilePath, std::string>(
-		d, [](const FilePath& fp) { return utility::encodeToUtf8(fp.wstr()); });
-}
-
-template <typename T>
-std::vector<std::wstring> utility::toWStrings(const std::vector<T>& d)
-{
-	return convert(d, [](T t) { return std::to_wstring(t); });
-}
-
-template <>
-inline std::vector<std::wstring> utility::toWStrings<FilePath>(const std::vector<FilePath>& d)
-{
-	return convert<FilePath, std::wstring>(d, [](const FilePath& fp) { return fp.wstr(); });
+	return convert<FilePath, std::string>(d, [](const FilePath& fp) { return fp.str(); });
 }
 
 #endif	  // UTILITY_H

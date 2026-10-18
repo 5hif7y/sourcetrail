@@ -12,27 +12,27 @@ public:
 	QtGraphNodeData(
 		GraphFocusHandler* focusHandler,
 		const Node* data,
-		const std::wstring& name,
+		const std::string& name,
 		bool childVisible,
 		bool hasQualifier,
 		bool isInteractive);
-	virtual ~QtGraphNodeData();
+	~QtGraphNodeData() override;
 
 	const Node* getData() const;
 	FilePath getFilePath() const;
 
 	// QtGraphNode implementation
-	virtual bool isDataNode() const;
+	bool isDataNode() const override;
 
-	virtual Id getTokenId() const;
+	Id getTokenId() const override;
 
-	virtual void onClick();
-	virtual void onMiddleClick();
-	virtual void updateStyle();
+	void onClick() override;
+	void onMiddleClick() override;
+	void updateStyle() override;
 
 protected:
-	virtual void hoverEnterEvent(QGraphicsSceneHoverEvent* event);
-	virtual void hoverLeaveEvent(QGraphicsSceneHoverEvent* event);
+	void hoverEnterEvent(QGraphicsSceneHoverEvent* event) override;
+	void hoverLeaveEvent(QGraphicsSceneHoverEvent* event) override;
 
 private:
 	const Node* m_data;

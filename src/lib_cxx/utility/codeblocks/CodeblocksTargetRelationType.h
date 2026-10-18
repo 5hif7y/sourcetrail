@@ -1,8 +1,11 @@
 #ifndef CODEBLOCKS_TARGET_RELATION_TYPE_H
 #define CODEBLOCKS_TARGET_RELATION_TYPE_H
 
+#include "utilityEnum.h"
+
 namespace Codeblocks
 {
+
 enum TargetRelationType
 {
 	CODEBLOCKS_TARGET_RELATION_IGNORE_TARGET,
@@ -12,8 +15,10 @@ enum TargetRelationType
 	CODEBLOCKS_TARGET_RELATION_UNKNOWN
 };
 
-int targetRelationTypeToInt(TargetRelationType v);
-TargetRelationType intToTargetRelationType(int v);
+
 }	 // namespace Codeblocks
+
+template <>
+Codeblocks::TargetRelationType intToEnum(int value);
 
 #endif	  // CODEBLOCKS_TARGET_RELATION_TYPE_H

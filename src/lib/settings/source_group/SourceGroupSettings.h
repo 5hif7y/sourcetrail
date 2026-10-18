@@ -20,7 +20,7 @@ public:
 
 	SourceGroupSettings(
 		SourceGroupType type, const std::string& id, const ProjectSettings* projectSettings);
-	virtual ~SourceGroupSettings() = default;
+	~SourceGroupSettings() override = default;
 
 	virtual std::shared_ptr<SourceGroupSettings> createCopy() const = 0;
 
@@ -57,7 +57,7 @@ private:
 	const SourceGroupType m_type;
 	std::string m_id;
 	std::string m_name;
-	SourceGroupStatusType m_status;
+	SourceGroupStatusType m_status = SourceGroupStatusType::ENABLED;
 };
 
 #endif	  // SOURCE_GROUP_SETTINGS_H

@@ -20,7 +20,7 @@ QtCountCircleItem::QtCountCircleItem(QGraphicsItem* parent): QtRoundedRectItem(p
 	m_number->setFont(font);
 }
 
-QtCountCircleItem::~QtCountCircleItem() {}
+QtCountCircleItem::~QtCountCircleItem() = default;
 
 void QtCountCircleItem::setPosition(const Vec2f& pos)
 {

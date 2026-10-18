@@ -7,15 +7,14 @@
 QtIDECommunicationController::QtIDECommunicationController(QObject* parent, StorageAccess* storageAccess)
 	: IDECommunicationController(storageAccess), m_tcpWrapper(parent)
 {
-	m_tcpWrapper.setReadCallback(std::bind(
-		&QtIDECommunicationController::handleIncomingMessage, this, std::placeholders::_1));
+	m_tcpWrapper.setReadCallback([this](const std::string &message) { handleIncomingMessage(message); });
 }
 
-QtIDECommunicationController::~QtIDECommunicationController() {}
+QtIDECommunicationController::~QtIDECommunicationController() = default;
 
 void QtIDECommunicationController::startListening()
 {
-	m_onQtThread([=]() {
+	m_onQtThread([=, this]() {
 		ApplicationSettings* appSettings = ApplicationSettings::getInstance().get();
 		m_tcpWrapper.setServerPort(appSettings->getSourcetrailPort());
 		m_tcpWrapper.setClientPort(appSettings->getPluginPort());
@@ -27,7 +26,7 @@ void QtIDECommunicationController::startListening()
 
 void QtIDECommunicationController::stopListening()
 {
-	m_onQtThread([=]() { m_tcpWrapper.stopListening(); });
+	m_onQtThread([=, this]() { m_tcpWrapper.stopListening(); });
 }
 
 bool QtIDECommunicationController::isListening() const
@@ -35,7 +34,7 @@ bool QtIDECommunicationController::isListening() const
 	return m_tcpWrapper.isListening();
 }
 
-void QtIDECommunicationController::sendMessage(const std::wstring& message) const
+void QtIDECommunicationController::sendMessage(const std::string& message) const
 {
 	m_tcpWrapper.sendMessage(message);
 }

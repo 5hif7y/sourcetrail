@@ -1,7 +1,6 @@
 #include "CommandLineParser.h"
 
 #include <iostream>
-#include <utility>
 
 #include <boost/program_options.hpp>
 
@@ -10,7 +9,6 @@
 #include "CommandlineHelper.h"
 #include "ConfigManager.h"
 #include "TextAccess.h"
-#include "utilityString.h"
 
 namespace po = boost::program_options;
 
@@ -35,7 +33,7 @@ CommandLineParser::CommandLineParser(const std::string& version): m_version(vers
 	}
 }
 
-CommandLineParser::~CommandLineParser() {}
+CommandLineParser::~CommandLineParser() = default;
 
 void CommandLineParser::preparse(int argc, char** argv)
 {
@@ -149,7 +147,7 @@ void CommandLineParser::printHelp() const
 
 	// Commands
 	std::cout << "Commands:\n";
-	for (auto& command: m_commands)
+	for (const auto& command: m_commands)
 	{
 		std::cout << "  " << command->name();
 		std::cout << std::string(std::max(23 - command->name().size(), size_t(2)), ' ');
@@ -185,7 +183,7 @@ bool CommandLineParser::hasError() const
 	return !m_errorString.empty();
 }
 
-std::wstring CommandLineParser::getError()
+std::string CommandLineParser::getError()
 {
 	return m_errorString;
 }
@@ -194,19 +192,19 @@ void CommandLineParser::processProjectfile()
 {
 	m_projectFile.makeAbsolute();
 
-	const std::wstring errorstring =
-		L"Provided Projectfile is not valid:\n* Provided Projectfile('" + m_projectFile.fileName() +
-		L"') ";
+	const std::string errorstring =
+		"Provided Projectfile is not valid:\n* Provided Projectfile('" + m_projectFile.fileName() +
+		"') ";
 	if (!m_projectFile.exists())
 	{
-		m_errorString = errorstring + L" does not exist";
+		m_errorString = errorstring + " does not exist";
 		m_projectFile = FilePath();
 		return;
 	}
 
-	if (m_projectFile.extension() != L".srctrlprj")
+	if (m_projectFile.extension() != ".srctrlprj")
 	{
-		m_errorString = errorstring + L" has a wrong file ending";
+		m_errorString = errorstring + " has a wrong file ending";
 		m_projectFile = FilePath();
 		return;
 	}
@@ -214,7 +212,7 @@ void CommandLineParser::processProjectfile()
 	std::shared_ptr<ConfigManager> configManager = ConfigManager::createEmpty();
 	if (!configManager->load(TextAccess::createFromFile(m_projectFile)))
 	{
-		m_errorString = errorstring + L" could not be loaded (invalid)";
+		m_errorString = errorstring + " could not be loaded (invalid)";
 		m_projectFile = FilePath();
 		return;
 	}
@@ -222,17 +220,12 @@ void CommandLineParser::processProjectfile()
 
 void CommandLineParser::fullRefresh()
 {
-	m_refreshMode = REFRESH_ALL_FILES;
+	m_refreshMode = RefreshMode::ALL_FILES;
 }
 
 void CommandLineParser::incompleteRefresh()
 {
-	m_refreshMode = REFRESH_UPDATED_AND_INCOMPLETE_FILES;
-}
-
-void CommandLineParser::setShallowIndexingRequested(bool enabled)
-{
-	m_shallowIndexingRequested = enabled;
+	m_refreshMode = RefreshMode::UPDATED_AND_INCOMPLETE_FILES;
 }
 
 const FilePath& CommandLineParser::getProjectFilePath() const
@@ -243,11 +236,6 @@ const FilePath& CommandLineParser::getProjectFilePath() const
 RefreshMode CommandLineParser::getRefreshMode() const
 {
 	return m_refreshMode;
-}
-
-bool CommandLineParser::getShallowIndexingRequested() const
-{
-	return m_shallowIndexingRequested;
 }
 
 }	 // namespace commandline

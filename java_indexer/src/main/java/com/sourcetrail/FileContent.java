@@ -19,8 +19,8 @@ public class FileContent
 
 	public Position findStartPosition(String s, Position from)
 	{
-		int lineIndex = from.line - 1;
-		int startColumn = from.column - 1;
+		int lineIndex = from.line() - 1;
+		int startColumn = from.column() - 1;
 		int column = -1;
 		while (lineIndex < m_lines.size())
 		{
@@ -45,6 +45,6 @@ public class FileContent
 		Position startPosition = findStartPosition(s, from);
 
 		return new Range(
-			startPosition, new Position(startPosition.line, startPosition.column + s.length() - 1));
+			startPosition, new Position(startPosition.line(), startPosition.column() + s.length() - 1));
 	}
 }

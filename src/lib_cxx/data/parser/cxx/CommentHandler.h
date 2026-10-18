@@ -13,9 +13,9 @@ public:
 		std::shared_ptr<ParserClient> client,
 		std::shared_ptr<CanonicalFilePathCache> canonicalFilePathCache);
 
-	virtual ~CommentHandler() = default;
+	~CommentHandler() override = default;
 
-	virtual bool HandleComment(clang::Preprocessor& preprocessor, clang::SourceRange sourceRange) override;
+	bool HandleComment(clang::Preprocessor& preprocessor, clang::SourceRange sourceRange) override;
 
 private:
 	std::shared_ptr<ParserClient> m_client;

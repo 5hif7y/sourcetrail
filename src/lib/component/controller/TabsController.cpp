@@ -7,7 +7,7 @@
 #include "MessageSearch.h"
 #include "MessageWindowChanged.h"
 #include "ScreenSearchInterfaces.h"
-#include "TabId.h"
+#include "TabIds.h"
 #include "TaskLambda.h"
 #include "TaskManager.h"
 #include "TaskScheduler.h"
@@ -21,7 +21,7 @@ TabsController::TabsController(
 	, m_viewFactory(viewFactory)
 	, m_storageAccess(storageAccess)
 	, m_screenSearchSender(screenSearchSender)
-	, m_isCreatingTab(false)
+	 
 {
 }
 
@@ -44,11 +44,11 @@ void TabsController::clear()
 	}
 }
 
-void TabsController::addTab(Id tabId, SearchMatch match)
+void TabsController::addTab(TabId tabId, SearchMatch match)
 {
 	std::lock_guard<std::mutex> lock(m_tabsMutex);
 
-	TaskManager::createScheduler(tabId)->startSchedulerLoopThreaded();
+	TaskManager::createScheduler(tabId)->startLoopThread();
 
 	m_tabs.emplace(
 		tabId, std::make_shared<Tab>(tabId, m_viewFactory, m_storageAccess, m_screenSearchSender));
@@ -79,36 +79,36 @@ void TabsController::addTab(Id tabId, SearchMatch match)
 	m_isCreatingTab = false;
 }
 
-void TabsController::showTab(Id tabId)
+void TabsController::showTab(TabId tabId)
 {
 	std::lock_guard<std::mutex> lock(m_tabsMutex);
 
 	auto it = m_tabs.find(tabId);
 	if (it != m_tabs.end())
 	{
-		TabId::setCurrentTabId(tabId);
+		TabIds::setCurrentTabId(tabId);
 		it->second->setParentLayout(m_mainLayout);
 	}
 	else
 	{
-		TabId::setCurrentTabId(0);
+		TabIds::setCurrentTabId(TabId::NONE);
 		m_mainLayout->showOriginalViews();
 	}
 
-	Task::dispatch(TabId::app(), std::make_shared<TaskLambda>([this]() {
+	Task::dispatch(TabIds::app(), std::make_shared<TaskLambda>([this]() {
 					   m_screenSearchSender->clearMatches();
 				   }));
 }
 
-void TabsController::removeTab(Id tabId)
+void TabsController::removeTab(TabId tabId)
 {
 	// use app task scheduler thread to stop running tasks of tab
-	Task::dispatch(TabId::background(), std::make_shared<TaskLambda>([tabId, this]() {
+	Task::dispatch(TabIds::background(), std::make_shared<TaskLambda>([tabId, this]() {
 					   m_screenSearchSender->clearMatches();
 
 					   TaskScheduler* scheduler = TaskManager::getScheduler(tabId).get();
 					   scheduler->terminateRunningTasks();
-					   scheduler->stopSchedulerLoop();
+					   scheduler->stopLoopThread();
 
 					   TaskManager::destroyScheduler(tabId);
 
@@ -116,7 +116,7 @@ void TabsController::removeTab(Id tabId)
 				   }));
 }
 
-void TabsController::destroyTab(Id tabId)
+void TabsController::destroyTab(TabId tabId)
 {
 	std::lock_guard<std::mutex> lock(m_tabsMutex);
 
@@ -132,7 +132,7 @@ void TabsController::destroyTab(Id tabId)
 
 void TabsController::onClearTabs()
 {
-	TabId::setCurrentTabId(0);
+	TabIds::setCurrentTabId(TabId::NONE);
 	m_mainLayout->showOriginalViews();
 }
 
@@ -141,7 +141,7 @@ TabsView* TabsController::getView() const
 	return Controller::getView<TabsView>();
 }
 
-void TabsController::handleMessage(MessageActivateErrors* message)
+void TabsController::handleMessage(MessageActivateErrors*  /*message*/)
 {
 	if (m_tabs.empty() && Application::getInstance()->isProjectLoaded())
 	{
@@ -149,7 +149,7 @@ void TabsController::handleMessage(MessageActivateErrors* message)
 	}
 }
 
-void TabsController::handleMessage(MessageIndexingFinished* message)
+void TabsController::handleMessage(MessageIndexingFinished*  /*message*/)
 {
 	if (m_tabs.empty() && Application::getInstance()->isProjectLoaded())
 	{
@@ -157,12 +157,12 @@ void TabsController::handleMessage(MessageIndexingFinished* message)
 	}
 }
 
-void TabsController::handleMessage(MessageTabClose* message)
+void TabsController::handleMessage(MessageTabClose*  /*message*/)
 {
 	getView()->closeTab();
 }
 
-void TabsController::handleMessage(MessageTabOpen* message)
+void TabsController::handleMessage(MessageTabOpen*  /*message*/)
 {
 	if (Application::getInstance()->isProjectLoaded())
 	{

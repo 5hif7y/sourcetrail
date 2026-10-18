@@ -3,44 +3,44 @@
 
 #include <string>
 
-#include "types.h"
+#include "Bookmark.h"
 
 struct StorageBookmarkData
 {
-	StorageBookmarkData(): name(L""), comment(L""), timestamp(""), categoryId(0) {}
+	StorageBookmarkData():  categoryId(0) {}
 
 	StorageBookmarkData(
-		const std::wstring& name,
-		const std::wstring& comment,
+		const std::string& name,
+		const std::string& comment,
 		const std::string& timestamp,
 		const Id categoryId)
 		: name(name), comment(comment), timestamp(timestamp), categoryId(categoryId)
 	{
 	}
 
-	std::wstring name;
-	std::wstring comment;
+	std::string name;
+	std::string comment;
 	std::string timestamp;
 	Id categoryId;
 };
 
 struct StorageBookmark: public StorageBookmarkData
 {
-	StorageBookmark(): StorageBookmarkData(), id(0) {}
+	StorageBookmark():  bookmarkId(BookmarkId::NONE) {}
 
-	StorageBookmark(Id id, const StorageBookmarkData& data): StorageBookmarkData(data), id(id) {}
+	StorageBookmark(BookmarkId bookmarkId, const StorageBookmarkData& data): StorageBookmarkData(data), bookmarkId(bookmarkId) {}
 
 	StorageBookmark(
-		Id id,
-		const std::wstring& name,
-		const std::wstring& comment,
+		BookmarkId bookmarkId,
+		const std::string& name,
+		const std::string& comment,
 		const std::string& timestamp,
 		const Id categoryId)
-		: StorageBookmarkData(name, comment, timestamp, categoryId), id(id)
+		: StorageBookmarkData(name, comment, timestamp, categoryId), bookmarkId(bookmarkId)
 	{
 	}
 
-	Id id;
+	BookmarkId bookmarkId;
 };
 
 #endif	  // STORAGE_BOOKMARK_H

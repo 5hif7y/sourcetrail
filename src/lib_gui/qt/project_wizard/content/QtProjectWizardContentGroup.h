@@ -19,12 +19,12 @@ public:
 
 protected:
 	// QtProjectWizardContent implementation
-	virtual void populate(QGridLayout* layout, int& row) override;
+	void populate(QGridLayout* layout, int& row) override;
 
-	virtual void load() override;
-	virtual void save() override;
-	virtual void refresh() override;
-	virtual bool check() override;
+	void load() override;
+	void save() override;
+	void refresh() override;
+	bool check() override;
 
 private:
 	std::vector<QtProjectWizardContent*> m_contents;

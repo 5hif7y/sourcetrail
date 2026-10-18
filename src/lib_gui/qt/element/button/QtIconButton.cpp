@@ -27,7 +27,7 @@ void QtIconButton::setColor(QColor color)
 	leaveEvent(nullptr);
 }
 
-void QtIconButton::enterEvent(QEvent* event)
+void QtIconButton::enterEvent(QEnterEvent * /*event*/)
 {
 	if (!m_hoveredIconPath.empty() && isEnabled())
 	{
@@ -35,7 +35,7 @@ void QtIconButton::enterEvent(QEvent* event)
 	}
 }
 
-void QtIconButton::leaveEvent(QEvent* event)
+void QtIconButton::leaveEvent(QEvent*  /*event*/)
 {
 	if (!m_iconPath.empty())
 	{
@@ -45,7 +45,7 @@ void QtIconButton::leaveEvent(QEvent* event)
 
 void QtIconButton::setIconFromPath(const FilePath& path)
 {
-	QPixmap pixmap = QPixmap(QString::fromStdWString(path.wstr()));
+	QPixmap pixmap = QPixmap(QString::fromStdString(path.str()));
 
 	if (m_color != Qt::transparent)
 	{

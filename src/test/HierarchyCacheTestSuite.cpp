@@ -1,4 +1,4 @@
-#include "catch.hpp"
+#include "Catch2.hpp"
 
 #include "HierarchyCache.h"
 #include "utility.h"
@@ -12,7 +12,7 @@ public:
 		std::sort(m_edgeIds.begin(), m_edgeIds.end());
 	}
 
-	TestEdge(std::tuple<Id, Id, std::vector<size_t>> tuple)
+	TestEdge(std::tuple<Id, Id, std::vector<Id>> tuple)
 		: m_sourceId(std::get<0>(tuple))
 		, m_targetId(std::get<1>(tuple))
 		, m_edgeIds(std::get<2>(tuple))
@@ -22,11 +22,11 @@ public:
 
 	std::string toString() const
 	{
-		std::string ret = "s:" + std::to_string(m_sourceId) + ";";
-		ret += "t:" + std::to_string(m_targetId) + ";";
+		std::string ret = "s:" + to_string(m_sourceId) + ";";
+		ret += "t:" + to_string(m_targetId) + ";";
 		for (Id edgeId: m_edgeIds)
 		{
-			ret += "e:" + std::to_string(edgeId) + ";";
+			ret += "e:" + to_string(edgeId) + ";";
 		}
 		return ret;
 	}
@@ -40,8 +40,7 @@ std::vector<std::string> getSerializedInheritanceEdges(
 	HierarchyCache& cache, Id nodeId, std::set<Id> nodeIds)
 {
 	std::vector<std::string> inheritanceEdges;
-	for (const std::tuple<Id, Id, std::vector<size_t>>& edge:
-		 cache.getInheritanceEdgesForNodeId(nodeId, nodeIds))
+	for (const auto &edge: cache.getInheritanceEdgesForNodeId(nodeId, nodeIds))
 	{
 		inheritanceEdges.push_back(TestEdge(edge).toString());
 	}

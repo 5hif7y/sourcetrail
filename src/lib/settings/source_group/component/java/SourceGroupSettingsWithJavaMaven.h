@@ -7,7 +7,7 @@
 class SourceGroupSettingsWithJavaMaven: public SourceGroupSettingsComponent
 {
 public:
-	virtual ~SourceGroupSettingsWithJavaMaven() = default;
+	~SourceGroupSettingsWithJavaMaven() override = default;
 
 	FilePath getMavenDependenciesDirectoryPath() const;
 

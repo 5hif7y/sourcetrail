@@ -13,9 +13,9 @@ public:
 		return "MessageSwitchColorScheme";
 	}
 
-	virtual void print(std::wostream& os) const
+	void print(std::ostream& os) const override
 	{
-		os << colorSchemePath.wstr();
+		os << colorSchemePath.str();
 	}
 
 	const FilePath colorSchemePath;

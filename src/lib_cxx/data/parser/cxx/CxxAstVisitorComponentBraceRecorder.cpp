@@ -46,8 +46,8 @@ void CxxAstVisitorComponentBraceRecorder::visitCompoundStmt(clang::CompoundStmt*
 {
 	if (getAstVisitor()->shouldVisitStmt(s))
 	{
-		const clang::NamedDecl* contextDecl =
-			getAstVisitor()->getComponent<CxxAstVisitorComponentContext>()->getTopmostContextDecl();
+		const clang::NamedDecl* contextDecl = 
+			getAstVisitor()->getContextComponent()->getTopmostContextDecl();
 		if (!contextDecl || !utility::isImplicit(contextDecl))
 		{
 			recordBraces(
@@ -65,7 +65,7 @@ void CxxAstVisitorComponentBraceRecorder::visitInitListExpr(clang::InitListExpr*
 		if (s->isSyntacticForm())
 		{
 			const clang::NamedDecl* contextDecl =
-				getAstVisitor()->getComponent<CxxAstVisitorComponentContext>()->getTopmostContextDecl();
+				getAstVisitor()->getContextComponent()->getTopmostContextDecl();
 			if (!contextDecl || !utility::isImplicit(contextDecl))
 			{
 				recordBraces(
@@ -84,7 +84,7 @@ void CxxAstVisitorComponentBraceRecorder::visitMSAsmStmt(clang::MSAsmStmt* s)
 		if (s->hasBraces())
 		{
 			const clang::NamedDecl* contextDecl =
-				getAstVisitor()->getComponent<CxxAstVisitorComponentContext>()->getTopmostContextDecl();
+				getAstVisitor()->getContextComponent()->getTopmostContextDecl();
 			if (!contextDecl || !utility::isImplicit(contextDecl))
 			{
 				recordBraces(
@@ -115,8 +115,8 @@ void CxxAstVisitorComponentBraceRecorder::recordBraces(
 		lbraceLoc.startLineNumber != rbraceLoc.startLineNumber ||
 		lbraceLoc.endLineNumber != rbraceLoc.endLineNumber)
 	{
-		std::wstring name = filePath.fileName() + L"<" + std::to_wstring(lbraceLoc.startLineNumber) +
-			L":" + std::to_wstring(lbraceLoc.startColumnNumber) + L">";
+		std::string name = filePath.fileName() + "<" + std::to_string(lbraceLoc.startLineNumber) +
+			":" + std::to_string(lbraceLoc.startColumnNumber) + ">";
 
 		if (lbraceLoc.startColumnNumber == lbraceLoc.endColumnNumber &&
 			lbraceLoc.startLineNumber == lbraceLoc.endLineNumber)
@@ -153,14 +153,14 @@ clang::SourceLocation CxxAstVisitorComponentBraceRecorder::getFirstLBraceLocatio
 
 	while (true)
 	{
-		llvm::Optional<clang::Token> token = clang::Lexer::findNextToken(searchStartLoc, sm, opts);
-		if (token.hasValue())
+		std::optional<clang::Token> token = clang::Lexer::findNextToken(searchStartLoc, sm, opts);
+		if (token.has_value())
 		{
-			if (token.getValue().getKind() == clang::tok::l_brace)
+			if (token.value().getKind() == clang::tok::l_brace)
 			{
-				return token.getValue().getLocation();
+				return token.value().getLocation();
 			}
-			searchStartLoc = token.getValue().getLocation();
+			searchStartLoc = token.value().getLocation();
 		}
 		else
 		{
@@ -186,10 +186,10 @@ clang::SourceLocation CxxAstVisitorComponentBraceRecorder::getLastRBraceLocation
 
 	{
 		searchEndLoc = searchEndLoc.getLocWithOffset(-1);
-		llvm::Optional<clang::Token> token = clang::Lexer::findNextToken(searchEndLoc, sm, opts);
-		if (token.hasValue() && token.getValue().getKind() == clang::tok::r_brace)
+		std::optional<clang::Token> token = clang::Lexer::findNextToken(searchEndLoc, sm, opts);
+		if (token.has_value() && token.value().getKind() == clang::tok::r_brace)
 		{
-			return token.getValue().getLocation();
+			return token.value().getLocation();
 		}
 	}
 

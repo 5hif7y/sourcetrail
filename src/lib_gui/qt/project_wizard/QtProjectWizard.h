@@ -22,7 +22,7 @@ class QtProjectWizard: public QtProjectWizardWindow
 
 public:
 	QtProjectWizard(QWidget* parent = nullptr);
-	virtual QSize sizeHint() const override;
+	QSize sizeHint() const override;
 
 public slots:
 	void newProject();
@@ -33,10 +33,10 @@ public slots:
 	void editProject(std::shared_ptr<ProjectSettings> settings);
 
 protected:
-	virtual void populateWindow(QWidget* widget) override;
-	virtual void windowReady() override;
+	void populateWindow(QWidget* widget) override;
+	void windowReady() override;
 
-	virtual void handlePrevious() override;
+	void handlePrevious() override;
 
 private:
 	QtProjectWizardWindow* createWindowWithContent(
@@ -51,14 +51,14 @@ private:
 	std::vector<std::shared_ptr<SourceGroupSettings>> m_allSourceGroupSettings;
 	ApplicationSettings m_appSettings;
 
-	bool m_editing;
-	int m_previouslySelectedIndex;
+	bool m_editing = false;
+	int m_previouslySelectedIndex = -1;
 
 	QPushButton* m_generalButton;
 	QPushButton* m_removeButton;
 	QPushButton* m_duplicateButton;
 	QListWidget* m_sourceGroupList;
-	QWidget* m_contentWidget;
+	QWidget* m_contentWidget = nullptr;
 
 private slots:
 	void generalButtonClicked();

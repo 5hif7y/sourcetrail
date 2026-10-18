@@ -1,4 +1,4 @@
-#include "catch.hpp"
+#include "Catch2.hpp"
 
 #include <QDateTime>
 
@@ -13,15 +13,15 @@
 
 namespace
 {
-FilePath m_indexDbPath = FilePath(L"data/RefreshInfoGeneratorTestSuite/project.srctrldb");
-FilePath m_bookmarkDbPath = FilePath(L"data/RefreshInfoGeneratorTestSuite/project.srctrlbm");
-FilePath m_sourceFolder = FilePath(L"data/RefreshInfoGeneratorTestSuite/src");
+FilePath m_indexDbPath = FilePath("data/RefreshInfoGeneratorTestSuite/project.srctrldb");
+FilePath m_bookmarkDbPath = FilePath("data/RefreshInfoGeneratorTestSuite/project.srctrlbm");
+FilePath m_sourceFolder = FilePath("data/RefreshInfoGeneratorTestSuite/src");
 
 class SourceGroupSettingsTest: public SourceGroupSettings
 {
 public:
 	SourceGroupSettingsTest(const ProjectSettings* projectSettings)
-		: SourceGroupSettings(SOURCE_GROUP_UNKNOWN, "TEST_ID", projectSettings)
+		: SourceGroupSettings(SourceGroupType::UNKNOWN, "TEST_ID", projectSettings)
 	{
 	}
 
@@ -30,11 +30,11 @@ public:
 		return nullptr;
 	}
 
-	void loadSettings(const ConfigManager* config) override {}
+	void loadSettings(const ConfigManager*  /*config*/) override {}
 
-	void saveSettings(ConfigManager* config) override {}
+	void saveSettings(ConfigManager*  /*config*/) override {}
 
-	bool equalsSettings(const SourceGroupSettingsBase* other) override
+	bool equalsSettings(const SourceGroupSettingsBase*  /*other*/) override
 	{
 		return true;
 	}
@@ -75,7 +75,7 @@ public:
 		return m_sourceFilePaths;
 	}
 
-	std::vector<std::shared_ptr<IndexerCommand>> getIndexerCommands(const RefreshInfo& info) const override
+	std::vector<std::shared_ptr<IndexerCommand>> getIndexerCommands(const RefreshInfo&  /*info*/) const override
 	{
 		return std::vector<std::shared_ptr<IndexerCommand>>();
 	}
@@ -119,7 +119,7 @@ void cleanup()
 
 void addFileToFileSystem(const FilePath& filePath)
 {
-	FileSystem::createDirectory(filePath.getParentDirectory());
+	FileSystem::createDirectories(filePath.getParentDirectory());
 	std::ofstream file;
 	file.open(filePath.str());
 	file << "This is some file content.\n";
@@ -137,10 +137,10 @@ Id addFileToStorage(
 		storage
 			->addNode(StorageNodeData(
 				NODE_FILE,
-				NameHierarchy::serialize(NameHierarchy(filePath.wstr(), NAME_DELIMITER_FILE))))
+				NameHierarchy::serialize(NameHierarchy(filePath.str(), NameDelimiterType::FILE))))
 			.first;
 	storage->addFile(
-		StorageFile(id, filePath.wstr(), L"someLanguage", modificationTime, indexed, complete));
+		StorageFile(id, filePath.str(), "someLanguage", modificationTime, indexed, complete));
 	return id;
 }
 
@@ -174,7 +174,7 @@ TEST_CASE("refresh info for all files is empty for empty project")
 
 	const RefreshInfo refreshInfo = RefreshInfoGenerator::getRefreshInfoForAllFiles(sourceGroups);
 
-	REQUIRE(REFRESH_ALL_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::ALL_FILES == refreshInfo.mode);
 	REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToIndex.size());
@@ -184,7 +184,7 @@ TEST_CASE("refresh info for all files clears nothing and indexes previously unkn
 {
 	cleanup();
 	{
-		const FilePath sourceFilePath = m_sourceFolder.getConcatenated(L"main.cpp");
+		const FilePath sourceFilePath = m_sourceFolder.getConcatenated("main.cpp");
 
 		std::vector<std::shared_ptr<SourceGroup>> sourceGroups;
 		sourceGroups.push_back(
@@ -194,7 +194,7 @@ TEST_CASE("refresh info for all files clears nothing and indexes previously unkn
 
 		const RefreshInfo refreshInfo = RefreshInfoGenerator::getRefreshInfoForAllFiles(sourceGroups);
 
-		REQUIRE(REFRESH_ALL_FILES == refreshInfo.mode);
+		REQUIRE(RefreshMode::ALL_FILES == refreshInfo.mode);
 		REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 		REQUIRE(0 == refreshInfo.filesToClear.size());
 		REQUIRE(1 == refreshInfo.filesToIndex.size());
@@ -209,10 +209,10 @@ TEST_CASE("refresh info for all files is empty for disabled source group")
 {
 	cleanup();
 	{
-		const FilePath sourceFilePath = m_sourceFolder.getConcatenated(L"main.cpp");
+		const FilePath sourceFilePath = m_sourceFolder.getConcatenated("main.cpp");
 
 		std::shared_ptr<SourceGroupTest> sourceGroup(new SourceGroupTest({sourceFilePath}));
-		sourceGroup->setStatus(SOURCE_GROUP_STATUS_DISABLED);
+		sourceGroup->setStatus(SourceGroupStatusType::DISABLED);
 
 		std::vector<std::shared_ptr<SourceGroup>> sourceGroups;
 		sourceGroups.push_back(sourceGroup);
@@ -221,7 +221,7 @@ TEST_CASE("refresh info for all files is empty for disabled source group")
 
 		const RefreshInfo refreshInfo = RefreshInfoGenerator::getRefreshInfoForAllFiles(sourceGroups);
 
-		REQUIRE(REFRESH_ALL_FILES == refreshInfo.mode);
+		REQUIRE(RefreshMode::ALL_FILES == refreshInfo.mode);
 		REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 		REQUIRE(0 == refreshInfo.filesToClear.size());
 		REQUIRE(0 == refreshInfo.filesToIndex.size());
@@ -233,10 +233,10 @@ TEST_CASE("refresh info for all files is clears indexed files of disabled source
 {
 	cleanup();
 	{
-		const FilePath sourceFilePath = m_sourceFolder.getConcatenated(L"main.cpp");
+		const FilePath sourceFilePath = m_sourceFolder.getConcatenated("main.cpp");
 
 		std::shared_ptr<SourceGroupTest> sourceGroup(new SourceGroupTest({sourceFilePath}));
-		sourceGroup->setStatus(SOURCE_GROUP_STATUS_DISABLED);
+		sourceGroup->setStatus(SourceGroupStatusType::DISABLED);
 
 		std::vector<std::shared_ptr<SourceGroup>> sourceGroups;
 		sourceGroups.push_back(sourceGroup);
@@ -252,7 +252,7 @@ TEST_CASE("refresh info for all files is clears indexed files of disabled source
 		const RefreshInfo refreshInfo = RefreshInfoGenerator::getRefreshInfoForUpdatedFiles(
 			sourceGroups, storage);
 
-		REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+		REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 		REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 		REQUIRE(1 == refreshInfo.filesToClear.size());
 		REQUIRE(0 == refreshInfo.filesToIndex.size());
@@ -268,13 +268,13 @@ TEST_CASE("refresh info for all files is clears nonindexed files of disabled sou
 	cleanup();
 	{
 		const FilePath upToDateSourceFilePath = m_sourceFolder.getConcatenated(
-			L"up_to_date_file.cpp");
+			"up_to_date_file.cpp");
 		const FilePath upToDateHeaderFilePath = m_sourceFolder.getConcatenated(
-			L"up_to_date_file.h");
+			"up_to_date_file.h");
 
 		std::shared_ptr<SourceGroupTest> sourceGroup(new SourceGroupTest(
 			{upToDateSourceFilePath}, {upToDateSourceFilePath, upToDateHeaderFilePath}));
-		sourceGroup->setStatus(SOURCE_GROUP_STATUS_DISABLED);
+		sourceGroup->setStatus(SourceGroupStatusType::DISABLED);
 
 		std::vector<std::shared_ptr<SourceGroup>> sourceGroups;
 		sourceGroups.push_back(sourceGroup);
@@ -298,7 +298,7 @@ TEST_CASE("refresh info for all files is clears nonindexed files of disabled sou
 		const RefreshInfo refreshInfo = RefreshInfoGenerator::getRefreshInfoForUpdatedFiles(
 			sourceGroups, storage);
 
-		REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+		REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 		REQUIRE(1 == refreshInfo.nonIndexedFilesToClear.size());
 		REQUIRE(1 == refreshInfo.filesToClear.size());
 		REQUIRE(0 == refreshInfo.filesToIndex.size());
@@ -328,7 +328,7 @@ TEST_CASE("refresh info for updated files is empty for empty storage and empty s
 		const RefreshInfo refreshInfo = RefreshInfoGenerator::getRefreshInfoForUpdatedFiles(
 			sourceGroups, storage);
 
-		REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+		REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 		REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 		REQUIRE(0 == refreshInfo.filesToClear.size());
 		REQUIRE(0 == refreshInfo.filesToIndex.size());
@@ -375,7 +375,7 @@ RefreshInfo getRefreshInfo(
 	RefreshInfo refreshInfo;
 	cleanup();
 	{
-		const FilePath filePath = m_sourceFolder.getConcatenated(L"file.extension");
+		const FilePath filePath = m_sourceFolder.getConcatenated("file.extension");
 
 		const std::set<FilePath> sourceFilePaths =
 			((fileState == SOURCE_FILE) ? std::set<FilePath>({filePath}) : std::set<FilePath>({}));
@@ -439,7 +439,7 @@ RefreshInfo getRefreshInfo(
 TEST_CASE("unknown unchanged sourcefile that is nottoindex")
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(UNKNOWN, UNCHANGED, SOURCE_FILE, NOT_TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToIndex.size());
@@ -448,7 +448,7 @@ TEST_CASE("unknown unchanged sourcefile that is nottoindex")
 TEST_CASE("unknown unchanged sourcefile that is toindex")
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(UNKNOWN, UNCHANGED, SOURCE_FILE, TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToClear.size());
 	REQUIRE(1 == refreshInfo.filesToIndex.size());
@@ -457,7 +457,7 @@ TEST_CASE("unknown unchanged sourcefile that is toindex")
 TEST_CASE("unknown unchanged headerfile that is nottoindex")
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(UNKNOWN, UNCHANGED, HEADER_FILE, NOT_TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToIndex.size());
@@ -466,7 +466,7 @@ TEST_CASE("unknown unchanged headerfile that is nottoindex")
 TEST_CASE("unknown unchanged headerfile that is toindex")
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(UNKNOWN, UNCHANGED, HEADER_FILE, TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToIndex.size());
@@ -476,7 +476,7 @@ TEST_CASE("unknown unchanged headerfile that is toindex")
 TEST_CASE("unknown changed sourcefile that is nottoindex")
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(UNKNOWN, CHANGED, SOURCE_FILE, NOT_TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToIndex.size());
@@ -485,7 +485,7 @@ TEST_CASE("unknown changed sourcefile that is nottoindex")
 TEST_CASE("unknown changed sourcefile that is toindex")
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(UNKNOWN, CHANGED, SOURCE_FILE, TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToClear.size());
 	REQUIRE(1 == refreshInfo.filesToIndex.size());
@@ -494,7 +494,7 @@ TEST_CASE("unknown changed sourcefile that is toindex")
 TEST_CASE("unknown changed headerfile that is nottoindex")
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(UNKNOWN, CHANGED, HEADER_FILE, NOT_TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToIndex.size());
@@ -503,7 +503,7 @@ TEST_CASE("unknown changed headerfile that is nottoindex")
 TEST_CASE("unknown changed headerfile that is toindex")
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(UNKNOWN, CHANGED, HEADER_FILE, TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToIndex.size());
@@ -513,7 +513,7 @@ TEST_CASE("unknown changed headerfile that is toindex")
 TEST_CASE("nonindexed unchanged sourcefile that is nottoindex")	   // this test does not really make sense
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(NON_INDEXED, UNCHANGED, SOURCE_FILE, NOT_TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToIndex.size());
@@ -522,7 +522,7 @@ TEST_CASE("nonindexed unchanged sourcefile that is nottoindex")	   // this test 
 TEST_CASE("nonindexed unchanged sourcefile that is toindex")
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(NON_INDEXED, UNCHANGED, SOURCE_FILE, TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(1 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToClear.size());
 	REQUIRE(1 == refreshInfo.filesToIndex.size());
@@ -532,7 +532,7 @@ TEST_CASE("nonindexed unchanged headerfile that is nottoindex")	   // this test 
 																   // sense without source files
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(NON_INDEXED, UNCHANGED, HEADER_FILE, NOT_TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToIndex.size());
@@ -541,7 +541,7 @@ TEST_CASE("nonindexed unchanged headerfile that is nottoindex")	   // this test 
 TEST_CASE("nonindexed unchanged headerfile that is toindex")
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(NON_INDEXED, UNCHANGED, HEADER_FILE, TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(1 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToIndex.size());
@@ -551,7 +551,7 @@ TEST_CASE("nonindexed unchanged headerfile that is toindex")
 TEST_CASE("nonindexed changed sourcefile that is nottoindex")
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(NON_INDEXED, CHANGED, SOURCE_FILE, NOT_TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(1 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToIndex.size());
@@ -560,7 +560,7 @@ TEST_CASE("nonindexed changed sourcefile that is nottoindex")
 TEST_CASE("nonindexed changed sourcefile that is toindex")
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(NON_INDEXED, CHANGED, SOURCE_FILE, TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(1 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToClear.size());
 	REQUIRE(1 == refreshInfo.filesToIndex.size());
@@ -569,7 +569,7 @@ TEST_CASE("nonindexed changed sourcefile that is toindex")
 TEST_CASE("nonindexed changed headerfile that is nottoindex")
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(NON_INDEXED, CHANGED, HEADER_FILE, NOT_TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(1 == refreshInfo.nonIndexedFilesToClear.size());
 	;	 // must be cleared here and will be re-indexed on demand
 	REQUIRE(0 == refreshInfo.filesToClear.size());
@@ -579,7 +579,7 @@ TEST_CASE("nonindexed changed headerfile that is nottoindex")
 TEST_CASE("nonindexed changed headerfile that is toindex")
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(NON_INDEXED, CHANGED, HEADER_FILE, TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(1 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToIndex.size());	  // the header file will only be indexed on demand
@@ -588,7 +588,7 @@ TEST_CASE("nonindexed changed headerfile that is toindex")
 TEST_CASE("indexed unchanged sourcefile that is nottoindex")
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(INDEXED, UNCHANGED, SOURCE_FILE, NOT_TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(1 == refreshInfo.filesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToIndex.size());
@@ -597,7 +597,7 @@ TEST_CASE("indexed unchanged sourcefile that is nottoindex")
 TEST_CASE("indexed unchanged sourcefile that is toindex")
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(INDEXED, UNCHANGED, SOURCE_FILE, TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToIndex.size());
@@ -607,7 +607,7 @@ TEST_CASE("indexed unchanged headerfile that is nottoindex")	// TODO: check if d
 																// file gets reindexed
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(INDEXED, UNCHANGED, HEADER_FILE, NOT_TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(1 == refreshInfo.filesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToIndex.size());
@@ -616,7 +616,7 @@ TEST_CASE("indexed unchanged headerfile that is nottoindex")	// TODO: check if d
 TEST_CASE("indexed unchanged headerfile that is toindex")
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(INDEXED, UNCHANGED, HEADER_FILE, TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToIndex.size());
@@ -625,7 +625,7 @@ TEST_CASE("indexed unchanged headerfile that is toindex")
 TEST_CASE("indexed changed sourcefile that is nottoindex")
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(INDEXED, CHANGED, SOURCE_FILE, NOT_TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(1 == refreshInfo.filesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToIndex.size());
@@ -634,7 +634,7 @@ TEST_CASE("indexed changed sourcefile that is nottoindex")
 TEST_CASE("indexed changed sourcefile that is toindex")
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(INDEXED, CHANGED, SOURCE_FILE, TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(1 == refreshInfo.filesToClear.size());
 	REQUIRE(1 == refreshInfo.filesToIndex.size());
@@ -643,7 +643,7 @@ TEST_CASE("indexed changed sourcefile that is toindex")
 TEST_CASE("indexed changed headerfile that is nottoindex")
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(INDEXED, CHANGED, HEADER_FILE, NOT_TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(1 == refreshInfo.filesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToIndex.size());
@@ -652,7 +652,7 @@ TEST_CASE("indexed changed headerfile that is nottoindex")
 TEST_CASE("indexed changed headerfile that is toindex")
 {
 	const RefreshInfo refreshInfo = getRefreshInfo(INDEXED, CHANGED, HEADER_FILE, TO_INDEX);
-	REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+	REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 	REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 	REQUIRE(1 == refreshInfo.filesToClear.size());
 	REQUIRE(0 == refreshInfo.filesToIndex.size());	  // the header file will only be indexed on demand
@@ -667,9 +667,9 @@ TEST_CASE(
 	cleanup();
 	{
 		const FilePath upToDateSourceFilePath = m_sourceFolder.getConcatenated(
-			L"up_to_date_file.cpp");
+			"up_to_date_file.cpp");
 		const FilePath outdatedSourceFilePath = m_sourceFolder.getConcatenated(
-			L"outdated_file.cpp");
+			"outdated_file.cpp");
 
 		std::vector<std::shared_ptr<SourceGroup>> sourceGroups;
 		sourceGroups.push_back(std::shared_ptr<SourceGroupTest>(
@@ -694,7 +694,7 @@ TEST_CASE(
 		const RefreshInfo refreshInfo = RefreshInfoGenerator::getRefreshInfoForUpdatedFiles(
 			sourceGroups, storage);
 
-		REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+		REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 		REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 		REQUIRE(2 == refreshInfo.filesToClear.size());
 		REQUIRE(2 == refreshInfo.filesToIndex.size());
@@ -718,8 +718,8 @@ TEST_CASE(
 	cleanup();
 	{
 		const FilePath upToDateSourceFilePath = m_sourceFolder.getConcatenated(
-			L"up_to_date_file.cpp");
-		const FilePath outdatedHeaderFilePath = m_sourceFolder.getConcatenated(L"outdated_file.h");
+			"up_to_date_file.cpp");
+		const FilePath outdatedHeaderFilePath = m_sourceFolder.getConcatenated("outdated_file.h");
 
 		std::vector<std::shared_ptr<SourceGroup>> sourceGroups;
 		sourceGroups.push_back(std::shared_ptr<SourceGroupTest>(new SourceGroupTest(
@@ -744,7 +744,7 @@ TEST_CASE(
 		const RefreshInfo refreshInfo = RefreshInfoGenerator::getRefreshInfoForUpdatedFiles(
 			sourceGroups, storage);
 
-		REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+		REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 		REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 		REQUIRE(2 == refreshInfo.filesToClear.size());
 		REQUIRE(1 == refreshInfo.filesToIndex.size());
@@ -766,8 +766,8 @@ TEST_CASE(
 	cleanup();
 	{
 		const FilePath upToDateSourceFilePath = m_sourceFolder.getConcatenated(
-			L"up_to_date_file.cpp");
-		const FilePath outdatedHeaderFilePath = m_sourceFolder.getConcatenated(L"outdated_file.h");
+			"up_to_date_file.cpp");
+		const FilePath outdatedHeaderFilePath = m_sourceFolder.getConcatenated("outdated_file.h");
 
 		std::vector<std::shared_ptr<SourceGroup>> sourceGroups;
 		sourceGroups.push_back(
@@ -792,7 +792,7 @@ TEST_CASE(
 		const RefreshInfo refreshInfo = RefreshInfoGenerator::getRefreshInfoForUpdatedFiles(
 			sourceGroups, storage);
 
-		REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+		REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 		REQUIRE(1 == refreshInfo.nonIndexedFilesToClear.size());
 		REQUIRE(1 == refreshInfo.filesToClear.size());
 		REQUIRE(1 == refreshInfo.filesToIndex.size());
@@ -812,9 +812,9 @@ TEST_CASE("refresh info for updated files does not clear unknown uptodate header
 	cleanup();
 	{
 		const FilePath upToDateSourceFilePath = m_sourceFolder.getConcatenated(
-			L"up_to_date_file.cpp");
+			"up_to_date_file.cpp");
 		const FilePath upToDateHeaderFilePath = m_sourceFolder.getConcatenated(
-			L"up_to_date_file.h");
+			"up_to_date_file.h");
 
 		std::vector<std::shared_ptr<SourceGroup>> sourceGroups;
 		sourceGroups.push_back(
@@ -839,7 +839,7 @@ TEST_CASE("refresh info for updated files does not clear unknown uptodate header
 		const RefreshInfo refreshInfo = RefreshInfoGenerator::getRefreshInfoForUpdatedFiles(
 			sourceGroups, storage);
 
-		REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+		REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 		REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 		REQUIRE(0 == refreshInfo.filesToClear.size());
 		REQUIRE(0 == refreshInfo.filesToIndex.size());
@@ -853,9 +853,9 @@ TEST_CASE(
 	cleanup();
 	{
 		const FilePath outdatedSourceFilePath = m_sourceFolder.getConcatenated(
-			L"outdated_file.cpp");
+			"outdated_file.cpp");
 		const FilePath upToDateHeaderFilePath = m_sourceFolder.getConcatenated(
-			L"up_to_date_file.h");
+			"up_to_date_file.h");
 
 		std::vector<std::shared_ptr<SourceGroup>> sourceGroups;
 		sourceGroups.push_back(std::shared_ptr<SourceGroupTest>(new SourceGroupTest(
@@ -880,7 +880,7 @@ TEST_CASE(
 		const RefreshInfo refreshInfo = RefreshInfoGenerator::getRefreshInfoForUpdatedFiles(
 			sourceGroups, storage);
 
-		REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+		REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 		REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 		REQUIRE(2 == refreshInfo.filesToClear.size());
 		REQUIRE(1 == refreshInfo.filesToIndex.size());
@@ -901,11 +901,11 @@ TEST_CASE(
 	cleanup();
 	{
 		const FilePath outdatedSourceFilePath = m_sourceFolder.getConcatenated(
-			L"outdated_file.cpp");
+			"outdated_file.cpp");
 		const FilePath upToDateSourceFilePath = m_sourceFolder.getConcatenated(
-			L"up_to_date_file.cpp");
+			"up_to_date_file.cpp");
 		const FilePath upToDateHeaderFilePath = m_sourceFolder.getConcatenated(
-			L"up_to_date_file.h");
+			"up_to_date_file.h");
 
 		std::vector<std::shared_ptr<SourceGroup>> sourceGroups;
 		sourceGroups.push_back(std::shared_ptr<SourceGroupTest>(new SourceGroupTest(
@@ -936,7 +936,7 @@ TEST_CASE(
 		const RefreshInfo refreshInfo = RefreshInfoGenerator::getRefreshInfoForUpdatedFiles(
 			sourceGroups, storage);
 
-		REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+		REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 		REQUIRE(0 == refreshInfo.nonIndexedFilesToClear.size());
 		REQUIRE(1 == refreshInfo.filesToClear.size());
 		REQUIRE(1 == refreshInfo.filesToIndex.size());
@@ -955,11 +955,11 @@ TEST_CASE(
 	cleanup();
 	{
 		const FilePath upToDateSourceFilePath = m_sourceFolder.getConcatenated(
-			L"up_to_date_file.cpp");
+			"up_to_date_file.cpp");
 		const FilePath upToDateHeaderFilePath = m_sourceFolder.getConcatenated(
-			L"up_to_date_file.h");
+			"up_to_date_file.h");
 		const FilePath outOfDateHeaderFilePath = m_sourceFolder.getConcatenated(
-			L"out_of_date_file.h");
+			"out_of_date_file.h");
 
 		std::vector<std::shared_ptr<SourceGroup>> sourceGroups;
 		sourceGroups.push_back(std::shared_ptr<SourceGroupTest>(new SourceGroupTest(
@@ -993,7 +993,7 @@ TEST_CASE(
 		const RefreshInfo refreshInfo = RefreshInfoGenerator::getRefreshInfoForUpdatedFiles(
 			sourceGroups, storage);
 
-		REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+		REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 		REQUIRE(1 == refreshInfo.nonIndexedFilesToClear.size());
 		REQUIRE(2 == refreshInfo.filesToClear.size());
 		REQUIRE(1 == refreshInfo.filesToIndex.size());
@@ -1016,11 +1016,11 @@ TEST_CASE(
 	cleanup();
 	{
 		const FilePath upToDateSourceFilePath = m_sourceFolder.getConcatenated(
-			L"up_to_date_file.cpp");
+			"up_to_date_file.cpp");
 		const FilePath upToDateHeaderFilePath = m_sourceFolder.getConcatenated(
-			L"up_to_date_file.h");
+			"up_to_date_file.h");
 		const FilePath outOfDateHeaderFilePath = m_sourceFolder.getConcatenated(
-			L"out_of_date_file.h");
+			"out_of_date_file.h");
 
 		std::vector<std::shared_ptr<SourceGroup>> sourceGroups;
 		sourceGroups.push_back(std::shared_ptr<SourceGroupTest>(new SourceGroupTest(
@@ -1054,7 +1054,7 @@ TEST_CASE(
 		const RefreshInfo refreshInfo = RefreshInfoGenerator::getRefreshInfoForUpdatedFiles(
 			sourceGroups, storage);
 
-		REQUIRE(REFRESH_UPDATED_FILES == refreshInfo.mode);
+		REQUIRE(RefreshMode::UPDATED_FILES == refreshInfo.mode);
 		REQUIRE(1 == refreshInfo.nonIndexedFilesToClear.size());
 		REQUIRE(2 == refreshInfo.filesToClear.size());
 		REQUIRE(1 == refreshInfo.filesToIndex.size());

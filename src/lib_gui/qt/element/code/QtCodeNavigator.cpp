@@ -1,5 +1,26 @@
 #include "QtCodeNavigator.h"
 
+
+#include "ApplicationSettings.h"
+#include "CodeFocusHandler.h"
+#include "MessageCodeReference.h"
+#include "MessageHistoryRedo.h"
+#include "MessageHistoryUndo.h"
+#include "MessageScrollCode.h"
+#include "MessageTabOpenWith.h"
+#include "MessageToNextCodeReference.h"
+#include "QtActions.h"
+#include "QtCodeArea.h"
+#include "QtCodeFile.h"
+#include "QtCodeSnippet.h"
+#include "QtResources.h"
+#include "QtSearchBarButton.h"
+#include "SourceLocation.h"
+#include "SourceLocationCollection.h"
+#include "TabIds.h"
+#include "logging.h"
+#include "utilityQt.h"
+
 #include <QApplication>
 #include <QButtonGroup>
 #include <QHBoxLayout>
@@ -9,30 +30,8 @@
 #include <QTimer>
 #include <QVBoxLayout>
 
-#include "ApplicationSettings.h"
-#include "CodeFocusHandler.h"
-#include "MessageCodeReference.h"
-#include "MessageFocusView.h"
-#include "MessageHistoryRedo.h"
-#include "MessageHistoryUndo.h"
-#include "MessageScrollCode.h"
-#include "MessageTabOpenWith.h"
-#include "MessageToNextCodeReference.h"
-#include "QtCodeArea.h"
-#include "QtCodeFile.h"
-#include "QtCodeSnippet.h"
-#include "QtSearchBarButton.h"
-#include "ResourcePaths.h"
-#include "SourceLocation.h"
-#include "SourceLocationCollection.h"
-#include "SourceLocationFile.h"
-#include "TabId.h"
-#include "logging.h"
-#include "utility.h"
-#include "utilityQt.h"
-
 QtCodeNavigator::QtCodeNavigator(QWidget* parent)
-	: QWidget(parent), m_mode(MODE_NONE), m_oldMode(MODE_NONE), m_schedulerId(TabId::ignore())
+	: QWidget(parent),  m_schedulerId(TabIds::ignore())
 {
 	QVBoxLayout* layout = new QVBoxLayout();
 	layout->setSpacing(0);
@@ -59,16 +58,14 @@ QtCodeNavigator::QtCodeNavigator(QWidget* parent)
 		navLayout->setContentsMargins(7, 7 - indicatorHeight, 7, 6);
 
 		{
-			m_prevReferenceButton = new QtSearchBarButton(
-				ResourcePaths::getGuiDirectoryPath().concatenate(L"code_view/images/arrow_up.png"), true);
-			m_nextReferenceButton = new QtSearchBarButton(
-				ResourcePaths::getGuiDirectoryPath().concatenate(L"code_view/images/arrow_down.png"), true);
+			m_prevReferenceButton = new QtSearchBarButton(QtResources::CODE_VIEW_ARROW_UP, QtSearchBarButton::Size::SMALL);
+			m_nextReferenceButton = new QtSearchBarButton(QtResources::CODE_VIEW_ARROW_DOWN, QtSearchBarButton::Size::SMALL);
 
 			m_prevReferenceButton->setObjectName(QStringLiteral("reference_button_previous"));
 			m_nextReferenceButton->setObjectName(QStringLiteral("reference_button_next"));
 
-			m_prevReferenceButton->setToolTip(QStringLiteral("previous reference"));
-			m_nextReferenceButton->setToolTip(QStringLiteral("next reference"));
+			m_prevReferenceButton->setToolTip(QtActions::previousReference().tooltip());
+			m_nextReferenceButton->setToolTip(QtActions::nextReference().tooltip());
 
 			m_prevReferenceButton->setIconSize(QSize(12, 12));
 			m_nextReferenceButton->setIconSize(QSize(12, 12));
@@ -76,13 +73,11 @@ QtCodeNavigator::QtCodeNavigator(QWidget* parent)
 			navLayout->addWidget(m_prevReferenceButton);
 			navLayout->addWidget(m_nextReferenceButton);
 
-			connect(
-				m_prevReferenceButton, &QPushButton::clicked, this, &QtCodeNavigator::previousReference);
-			connect(
-				m_nextReferenceButton, &QPushButton::clicked, this, &QtCodeNavigator::nextReference);
+			connect(m_prevReferenceButton, &QPushButton::clicked, this, &QtCodeNavigator::previousReference);
+			connect(m_nextReferenceButton, &QPushButton::clicked, this, &QtCodeNavigator::nextReference);
 
 			// m_refLabel = new QLabel("0 files  |  0 references");
-			m_refLabel = new QLabel(QStringLiteral("0 references"));
+			m_refLabel = new QLabel(tr("0 references"));
 			m_refLabel->setObjectName(QStringLiteral("references_label"));
 			navLayout->addWidget(m_refLabel);
 
@@ -90,18 +85,14 @@ QtCodeNavigator::QtCodeNavigator(QWidget* parent)
 		}
 
 		{
-			m_prevLocalReferenceButton = new QtSearchBarButton(
-				ResourcePaths::getGuiDirectoryPath().concatenate(L"code_view/images/arrow_up.png"), true);
-			m_nextLocalReferenceButton = new QtSearchBarButton(
-				ResourcePaths::getGuiDirectoryPath().concatenate(L"code_view/images/arrow_down.png"), true);
+			m_prevLocalReferenceButton = new QtSearchBarButton(QtResources::CODE_VIEW_ARROW_UP, QtSearchBarButton::Size::SMALL);
+			m_nextLocalReferenceButton = new QtSearchBarButton(QtResources::CODE_VIEW_ARROW_DOWN, QtSearchBarButton::Size::SMALL);
 
-			m_prevLocalReferenceButton->setObjectName(
-				QStringLiteral("local_reference_button_previous"));
-			m_nextLocalReferenceButton->setObjectName(
-				QStringLiteral("local_reference_button_next"));
+			m_prevLocalReferenceButton->setObjectName(QStringLiteral("local_reference_button_previous"));
+			m_nextLocalReferenceButton->setObjectName(QStringLiteral("local_reference_button_next"));
 
-			m_prevLocalReferenceButton->setToolTip(QStringLiteral("previous local reference"));
-			m_nextLocalReferenceButton->setToolTip(QStringLiteral("next local reference"));
+			m_prevLocalReferenceButton->setToolTip(QtActions::previousLocalReference().tooltip());
+			m_nextLocalReferenceButton->setToolTip(QtActions::nextLocalReference().tooltip());
 
 			m_prevLocalReferenceButton->setIconSize(QSize(12, 12));
 			m_nextLocalReferenceButton->setIconSize(QSize(12, 12));
@@ -109,18 +100,10 @@ QtCodeNavigator::QtCodeNavigator(QWidget* parent)
 			navLayout->addWidget(m_prevLocalReferenceButton);
 			navLayout->addWidget(m_nextLocalReferenceButton);
 
-			connect(
-				m_prevLocalReferenceButton,
-				&QPushButton::clicked,
-				this,
-				&QtCodeNavigator::previousLocalReference);
-			connect(
-				m_nextLocalReferenceButton,
-				&QPushButton::clicked,
-				this,
-				&QtCodeNavigator::nextLocalReference);
+			connect(m_prevLocalReferenceButton, &QPushButton::clicked, this, &QtCodeNavigator::previousLocalReference);
+			connect(m_nextLocalReferenceButton, &QPushButton::clicked, this, &QtCodeNavigator::nextLocalReference);
 
-			m_localRefLabel = new QLabel(QStringLiteral("0/0 local references"));
+			m_localRefLabel = new QLabel(tr("0/0 local references"));
 			m_localRefLabel->setObjectName(QStringLiteral("references_label"));
 			navLayout->addWidget(m_localRefLabel);
 
@@ -135,16 +118,14 @@ QtCodeNavigator::QtCodeNavigator(QWidget* parent)
 			m_localRefLabel->hide();
 		}
 
-		m_listButton = new QtSearchBarButton(
-			ResourcePaths::getGuiDirectoryPath().concatenate(L"code_view/images/list.png"), true);
-		m_fileButton = new QtSearchBarButton(
-			ResourcePaths::getGuiDirectoryPath().concatenate(L"code_view/images/file.png"), true);
+		m_listButton = new QtSearchBarButton(QtResources::CODE_VIEW_LIST, QtSearchBarButton::Size::SMALL);
+		m_fileButton = new QtSearchBarButton(QtResources::CODE_VIEW_FILE, QtSearchBarButton::Size::SMALL);
 
 		m_listButton->setObjectName(QStringLiteral("mode_button_list"));
 		m_fileButton->setObjectName(QStringLiteral("mode_button_single"));
 
-		m_listButton->setToolTip(QStringLiteral("snippet list mode"));
-		m_fileButton->setToolTip(QStringLiteral("single file mode"));
+		m_listButton->setToolTip(tr("snippet list mode"));
+		m_fileButton->setToolTip(tr("single file mode"));
 
 		m_listButton->setCheckable(true);
 		m_fileButton->setCheckable(true);
@@ -187,7 +168,7 @@ QtCodeNavigator::QtCodeNavigator(QWidget* parent)
 	connect(app, &QApplication::focusChanged, this, &QtCodeNavigator::focusChanged);
 }
 
-QtCodeNavigator::~QtCodeNavigator() {}
+QtCodeNavigator::~QtCodeNavigator() = default;
 
 void QtCodeNavigator::addSnippetFile(const CodeFileParams& params)
 {
@@ -209,13 +190,11 @@ void QtCodeNavigator::updateReferenceCount(
 {
 	if (referenceIndex != referenceCount)
 	{
-		m_refLabel->setText(
-			QString::number(referenceIndex + 1) + "/" + QString::number(referenceCount) +
-			" references");
+		m_refLabel->setText(tr("%1/%2 references").arg(referenceIndex + 1).arg(referenceCount));
 	}
 	else
 	{
-		m_refLabel->setText(QString::number(referenceCount) + " references");
+		m_refLabel->setText(tr("%1 references").arg(referenceCount));
 	}
 
 	m_refLabel->setMinimumWidth(
@@ -229,13 +208,11 @@ void QtCodeNavigator::updateReferenceCount(
 
 	if (localReferenceIndex != localReferenceCount)
 	{
-		m_localRefLabel->setText(
-			QString::number(localReferenceIndex + 1) + "/" + QString::number(localReferenceCount) +
-			" local references");
+		m_localRefLabel->setText(tr("%1/%2 local references").arg(localReferenceIndex + 1).arg(localReferenceCount));
 	}
 	else
 	{
-		m_localRefLabel->setText(QString::number(localReferenceCount) + " local references");
+		m_localRefLabel->setText(tr("%1 local references").arg(localReferenceCount));
 	}
 
 	m_localRefLabel->setMinimumWidth(
@@ -301,12 +278,12 @@ void QtCodeNavigator::setMode(Mode mode)
 	}
 }
 
-Id QtCodeNavigator::getSchedulerId() const
+TabId QtCodeNavigator::getSchedulerId() const
 {
 	return m_schedulerId;
 }
 
-void QtCodeNavigator::setSchedulerId(Id schedulerId)
+void QtCodeNavigator::setSchedulerId(TabId schedulerId)
 {
 	m_schedulerId = schedulerId;
 }
@@ -330,7 +307,7 @@ const std::set<Id>& QtCodeNavigator::getCurrentActiveLocationIds() const
 
 void QtCodeNavigator::setCurrentActiveLocationIds(const std::vector<Id>& currentActiveLocationIds)
 {
-	setActiveLocalTokenIds({}, LOCATION_TOKEN);
+	setActiveLocalTokenIds({}, LocationType::TOKEN);
 
 	m_currentActiveLocationIds = std::set<Id>(
 		currentActiveLocationIds.begin(), currentActiveLocationIds.end());
@@ -355,7 +332,7 @@ const std::set<Id>& QtCodeNavigator::getActiveTokenIds() const
 
 void QtCodeNavigator::setActiveTokenIds(const std::vector<Id>& activeTokenIds)
 {
-	setActiveLocalTokenIds({}, LOCATION_TOKEN);
+	setActiveLocalTokenIds({}, LocationType::TOKEN);
 	setCurrentActiveTokenIds(activeTokenIds);
 
 	m_activeTokenIds = std::set<Id>(activeTokenIds.begin(), activeTokenIds.end());
@@ -367,7 +344,7 @@ const std::set<Id>& QtCodeNavigator::getActiveLocalTokenIds() const
 }
 
 void QtCodeNavigator::setActiveLocalTokenIds(
-	const std::vector<Id>& activeLocalTokenIds, LocationType locationType)
+	const std::vector<Id>& activeLocalTokenIds, LocationType  /*locationType*/)
 {
 	setCurrentActiveLocalLocationIds({});
 
@@ -384,7 +361,7 @@ void QtCodeNavigator::setCoFocusedTokenIds(const std::vector<Id>& coFocusedToken
 	m_coFocusedTokenIds = std::set<Id>(coFocusedTokenIds.begin(), coFocusedTokenIds.end());
 }
 
-std::wstring QtCodeNavigator::getErrorMessageForId(Id errorId) const
+std::string QtCodeNavigator::getErrorMessageForId(Id errorId) const
 {
 	std::map<Id, ErrorInfo>::const_iterator it = m_errorInfos.find(errorId);
 
@@ -393,7 +370,7 @@ std::wstring QtCodeNavigator::getErrorMessageForId(Id errorId) const
 		return it->second.message;
 	}
 
-	return L"";
+	return "";
 }
 
 void QtCodeNavigator::setErrorInfos(const std::vector<ErrorInfo>& errorInfos)
@@ -414,10 +391,10 @@ bool QtCodeNavigator::hasErrors() const
 size_t QtCodeNavigator::getFatalErrorCountForFile(const FilePath& filePath) const
 {
 	size_t fatalErrorCount = 0;
-	for (const std::pair<Id, ErrorInfo>& p: m_errorInfos)
+	for (const auto &p: m_errorInfos)
 	{
 		const ErrorInfo& error = p.second;
-		if (error.filePath == filePath.wstr() && error.fatal)
+		if (error.filePath == filePath.str() && error.fatal)
 		{
 			fatalErrorCount++;
 		}
@@ -539,7 +516,7 @@ void QtCodeNavigator::updateFiles()
 	}
 }
 
-size_t QtCodeNavigator::findScreenMatches(const std::wstring& query)
+size_t QtCodeNavigator::findScreenMatches(const std::string& query)
 {
 	clearScreenMatches();
 
@@ -614,7 +591,7 @@ void QtCodeNavigator::scrollTo(const CodeScrollParams& params, bool animated, bo
 	switch (params.type)
 	{
 	case CodeScrollParams::Type::TO_REFERENCE:
-		func = [=]() {
+		func = [=, this]() {
 			m_current->scrollTo(
 				params.filePath,
 				0,
@@ -626,12 +603,12 @@ void QtCodeNavigator::scrollTo(const CodeScrollParams& params, bool animated, bo
 		};
 		break;
 	case CodeScrollParams::Type::TO_FILE:
-		func = [=]() {
+		func = [=, this]() {
 			m_current->scrollTo(params.filePath, 0, 0, 0, animated, params.target, focusTarget);
 		};
 		break;
 	case CodeScrollParams::Type::TO_LINE:
-		func = [=]() {
+		func = [=, this]() {
 			m_current->scrollTo(
 				params.filePath, params.line, 0, 0, animated, params.target, focusTarget);
 		};
@@ -639,7 +616,7 @@ void QtCodeNavigator::scrollTo(const CodeScrollParams& params, bool animated, bo
 	case CodeScrollParams::Type::TO_VALUE:
 		if ((m_mode == MODE_LIST) == params.inListMode)
 		{
-			func = [=]() {
+			func = [=, this]() {
 				QAbstractScrollArea* area = m_current->getScrollArea();
 				if (area)
 				{
@@ -698,182 +675,169 @@ void QtCodeNavigator::scrolled(int value)
 	MessageScrollCode(value, m_mode == MODE_LIST).dispatch();
 }
 
-void QtCodeNavigator::showEvent(QShowEvent* event)
+void QtCodeNavigator::showEvent(QShowEvent*  /*event*/)
 {
 	scrollTo(m_scrollParams, false, true);
 }
 
-void QtCodeNavigator::keyPressEvent(QKeyEvent* event)
+void QtCodeNavigator::keyPressEvent(QKeyEvent *event)
 {
-	bool shift = event->modifiers() & Qt::ShiftModifier;
-	bool alt = event->modifiers() & Qt::AltModifier;
-	bool ctrl = event->modifiers() & Qt::ControlModifier;
-	const CodeFocusHandler::Focus& currentFocus = getCurrentFocus();
+	const CodeFocusHandler::Focus &currentFocus = getCurrentFocus();
 
 	FilePath currentFilePath;
-	if (currentFocus.file)
+	if (currentFocus.file != nullptr)
 	{
 		currentFilePath = currentFocus.file->getFilePath();
 	}
-	else if (currentFocus.area)
+	else if (currentFocus.area != nullptr)
 	{
 		currentFilePath = currentFocus.area->getFilePath();
 	}
 
-	auto moveFocus = [=](CodeFocusHandler::Direction direction) {
-		if (!alt && !ctrl)
+	auto moveReferenceFocus = [=](CodeFocusHandler::Direction direction)
+	{
+		MessageToNextCodeReference(currentFilePath, currentFocus.lineNumber, currentFocus.columnNumber,
+			direction == CodeFocusHandler::Direction::DOWN || direction == CodeFocusHandler::Direction::RIGHT)
+			.dispatch();
+	};
+
+	auto moveFocus = [=, this](CodeFocusHandler::Direction direction)
+	{
+		m_current->moveFocus(currentFocus, direction);
+		scrollToFocus();
+	};
+
+	auto moveView = [=, this](CodeFocusHandler::Direction direction)
+	{
+		QAbstractScrollArea *scrollArea = currentFocus.area;
+		int step = currentFocus.area ? currentFocus.area->lineHeight() * 3 : 50;
+		if (direction == CodeFocusHandler::Direction::DOWN || direction == CodeFocusHandler::Direction::UP)
 		{
-			if (shift)
+			if (m_mode == MODE_LIST)
 			{
-				MessageToNextCodeReference(
-					currentFilePath,
-					currentFocus.lineNumber,
-					currentFocus.columnNumber,
-					direction == CodeFocusHandler::Direction::DOWN ||
-						direction == CodeFocusHandler::Direction::RIGHT)
-					.dispatch();
+				scrollArea = m_list->getScrollArea();
 			}
 			else
 			{
-				m_current->moveFocus(currentFocus, direction);
-				scrollToFocus();
+				step = 3;
+			}
+		}
+
+		if (scrollArea != nullptr)
+		{
+			QScrollBar *horizontalScrollBar = scrollArea->horizontalScrollBar();
+			QScrollBar *verticalScrollBar = scrollArea->verticalScrollBar();
+
+			if (direction == CodeFocusHandler::Direction::DOWN)
+			{
+				verticalScrollBar->setValue(verticalScrollBar->value() + step);
+			}
+			else if (direction == CodeFocusHandler::Direction::UP)
+			{
+				verticalScrollBar->setValue(verticalScrollBar->value() - step);
+			}
+			else if (direction == CodeFocusHandler::Direction::RIGHT)
+			{
+				horizontalScrollBar->setValue(horizontalScrollBar->value() + step);
+			}
+			else if (direction == CodeFocusHandler::Direction::LEFT)
+			{
+				horizontalScrollBar->setValue(horizontalScrollBar->value() - step);
 			}
 		}
 	};
 
-	auto moveView = [=](CodeFocusHandler::Direction direction) {
-		if (!alt && !shift && ctrl)
-		{
-			QAbstractScrollArea* scrollArea = currentFocus.area;
-			int step = currentFocus.area ? currentFocus.area->lineHeight() * 3 : 50;
-			if (direction == CodeFocusHandler::Direction::DOWN ||
-				direction == CodeFocusHandler::Direction::UP)
+	Action action;
+	switch (action = QtActions::detectAction(event))
+	{
+		case Action::MoveViewUp:
+			moveView(CodeFocusHandler::Direction::UP);
+			break;
+		case Action::MoveFocusUp:
+			moveFocus(CodeFocusHandler::Direction::UP);
+			break;
+		case Action::MoveReferenceFocusUp:
+			moveReferenceFocus(CodeFocusHandler::Direction::UP);
+			break;
+
+		case Action::MoveViewDown:
+			moveView(CodeFocusHandler::Direction::DOWN);
+			break;
+		case Action::MoveFocusDown:
+			moveFocus(CodeFocusHandler::Direction::DOWN);
+			break;
+		case Action::MoveReferenceFocusDown:
+			moveReferenceFocus(CodeFocusHandler::Direction::DOWN);
+			break;
+
+		case Action::MoveViewLeft:
+			moveView(CodeFocusHandler::Direction::LEFT);
+			break;
+		case Action::MoveFocusLeft:
+			moveFocus(CodeFocusHandler::Direction::LEFT);
+			break;
+		case Action::MoveReferenceFocusLeft:
+			moveReferenceFocus(CodeFocusHandler::Direction::LEFT);
+			break;
+
+		case Action::MoveViewRight:
+			moveView(CodeFocusHandler::Direction::RIGHT);
+			break;
+		case Action::MoveFocusRight:
+			moveFocus(CodeFocusHandler::Direction::RIGHT);
+			break;
+		case Action::MoveReferenceFocusRight:
+			moveReferenceFocus(CodeFocusHandler::Direction::RIGHT);
+			break;
+
+		case Action::ActivateFocus:
+		case Action::ActivateFocusInNewTab:
+			if (currentFocus.area != nullptr && currentFocus.locationId)
 			{
-				if (m_mode == MODE_LIST)
+				if (action == Action::ActivateFocusInNewTab)
 				{
-					scrollArea = m_list->getScrollArea();
+					MessageTabOpenWith(0, currentFocus.locationId).dispatch();
 				}
 				else
 				{
-					step = 3;
+					currentFocus.area->activateLocationId(currentFocus.locationId, false);
 				}
 			}
-
-			if (scrollArea)
+			else if (currentFocus.scopeLine != nullptr)
 			{
-				QScrollBar* horizontalScrollBar = scrollArea->horizontalScrollBar();
-				QScrollBar* verticalScrollBar = scrollArea->verticalScrollBar();
-
-				if (direction == CodeFocusHandler::Direction::DOWN)
-				{
-					verticalScrollBar->setValue(verticalScrollBar->value() + step);
-				}
-				else if (direction == CodeFocusHandler::Direction::UP)
-				{
-					verticalScrollBar->setValue(verticalScrollBar->value() - step);
-				}
-				else if (direction == CodeFocusHandler::Direction::RIGHT)
-				{
-					horizontalScrollBar->setValue(horizontalScrollBar->value() + step);
-				}
-				else if (direction == CodeFocusHandler::Direction::LEFT)
-				{
-					horizontalScrollBar->setValue(horizontalScrollBar->value() - step);
-				}
+				emit currentFocus.scopeLine->clicked();
 			}
-		}
-	};
-
-	switch (event->key())
-	{
-	case Qt::Key_Up:
-		moveView(CodeFocusHandler::Direction::UP);
-	case Qt::Key_K:
-	case Qt::Key_W:
-		moveFocus(CodeFocusHandler::Direction::UP);
-		break;
-
-	case Qt::Key_Down:
-		moveView(CodeFocusHandler::Direction::DOWN);
-	case Qt::Key_J:
-	case Qt::Key_S:
-		moveFocus(CodeFocusHandler::Direction::DOWN);
-		break;
-
-	case Qt::Key_Left:
-		moveView(CodeFocusHandler::Direction::LEFT);
-	case Qt::Key_H:
-	case Qt::Key_A:
-		moveFocus(CodeFocusHandler::Direction::LEFT);
-		break;
-
-	case Qt::Key_Right:
-		moveView(CodeFocusHandler::Direction::RIGHT);
-	case Qt::Key_L:
-	case Qt::Key_D:
-		moveFocus(CodeFocusHandler::Direction::RIGHT);
-		break;
-
-	case Qt::Key_E:
-	case Qt::Key_Return:
-		if (currentFocus.area && currentFocus.locationId)
-		{
-			if (ctrl && shift)
+			else if (currentFocus.file != nullptr)
 			{
-				MessageTabOpenWith(0, currentFocus.locationId).dispatch();
+				currentFocus.file->toggleCollapsed();
 			}
-			else
-			{
-				currentFocus.area->activateLocationId(currentFocus.locationId, false);
-			}
-		}
-		else if (currentFocus.scopeLine)
-		{
-			currentFocus.scopeLine->clicked();
-		}
-		else if (currentFocus.file)
-		{
-			currentFocus.file->toggleCollapsed();
-		}
-		break;
+			break;
 
-	case Qt::Key_Y:
-	case Qt::Key_Z:
-		if (!alt && !ctrl)
-		{
-			if (shift)
-			{
-				MessageHistoryRedo().dispatch();
-			}
-			else
-			{
-				MessageHistoryUndo().dispatch();
-			}
-		}
-		break;
+		case Action::RedoHistory:
+			MessageHistoryRedo().dispatch();
+			break;
 
-	case Qt::Key_C:
-		if (ctrl && !alt && !shift)
-		{
+		case Action::UndoHistory:
+			MessageHistoryUndo().dispatch();
+			break;
+
+		case Action::CopySelection:
 			m_current->copySelection();
-		}
-		break;
+			break;
 
-	default:
-		QWidget::keyPressEvent(event);
-		return;
+		default:
+			QWidget::keyPressEvent(event);
 	}
 }
 
-void QtCodeNavigator::focusInEvent(QFocusEvent* event)
+void QtCodeNavigator::focusInEvent(QFocusEvent*  /*event*/)
 {
 	emit focusIn();
 }
 
-void QtCodeNavigator::focusOutEvent(QFocusEvent* event)
+void QtCodeNavigator::focusOutEvent(QFocusEvent*  /*event*/)
 {
-	QApplication* app = dynamic_cast<QApplication*>(QCoreApplication::instance());
-	if (isAncestorOf(app->focusWidget()))
+	if (isAncestorOf(QApplication::focusWidget()))
 	{
 		return;
 	}
@@ -881,7 +845,7 @@ void QtCodeNavigator::focusOutEvent(QFocusEvent* event)
 	emit focusOut();
 }
 
-void QtCodeNavigator::focusChanged(QWidget* from, QWidget* to)
+void QtCodeNavigator::focusChanged(QWidget*  /*from*/, QWidget* to)
 {
 	if (isAncestorOf(to))
 	{
@@ -892,22 +856,22 @@ void QtCodeNavigator::focusChanged(QWidget* from, QWidget* to)
 
 void QtCodeNavigator::previousReference()
 {
-	MessageCodeReference(MessageCodeReference::REFERENCE_PREVIOUS, false).dispatch();
+	MessageCodeReference(MessageCodeReference::Type::PREVIOUS, false).dispatch();
 }
 
 void QtCodeNavigator::nextReference()
 {
-	MessageCodeReference(MessageCodeReference::REFERENCE_NEXT, false).dispatch();
+	MessageCodeReference(MessageCodeReference::Type::NEXT, false).dispatch();
 }
 
 void QtCodeNavigator::previousLocalReference()
 {
-	MessageCodeReference(MessageCodeReference::REFERENCE_PREVIOUS, true).dispatch();
+	MessageCodeReference(MessageCodeReference::Type::PREVIOUS, true).dispatch();
 }
 
 void QtCodeNavigator::nextLocalReference()
 {
-	MessageCodeReference(MessageCodeReference::REFERENCE_NEXT, true).dispatch();
+	MessageCodeReference(MessageCodeReference::Type::NEXT, true).dispatch();
 }
 
 void QtCodeNavigator::setModeList()
@@ -948,6 +912,6 @@ void QtCodeNavigator::handleMessage(MessageWindowFocus* message)
 {
 	if (message->focusIn)
 	{
-		m_onQtThread([=]() { m_current->onWindowFocus(); });
+		m_onQtThread([=, this]() { m_current->onWindowFocus(); });
 	}
 }

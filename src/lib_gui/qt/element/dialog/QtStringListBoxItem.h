@@ -16,7 +16,7 @@ public:
 	QtStringListBoxItem(QtStringListBox* listBox, QListWidgetItem* item, QWidget* parent = nullptr);
 
 protected:
-	virtual QtListBox* getListBox() override;
+	QtListBox* getListBox() override;
 
 private:
 	QtStringListBox* m_listBox;

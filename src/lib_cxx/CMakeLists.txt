@@ -1,7 +1,4 @@
-
-add_files(
-	LIB_CXX
-
+add_library(Sourcetrail_lib_cxx
 	data/indexer/CxxIndexerCommandProvider.cpp
 	data/indexer/CxxIndexerCommandProvider.h
 	data/indexer/IndexerCommandCxx.cpp
@@ -105,6 +102,7 @@ add_files(
 	utility/codeblocks/CodeblocksTargetRelationType.h
 	utility/codeblocks/CodeblocksUnit.cpp
 	utility/codeblocks/CodeblocksUnit.h
+
 	utility/CompilationDatabase.cpp
 	utility/CompilationDatabase.h
 	utility/IncludeDirective.cpp
@@ -114,4 +112,23 @@ add_files(
 
 	LanguagePackageCxx.cpp
 	LanguagePackageCxx.h
+)
+setDefaultTargetOptions(Sourcetrail_lib_cxx)
+
+target_include_directories(Sourcetrail_lib_cxx
+	PUBLIC
+		data/indexer
+		data/parser/cxx/name
+		data/parser/cxx/name_resolver
+		data/parser/cxx
+		project
+		utility/codeblocks
+		utility/
+		.
+)
+
+target_link_libraries(Sourcetrail_lib_cxx
+	PUBLIC
+		Sourcetrail_lib
+		External_lib_clang
 )

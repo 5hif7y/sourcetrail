@@ -7,12 +7,11 @@ class NodeBookmark: public Bookmark
 {
 public:
 	NodeBookmark(
-		const Id id,
-		const std::wstring& name,
-		const std::wstring& comment,
+		const BookmarkId bookmarkId,
+		const std::string& name,
+		const std::string& comment,
 		const TimeStamp& timeStamp,
 		const BookmarkCategory& category);
-	virtual ~NodeBookmark();
 
 	void addNodeId(const Id nodeId);
 	void setNodeIds(const std::vector<Id>& nodeIds);

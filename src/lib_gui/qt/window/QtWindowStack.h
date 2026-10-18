@@ -11,8 +11,7 @@ class QtWindowStackElement: public QWidget
 public:
 	QtWindowStackElement(QWidget* parent = nullptr);
 
-	virtual void showWindow() = 0;
-	virtual void hideWindow() = 0;
+	void setVisible(bool visible) override = 0;
 };
 
 
@@ -29,7 +28,6 @@ public:
 	QtWindowStack(QObject* parent = nullptr);
 
 	QtWindowStackElement* getTopWindow() const;
-	QtWindowStackElement* getBottomWindow() const;
 
 	size_t getWindowCount() const;
 

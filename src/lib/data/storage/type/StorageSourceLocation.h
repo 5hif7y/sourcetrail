@@ -1,17 +1,18 @@
 #ifndef STORAGE_SOURCE_LOCATION_H
 #define STORAGE_SOURCE_LOCATION_H
 
-#include "types.h"
+#include "Id.h"
+#include "LocationType.h"
 
 struct StorageSourceLocationData
 {
 	StorageSourceLocationData()
-		: fileNodeId(0), startLine(-1), startCol(-1), endLine(-1), endCol(-1), type(0)
+		: fileNodeId(0), startLine(-1), startCol(-1), endLine(-1), endCol(-1), type(LocationType::TOKEN)
 	{
 	}
 
 	StorageSourceLocationData(
-		Id fileNodeId, size_t startLine, size_t startCol, size_t endLine, size_t endCol, int type)
+		Id fileNodeId, size_t startLine, size_t startCol, size_t endLine, size_t endCol, LocationType type)
 		: fileNodeId(fileNodeId)
 		, startLine(startLine)
 		, startCol(startCol)
@@ -54,12 +55,12 @@ struct StorageSourceLocationData
 	size_t startCol;
 	size_t endLine;
 	size_t endCol;
-	int type;
+	LocationType type;
 };
 
 struct StorageSourceLocation: public StorageSourceLocationData
 {
-	StorageSourceLocation(): StorageSourceLocationData(), id(0) {}
+	StorageSourceLocation():  id(0) {}
 
 	StorageSourceLocation(Id id, const StorageSourceLocationData& data)
 		: StorageSourceLocationData(data), id(id)
@@ -67,7 +68,7 @@ struct StorageSourceLocation: public StorageSourceLocationData
 	}
 
 	StorageSourceLocation(
-		Id id, Id fileNodeId, size_t startLine, size_t startCol, size_t endLine, size_t endCol, int type)
+		Id id, Id fileNodeId, size_t startLine, size_t startCol, size_t endLine, size_t endCol, LocationType type)
 		: StorageSourceLocationData(fileNodeId, startLine, startCol, endLine, endCol, type), id(id)
 	{
 	}

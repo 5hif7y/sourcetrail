@@ -106,15 +106,15 @@ private:
 		const Id m_nodeId;
 		Id m_edgeId;
 
-		HierarchyNode* m_parent;
+		HierarchyNode* m_parent = nullptr;
 
 		std::vector<HierarchyNode*> m_bases;
 		std::vector<Id> m_baseEdgeIds;
 
 		std::vector<HierarchyNode*> m_children;
 
-		bool m_isVisible;
-		bool m_isImplicit;
+		bool m_isVisible = true;
+		bool m_isImplicit = false;
 	};
 
 	HierarchyNode* getNode(Id nodeId) const;

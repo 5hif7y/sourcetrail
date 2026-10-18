@@ -11,7 +11,6 @@ class QtTooltip: public QFrame
 
 public:
 	QtTooltip(QWidget* parent = nullptr);
-	virtual ~QtTooltip();
 
 	void setTooltipInfo(const TooltipInfo& info);
 
@@ -20,23 +19,24 @@ public:
 	bool isHovered() const;
 
 public slots:
-	virtual void show();
-	virtual void hide(bool force = false);
+	void show();
+	void hide(bool force = false);
 
 protected:
-	virtual void leaveEvent(QEvent* event);
-	virtual void enterEvent(QEvent* event);
+	void enterEvent(QEnterEvent* event) override;
+	void leaveEvent(QEvent* event) override;
 
 private:
 	void addTitle(const QString& title, int count, const QString& countText);
 	void addWidget(QWidget* widget);
-
 	void clearLayout(QLayout* layout);
 
-	QWidget* m_parentView;
+	QWidget *getParent() const;
+
+	QWidget* m_parentView = nullptr;
 	QPoint m_offset;
 
-	bool m_isHovered;
+	bool m_isHovered = false;
 };
 
 #endif	  // QT_TOOLTIP_H

@@ -6,16 +6,17 @@
 
 #include "CxxDeclName.h"
 #include "CxxTypeName.h"
+#include "CxxQualifierFlags.h"
 
 class CxxFunctionDeclName: public CxxDeclName
 {
 public:
 	CxxFunctionDeclName(
-		std::wstring name,
-		std::vector<std::wstring> templateParameterNames,
+		std::string name,
+		std::vector<std::string> templateParameterNames,
 		std::unique_ptr<CxxTypeName> returnTypeName,
 		std::vector<std::unique_ptr<CxxTypeName>> parameterTypeNames,
-		const bool isConst,
+		CxxQualifierFlags qualifierFlags,
 		const bool isStatic);
 
 	NameHierarchy toNameHierarchy() const override;
@@ -23,7 +24,7 @@ public:
 private:
 	const std::unique_ptr<CxxTypeName> m_returnTypeName;
 	const std::vector<std::unique_ptr<CxxTypeName>> m_parameterTypeNames;
-	const bool m_isConst;
+	const CxxQualifierFlags m_qualifierFlags;
 	const bool m_isStatic;
 };
 

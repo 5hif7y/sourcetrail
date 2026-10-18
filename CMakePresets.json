@@ -1,0 +1,212 @@
+{
+	"version": 9,
+	"configurePresets": [
+		{
+			"hidden": true,
+			"name": "default-presets",
+			"warnings": {
+				"dev": false,
+				"uninitialized": false,
+				"unusedCli": false
+			},
+			"binaryDir": "${sourceParentDir}/build/${presetName}"
+		},
+		{
+			"hidden": true,
+			"name": "ninja-single-config-presets",
+			"generator": "Ninja",
+			"cacheVariables": {
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE"
+			}
+		},
+		{
+			"hidden": true,
+			"name": "ninja-multi-config-presets",
+			"generator": "Ninja Multi-Config",
+			"cacheVariables": {
+				"CMAKE_CONFIGURATION_TYPES": "Release;Debug",
+				"CMAKE_VERBOSE_MAKEFILE": "TRUE",
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE"
+			}
+		},
+		{
+			"hidden": true,
+			"name": "linux-presets",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Linux"
+			}
+		},
+		{
+			"hidden": true,
+			"name": "debug-presets",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug",
+				"CMAKE_VERBOSE_MAKEFILE": "TRUE"
+			}
+		},
+		{
+			"hidden": true,
+			"name": "release-presets",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Release",
+				"CMAKE_VERBOSE_MAKEFILE": "FALSE"
+			}
+		},
+		{
+			"hidden": true,
+			"name": "relwithdebinfo-presets",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "RelWithDebInfo",
+				"CMAKE_VERBOSE_MAKEFILE": "FALSE"
+			}
+		},
+		{
+			"hidden": true,
+			"name": "vcpkg-presets",
+			"cacheVariables": {
+				"CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+				"VCPKG_TARGET_TRIPLET": "x64-arm64-linux-windows-osx-static-md"
+			}
+		},
+		{
+			"hidden": true,
+			"name": "clang-presets",
+			"cacheVariables": {
+				"CMAKE_C_COMPILER"  : "clang-21",
+				"CMAKE_CXX_COMPILER": "clang++-21"
+			}
+		},
+		{
+			"hidden": true,
+			"name": "sourcetrail-presets",
+			"cacheVariables": {
+				"BUILD_CXX_LANGUAGE_PACKAGE": "ON",
+				"BUILD_JAVA_LANGUAGE_PACKAGE": "ON",
+				"BUILD_UNIT_TESTS_PACKAGE": "ON"
+			}
+		},
+
+
+
+		{
+			"name": "system-debug",
+			"inherits": [
+				"default-presets",
+				"linux-presets",
+				"ninja-single-config-presets",
+				"debug-presets",
+				"sourcetrail-presets"
+			]
+		},
+		{
+			"name": "system-release",
+			"inherits": [
+				"default-presets",
+				"linux-presets",
+				"ninja-single-config-presets",
+				"release-presets",
+				"sourcetrail-presets"
+			]
+		},
+		{
+			"name": "system-relwithdebinfo",
+			"inherits": [
+				"default-presets",
+				"linux-presets",
+				"ninja-single-config-presets",
+				"relwithdebinfo-presets",
+				"sourcetrail-presets"
+			]
+		},
+		{
+			"name": "system-clang-debug",
+			"inherits": [
+				"default-presets",
+				"linux-presets",
+				"ninja-single-config-presets",
+				"clang-presets",
+				"debug-presets",
+				"sourcetrail-presets"
+			]
+		},
+		{
+			"name": "system-clang-release",
+			"inherits": [
+				"default-presets",
+				"linux-presets",
+				"ninja-single-config-presets",
+				"clang-presets",
+				"release-presets",
+				"sourcetrail-presets"
+			]
+		},
+		{
+			"name": "system-clang-relwithdebinfo",
+			"inherits": [
+				"default-presets",
+				"linux-presets",
+				"ninja-single-config-presets",
+				"clang-presets",
+				"relwithdebinfo-presets",
+				"sourcetrail-presets"
+			]
+		},
+
+
+
+		{
+			"name": "vcpkg-debug",
+			"inherits": [
+				"default-presets",
+				"vcpkg-presets",
+				"ninja-single-config-presets",
+				"debug-presets",
+				"sourcetrail-presets"
+			]
+		},
+		{
+			"name": "vcpkg-release",
+			"inherits": [
+				"default-presets",
+				"vcpkg-presets",
+				"ninja-single-config-presets",
+				"release-presets",
+				"sourcetrail-presets"
+			]
+		},
+		{
+			"name": "vcpkg-relwithdebinfo",
+			"inherits": [
+				"default-presets",
+				"vcpkg-presets",
+				"ninja-single-config-presets",
+				"relwithdebinfo-presets",
+				"sourcetrail-presets"
+			]
+		},
+
+
+
+		{
+			"name": "system-multi-config",
+			"inherits": [
+				"default-presets",
+				"linux-presets",
+				"ninja-multi-config-presets",
+				"sourcetrail-presets"
+			]
+		},
+		{
+			"name": "vcpkg-multi-config",
+			"inherits": [
+				"default-presets",
+				"linux-presets",
+				"vcpkg-presets",
+				"ninja-multi-config-presets",
+				"sourcetrail-presets"
+			]
+		}
+	]
+}

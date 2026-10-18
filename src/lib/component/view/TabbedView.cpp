@@ -35,12 +35,12 @@ void TabbedView::removeView(View* view)
 	m_views.erase(it);
 }
 
-void TabbedView::showView(View* view)
+void TabbedView::showView(View*  /*view*/)
 {
 	getViewLayout()->showView(this);
 }
 
-void TabbedView::hideView(View* view)
+void TabbedView::hideView(View*  /*view*/)
 {
 	getViewLayout()->hideView(this);
 }

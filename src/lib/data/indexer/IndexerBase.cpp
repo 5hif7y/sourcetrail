@@ -1,3 +1,3 @@
 #include "IndexerBase.h"
 
-IndexerBase::IndexerBase() {}
+IndexerBase::IndexerBase() = default;

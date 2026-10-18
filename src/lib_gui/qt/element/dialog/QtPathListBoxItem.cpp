@@ -1,21 +1,18 @@
 #include "QtPathListBoxItem.h"
 
+#include "QtFileDialog.h"
+#include "QtIconButton.h"
+#include "QtPathListBox.h"
+#include "QtResources.h"
+
 #include <QBoxLayout>
 #include <QListWidget>
 #include <QPushButton>
 
-#include "QtFileDialog.h"
-#include "QtIconButton.h"
-#include "QtLineEdit.h"
-#include "QtPathListBox.h"
-#include "ResourcePaths.h"
-
 QtPathListBoxItem::QtPathListBoxItem(QtPathListBox* listBox, QListWidgetItem* item, QWidget* parent)
 	: QtListBoxItem(item, parent), m_listBox(listBox)
 {
-	m_button = new QtIconButton(
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"window/dots.png"),
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"window/dots_hover.png"));
+	m_button = new QtIconButton(QtResources::WINDOW_DOTS, QtResources::WINDOW_DOTS_HOVER);
 	m_button->setIconSize(QSize(16, 16));
 	m_button->setObjectName(QStringLiteral("dotsButton"));
 	layout()->addWidget(m_button);
@@ -30,7 +27,7 @@ QtListBox* QtPathListBoxItem::getListBox()
 
 void QtPathListBoxItem::handleButtonPress()
 {
-	FilePath path(getText().toStdWString());
+	FilePath path(getText().toStdString());
 	m_listBox->makeAbsolute(path);
 
 	QStringList list;
@@ -51,16 +48,16 @@ void QtPathListBoxItem::handleButtonPress()
 
 	if (!list.isEmpty())
 	{
-		FilePath path(list.at(0).toStdWString());
+		FilePath path(list.at(0).toStdString());
 		m_listBox->makeRelativeIfShorter(path);
-		setText(QString::fromStdWString(path.wstr()));
+		setText(QString::fromStdString(path.str()));
 	}
 
 	for (int i = 1; i < list.size(); i++)
 	{
-		FilePath path(list.at(i).toStdWString());
+		FilePath path(list.at(i).toStdString());
 		m_listBox->makeRelativeIfShorter(path);
-		getListBox()->addListBoxItemWithText(QString::fromStdWString(path.wstr()));
+		getListBox()->addListBoxItemWithText(QString::fromStdString(path.str()));
 	}
 
 	selectItem();

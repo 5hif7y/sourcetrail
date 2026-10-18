@@ -16,7 +16,7 @@ class SourceGroupSettingsJavaGradle
 {
 public:
 	SourceGroupSettingsJavaGradle(const std::string& id, const ProjectSettings* projectSettings)
-		: SourceGroupSettingsWithComponents(SOURCE_GROUP_JAVA_GRADLE, id, projectSettings)
+		: SourceGroupSettingsWithComponents(SourceGroupType::JAVA_GRADLE, id, projectSettings)
 	{
 	}
 

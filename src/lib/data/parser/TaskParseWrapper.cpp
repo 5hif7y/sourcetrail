@@ -41,7 +41,7 @@ void TaskParseWrapper::doExit(std::shared_ptr<Blackboard> blackboard)
 		"index_time", [duration](float currentDuration) { return currentDuration + duration; });
 }
 
-void TaskParseWrapper::doReset(std::shared_ptr<Blackboard> blackboard)
+void TaskParseWrapper::doReset(std::shared_ptr<Blackboard>  /*blackboard*/)
 {
 	m_taskRunner->reset();
 }

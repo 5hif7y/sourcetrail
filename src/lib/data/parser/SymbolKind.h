@@ -1,30 +1,37 @@
 #ifndef SYMBOL_KIND_H
 #define SYMBOL_KIND_H
 
-enum SymbolKind
-{	 // these values need to be the same as SymbolKind in Java code
-	SYMBOL_ANNOTATION = 1,
-	SYMBOL_BUILTIN_TYPE = 2,
-	SYMBOL_CLASS = 3,
-	SYMBOL_ENUM = 4,
-	SYMBOL_ENUM_CONSTANT = 5,
-	SYMBOL_FIELD = 6,
-	SYMBOL_FUNCTION = 7,
-	SYMBOL_GLOBAL_VARIABLE = 8,
-	SYMBOL_INTERFACE = 9,
-	SYMBOL_MACRO = 10,
-	SYMBOL_METHOD = 11,
-	SYMBOL_MODULE = 12,
-	SYMBOL_NAMESPACE = 13,
-	SYMBOL_PACKAGE = 14,
-	SYMBOL_STRUCT = 15,
-	SYMBOL_TYPEDEF = 16,
-	SYMBOL_TYPE_PARAMETER = 17,
-	SYMBOL_UNION = 18,
-	SYMBOL_KIND_MAX = 19
+#include "utilityEnum.h"
+
+// These values need to be the same as SymbolKind in Java code (see SymbolKind.java)
+enum class SymbolKind
+{	 
+	UNDEFINED = 0,
+	
+	ANNOTATION = 1,
+	BUILTIN_TYPE = 2,
+	CLASS = 3,
+	ENUM = 4,
+	ENUM_CONSTANT = 5,
+	FIELD = 6,
+	FUNCTION = 7,
+	GLOBAL_VARIABLE = 8,
+	INTERFACE = 9,
+	MACRO = 10,
+	METHOD = 11,
+	MODULE = 12,
+	NAMESPACE = 13,
+	PACKAGE = 14,
+	STRUCT = 15,
+	TYPEDEF = 16,
+	TYPE_PARAMETER = 17,
+	UNION = 18,
+	RECORD = 19,
+	CONCEPT = 20,
+	C_CAST = 21
 };
 
-SymbolKind intToSymbolKind(int v);
-int symbolKindToInt(SymbolKind t);
+template <>
+SymbolKind intToEnum(int value);
 
 #endif	  // SYMBOL_KIND_H

@@ -13,7 +13,7 @@ public:
 	static QWidget* getWidgetOfView(const View* view);
 
 	QtViewWidgetWrapper(QWidget* widget);
-	~QtViewWidgetWrapper();
+	~QtViewWidgetWrapper() override;
 
 	QWidget* getWidget();
 

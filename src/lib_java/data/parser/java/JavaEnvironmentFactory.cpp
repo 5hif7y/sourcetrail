@@ -1,16 +1,40 @@
 #include "JavaEnvironmentFactory.h"
 
-#include <cstdlib>
-
-#include <jni.h>
-
 #include "ApplicationSettings.h"
 #include "JavaEnvironment.h"
 #include "logging.h"
-#include "utilityLibrary.h"
-#include "utilityWindows.h"
 
-void JavaEnvironmentFactory::createInstance(std::string classPath, std::string& errorString)
+namespace
+{
+
+template <typename Ret, typename... Args>
+std::function<Ret(Args...)> loadFunctionFromLibrary(boost::dll::shared_library *sharedLibrary,
+	const FilePath& libraryPath, const std::string& functionName, std::string *errorString)
+{
+	try {
+		sharedLibrary->load(libraryPath.getPath());
+	}
+	catch (const boost::dll::fs::system_error &systemError) {
+		*errorString = "Cannot load library '" + libraryPath.str() + "': " + systemError.what();
+		return nullptr;
+	}
+	try {
+		std::function<Ret(Args...)> functionId = sharedLibrary->get<Ret(Args...)>(functionName);
+		return functionId;
+	}
+	catch (const boost::dll::fs::system_error &systemError) {
+		*errorString = "Cannot get symbol '" + functionName + "' from library '" + libraryPath.str() + "': " + systemError.what();
+		return nullptr;
+	}
+}
+
+}
+
+boost::dll::shared_library JavaEnvironmentFactory::s_jvmLibrary;
+std::shared_ptr<JavaEnvironmentFactory> JavaEnvironmentFactory::s_instance;
+std::string JavaEnvironmentFactory::s_classPath;
+
+void JavaEnvironmentFactory::createInstance(const std::string &classPath, std::string *errorString)
 {
 	if (s_instance)
 	{
@@ -33,70 +57,77 @@ void JavaEnvironmentFactory::createInstance(std::string classPath, std::string& 
 
 	if (javaPath.empty())
 	{
-		errorString = "No Java Path provided in preferences.";
+		*errorString = "No Java Path provided in preferences.";
 		return;
 	}
 
-	createInstanceFunction = utility::loadFunctionFromLibrary<jint, JavaVM**, void**, void*>(
-		javaPath, "JNI_CreateJavaVM", errorString);
+	createInstanceFunction = loadFunctionFromLibrary<jint, JavaVM**, void**, void*>(
+		&s_jvmLibrary, javaPath, "JNI_CreateJavaVM", errorString);
 
-	if (!createInstanceFunction && !errorString.empty())
+	if (!createInstanceFunction && !errorString->empty())
 	{
 		return;
 	}
 
 	s_classPath = classPath;
 
-	const int optionCount = 2;
-
 	JavaVM* jvm = nullptr;	  // Pointer to the JVM (Java Virtual Machine)
 	JNIEnv* env = nullptr;	  // Pointer to native interface
 
 	JavaVMInitArgs vm_args;									  // Initialization arguments
-	JavaVMOption* options = new JavaVMOption[optionCount];	  // JVM invocation options
+	std::vector<JavaVMOption> options;						  // JVM invocation options
 	std::string classPathOption = "-Djava.class.path=" + classPath;
-	options[0].optionString = const_cast<char*>(classPathOption.c_str());
-	options[1].optionString = const_cast<char*>("-Xms64m");
+	options.push_back({ .optionString = const_cast<char*>(classPathOption.c_str()) });
+	options.push_back({ .optionString = const_cast<char*>("-Xms64m") });
+
+	// Prevent JVM warning:
+	// - A restricted method in java.lang.System has been called
+	// - java.lang.System::load has been called by ... in an unnamed module ...
+	// - Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+	// - Restricted methods will be blocked in a future release unless native access is enabled
+	// See https://docs.oracle.com/en/java/javase/24/core/restricted-methods.html for further details.
+	options.push_back({ .optionString = const_cast<char*>("--enable-native-access=ALL-UNNAMED") });
+
+	// options.push_back({ const_cast<char*>("-verbose:jni") });
+
+	// Allow attaching a debugger (default Eclipse port):
+	// options.push_back({ .optionString = const_cast<char*>("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:8000") });
 
 	// use these options to enable profiling in VisualVM
-	// options[2].optionString = const_cast<char*>("-Dcom.sun.management.jmxremote");
-	// options[3].optionString = const_cast<char*>("-Dcom.sun.management.jmxremote.port=9010");
-	// options[4].optionString =
-	// const_cast<char*>("-Dcom.sun.management.jmxremote.local.only=false"); options[5].optionString
-	// = const_cast<char*>("-Dcom.sun.management.jmxremote.authenticate=false");
-	// options[6].optionString = const_cast<char*>("-Dcom.sun.management.jmxremote.ssl=false");
+	//options.push_back({ const_cast<char*>("-Dcom.sun.management.jmxremote") });
+	//options.push_back({ const_cast<char*>("-Dcom.sun.management.jmxremote.port=9010") });
+	//options.push_back({ const_cast<char*>("-Dcom.sun.management.jmxremote.local.only=false") });
+	//options.push_back({ const_cast<char*>("-Dcom.sun.management.jmxremote.authenticate=false") });
+	//options.push_back({ const_cast<char*>("-Dcom.sun.management.jmxremote.ssl=false") });
 
 	vm_args.version = JNI_VERSION_1_8;
-	vm_args.nOptions = optionCount;
-	vm_args.options = options;
-	vm_args.ignoreUnrecognized = false;	   // invalid options make the JVM init fail
+	vm_args.nOptions = static_cast<jint>(options.size());
+	vm_args.options = options.data();
+	vm_args.ignoreUnrecognized = JNI_FALSE; // invalid options make the JVM init fail
 
-	jint rc = createInstanceFunction(&jvm, (void**)&env, &vm_args);
-
-	delete[] options;
+	jint rc = createInstanceFunction(&jvm, reinterpret_cast<void**>(&env), &vm_args);
 
 	if (rc != JNI_OK)
 	{
 		if (rc == JNI_EVERSION)
 		{
-			errorString = "JVM is outdated and doesn't meet requirements";
+			*errorString = "JVM is outdated and doesn't meet requirements";
 		}
 		else if (rc == JNI_ENOMEM)
 		{
-			errorString = "not enough memory for JVM";
+			*errorString = "not enough memory for JVM";
 		}
 		else if (rc == JNI_EINVAL)
 		{
-			errorString = "invalid argument for launching JVM";
+			*errorString = "invalid argument for launching JVM";
 		}
 		else if (rc == JNI_EEXIST)
 		{
-			errorString = "the process can only launch one JVM an not more";
+			*errorString = "the process can only launch one JVM an not more";
 		}
 		else
 		{
-			errorString = "could not create the JVM instance (error code " + std::to_string(rc) +
-				")";
+			*errorString = "could not create the JVM instance (error code " + std::to_string(rc) + ")";
 		}
 	}
 	else
@@ -119,44 +150,42 @@ JavaEnvironmentFactory::~JavaEnvironmentFactory()
 
 std::shared_ptr<JavaEnvironment> JavaEnvironmentFactory::createEnvironment()
 {
-	std::thread::id currentThreadId = std::this_thread::get_id();
-
-	JNIEnv* env;
-
+	JNIEnv *env = aidkit::concurrent::access([jvm = m_jvm](auto &threadIdToEnvAndUserCount)
 	{
-		std::lock_guard<std::mutex> lock(m_threadIdToEnvAndUserCountMutex);
+		const std::thread::id currentThreadId = std::this_thread::get_id();
 
-		std::map<std::thread::id, std::pair<JNIEnv*, int>>::const_iterator it =
-			m_threadIdToEnvAndUserCount.find(currentThreadId);
-		if (it != m_threadIdToEnvAndUserCount.end())
+		auto it = threadIdToEnvAndUserCount.find(currentThreadId);
+		if (it != threadIdToEnvAndUserCount.end())
 		{
-			env = it->second.first;
+			return it->second.first;
 		}
 		else
 		{
-			m_jvm->AttachCurrentThread((void**)&env, NULL);
-			m_threadIdToEnvAndUserCount.insert(
-				std::make_pair(currentThreadId, std::make_pair(env, 0)));
+			JNIEnv *env = nullptr;
+			jvm->AttachCurrentThread(reinterpret_cast<void**>(&env), nullptr);
+			threadIdToEnvAndUserCount.insert(std::pair(currentThreadId, std::pair(env, 0)));
+
+			return env;
 		}
-	}
+	}, m_threadIdToEnvAndUserCount);
 
 	return std::shared_ptr<JavaEnvironment>(new JavaEnvironment(m_jvm, env));
 }
 
-std::shared_ptr<JavaEnvironmentFactory> JavaEnvironmentFactory::s_instance;
 
-std::string JavaEnvironmentFactory::s_classPath;
-
-JavaEnvironmentFactory::JavaEnvironmentFactory(JavaVM* jvm): m_jvm(jvm) {}
+JavaEnvironmentFactory::JavaEnvironmentFactory(JavaVM* jvm)
+	: m_jvm(jvm)
+{
+}
 
 void JavaEnvironmentFactory::registerEnvironment()
 {
-	std::thread::id currentThreadId = std::this_thread::get_id();
+	aidkit::concurrent::access([](auto &threadIdToEnvAndUserCount)
 	{
-		std::lock_guard<std::mutex> lock(m_threadIdToEnvAndUserCountMutex);
-		std::map<std::thread::id, std::pair<JNIEnv*, int>>::iterator it =
-			m_threadIdToEnvAndUserCount.find(currentThreadId);
-		if (it != m_threadIdToEnvAndUserCount.end())
+		const std::thread::id currentThreadId = std::this_thread::get_id();
+
+		auto it = threadIdToEnvAndUserCount.find(currentThreadId);
+		if (it != threadIdToEnvAndUserCount.end())
 		{
 			it->second.second++;
 		}
@@ -164,28 +193,28 @@ void JavaEnvironmentFactory::registerEnvironment()
 		{
 			LOG_ERROR("something went horribly wrong while registering a java environment");
 		}
-	}
+	}, m_threadIdToEnvAndUserCount);
 }
 
 void JavaEnvironmentFactory::unregisterEnvironment()
 {
-	std::thread::id currentThreadId = std::this_thread::get_id();
+	aidkit::concurrent::access([jvm = m_jvm](auto &threadIdToEnvAndUserCount)
 	{
-		std::lock_guard<std::mutex> lock(m_threadIdToEnvAndUserCountMutex);
-		std::map<std::thread::id, std::pair<JNIEnv*, int>>::iterator it =
-			m_threadIdToEnvAndUserCount.find(currentThreadId);
-		if (it != m_threadIdToEnvAndUserCount.end())
+		const std::thread::id currentThreadId = std::this_thread::get_id();
+
+		auto it = threadIdToEnvAndUserCount.find(currentThreadId);
+		if (it != threadIdToEnvAndUserCount.end())
 		{
 			it->second.second--;
 			if (it->second.second == 0)
 			{	 // TODO: currently this happens quite often. do something about that.
-				m_jvm->DetachCurrentThread();
-				m_threadIdToEnvAndUserCount.erase(it);
+				jvm->DetachCurrentThread();
+				threadIdToEnvAndUserCount.erase(it);
 			}
 		}
 		else
 		{
 			LOG_ERROR("something went horribly wrong while unregistering a java environment");
 		}
-	}
+	}, m_threadIdToEnvAndUserCount);
 }

@@ -1,20 +1,17 @@
 #ifndef COMMANDLINE_HELPER_H
 #define COMMANDLINE_HELPER_H
 
+#include "FilePath.h"
+
 #include <string>
 #include <vector>
 
-#include "utility.h"
-#include "utilityString.h"
-
-namespace boost
-{
-namespace program_options
+namespace boost::program_options
 {
 class variables_map;
 class options_description;
-}	 // namespace program_options
-}	 // namespace boost
+} // namespace boost::program_options
+
 
 namespace po = boost::program_options;
 

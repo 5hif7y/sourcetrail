@@ -1,19 +1,126 @@
 #include "ParserClientImpl.h"
 
 #include "Edge.h"
-#include "Node.h"
+#include "NodeKind.h"
 #include "ParseLocation.h"
 
-ParserClientImpl::ParserClientImpl(IntermediateStorage* const storage): m_storage(storage) {}
+namespace
+{
+
+NodeKind symbolKindToNodeKind(SymbolKind symbolKind) 
+{
+	switch (symbolKind)
+	{
+		case SymbolKind::ANNOTATION:
+			return NODE_ANNOTATION;
+		case SymbolKind::BUILTIN_TYPE:
+			return NODE_BUILTIN_TYPE;
+		case SymbolKind::CLASS:
+			return NODE_CLASS;
+		case SymbolKind::ENUM:
+			return NODE_ENUM;
+		case SymbolKind::ENUM_CONSTANT:
+			return NODE_ENUM_CONSTANT;
+		case SymbolKind::FIELD:
+			return NODE_FIELD;
+		case SymbolKind::FUNCTION:
+			return NODE_FUNCTION;
+		case SymbolKind::GLOBAL_VARIABLE:
+			return NODE_GLOBAL_VARIABLE;
+		case SymbolKind::INTERFACE:
+			return NODE_INTERFACE;
+		case SymbolKind::MACRO:
+			return NODE_MACRO;
+		case SymbolKind::METHOD:
+			return NODE_METHOD;
+		case SymbolKind::MODULE:
+			return NODE_MODULE;
+		case SymbolKind::NAMESPACE:
+			return NODE_NAMESPACE;
+		case SymbolKind::PACKAGE:
+			return NODE_PACKAGE;
+		case SymbolKind::STRUCT:
+			return NODE_STRUCT;
+		case SymbolKind::TYPEDEF:
+			return NODE_TYPEDEF;
+		case SymbolKind::TYPE_PARAMETER:
+			return NODE_TYPE_PARAMETER;
+		case SymbolKind::UNION:
+			return NODE_UNION;
+		case SymbolKind::RECORD:
+			return NODE_RECORD;
+		case SymbolKind::CONCEPT:
+			return NODE_CONCEPT;
+		case SymbolKind::C_CAST:
+			return NODE_C_CAST;
+		case SymbolKind::UNDEFINED:
+			break;
+	}
+	return NODE_SYMBOL;
+}
+
+Edge::EdgeType referenceKindToEdgeType(ReferenceKind referenceKind) 
+{
+	switch (referenceKind)
+	{
+		case ReferenceKind::TYPE_USAGE:
+			return Edge::EDGE_TYPE_USAGE;
+		case ReferenceKind::USAGE:
+			return Edge::EDGE_USAGE;
+		case ReferenceKind::CALL:
+			return Edge::EDGE_CALL;
+		case ReferenceKind::INHERITANCE:
+			return Edge::EDGE_INHERITANCE;
+		case ReferenceKind::OVERRIDE:
+			return Edge::EDGE_OVERRIDE;
+		case ReferenceKind::TYPE_ARGUMENT:
+			return Edge::EDGE_TYPE_ARGUMENT;
+		case ReferenceKind::TEMPLATE_SPECIALIZATION:
+			return Edge::EDGE_TEMPLATE_SPECIALIZATION;
+		case ReferenceKind::INCLUDE:
+			return Edge::EDGE_INCLUDE;
+		case ReferenceKind::IMPORT:
+			return Edge::EDGE_IMPORT;
+		case ReferenceKind::MACRO_USAGE:
+			return Edge::EDGE_MACRO_USAGE;
+		case ReferenceKind::ANNOTATION_USAGE:
+			return Edge::EDGE_ANNOTATION_USAGE;
+		default:
+			break;
+	}
+	return Edge::EDGE_UNDEFINED;
+}
+
+LocationType parseLocationTypeToLocationType(ParseLocationType type) 
+{
+	switch (type)
+	{
+		case ParseLocationType::TOKEN:
+			return LocationType::TOKEN;
+		case ParseLocationType::SCOPE:
+			return LocationType::SCOPE;
+		case ParseLocationType::SIGNATURE:
+			return LocationType::SIGNATURE;
+		case ParseLocationType::QUALIFIER:
+			return LocationType::QUALIFIER;
+		case ParseLocationType::LOCAL:
+			return LocationType::LOCAL_SYMBOL;
+	}
+	return LocationType::TOKEN;
+}
+
+}
+
+ParserClientImpl::ParserClientImpl(std::shared_ptr<IntermediateStorage> storage): m_storage(storage) {}
 
 Id ParserClientImpl::recordFile(const FilePath& filePath, bool indexed)
 {
 	Id fileId = addFileName(filePath);
-	m_storage->addFile(StorageFile(fileId, filePath.wstr(), L"", "", indexed, true));
+	m_storage->addFile(StorageFile(fileId, filePath.str(), "", "", indexed, true));
 	return fileId;
 }
 
-void ParserClientImpl::recordFileLanguage(Id fileId, const std::wstring& languageIdentifier)
+void ParserClientImpl::recordFileLanguage(Id fileId, const std::string& languageIdentifier)
 {
 	m_storage->setFileLanguage(fileId, languageIdentifier);
 }
@@ -25,22 +132,22 @@ Id ParserClientImpl::recordSymbol(const NameHierarchy& symbolName)
 
 void ParserClientImpl::recordSymbolKind(Id symbolId, SymbolKind symbolKind)
 {
-	m_storage->setNodeType(symbolId, nodeKindToInt(symbolKindToNodeKind(symbolKind)));
+	m_storage->setNodeType(symbolId, symbolKindToNodeKind(symbolKind));
 }
 
 void ParserClientImpl::recordAccessKind(Id symbolId, AccessKind accessKind)
 {
-	if (accessKind != ACCESS_NONE)
+	if (accessKind != AccessKind::NONE)
 	{
-		m_storage->addComponentAccess(StorageComponentAccess(symbolId, accessKindToInt(accessKind)));
+		m_storage->addComponentAccess(StorageComponentAccess(symbolId, accessKind));
 	}
 }
 
 void ParserClientImpl::recordDefinitionKind(Id symbolId, DefinitionKind definitionKind)
 {
-	if (definitionKind != DEFINITION_NONE)
+	if (definitionKind != DefinitionKind::NONE)
 	{
-		m_storage->addSymbol(StorageSymbol(symbolId, definitionKindToInt(definitionKind)));
+		m_storage->addSymbol(StorageSymbol(symbolId, definitionKind));
 	}
 }
 
@@ -50,15 +157,15 @@ Id ParserClientImpl::recordReference(
 	Id edgeId = addEdge(referenceKindToEdgeType(referenceKind), contextSymbolId, referencedSymbolId);
 	if (edgeId)
 	{
-		addSourceLocation(edgeId, location, LOCATION_TOKEN);
+		addSourceLocation(edgeId, location, LocationType::TOKEN);
 	}
 	return edgeId;
 }
 
-void ParserClientImpl::recordLocalSymbol(const std::wstring& name, const ParseLocation& location)
+void ParserClientImpl::recordLocalSymbol(const std::string& name, const ParseLocation& location)
 {
 	const Id localSymbolId = m_storage->addLocalSymbol(name);
-	addSourceLocation(localSymbolId, location, LOCATION_LOCAL_SYMBOL);
+	addSourceLocation(localSymbolId, location, LocationType::LOCAL_SYMBOL);
 }
 
 void ParserClientImpl::recordLocation(Id elementId, const ParseLocation& location, ParseLocationType type)
@@ -79,11 +186,11 @@ void ParserClientImpl::recordComment(const ParseLocation& location)
 		location.startColumnNumber,
 		location.endLineNumber,
 		location.endColumnNumber,
-		locationTypeToInt(LOCATION_COMMENT)));
+		LocationType::COMMENT));
 }
 
 void ParserClientImpl::recordError(
-	const std::wstring& message,
+	const std::string& message,
 	bool fatal,
 	bool indexed,
 	const FilePath& translationUnit,
@@ -92,9 +199,9 @@ void ParserClientImpl::recordError(
 	if (location.fileId != 0)
 	{
 		Id errorId = m_storage->addError(
-			StorageErrorData(message, translationUnit.wstr(), fatal, indexed));
+			StorageErrorData(message, translationUnit.str(), fatal, indexed));
 
-		addSourceLocation(errorId, location, LOCATION_ERROR);
+		addSourceLocation(errorId, location, LocationType::ERROR);
 	}
 }
 
@@ -103,101 +210,6 @@ bool ParserClientImpl::hasContent() const
 	return m_storage->getByteSize(1) > 0;
 }
 
-NodeKind ParserClientImpl::symbolKindToNodeKind(SymbolKind symbolKind) const
-{
-	switch (symbolKind)
-	{
-	case SYMBOL_ANNOTATION:
-		return NODE_ANNOTATION;
-	case SYMBOL_BUILTIN_TYPE:
-		return NODE_BUILTIN_TYPE;
-	case SYMBOL_CLASS:
-		return NODE_CLASS;
-	case SYMBOL_ENUM:
-		return NODE_ENUM;
-	case SYMBOL_ENUM_CONSTANT:
-		return NODE_ENUM_CONSTANT;
-	case SYMBOL_FIELD:
-		return NODE_FIELD;
-	case SYMBOL_FUNCTION:
-		return NODE_FUNCTION;
-	case SYMBOL_GLOBAL_VARIABLE:
-		return NODE_GLOBAL_VARIABLE;
-	case SYMBOL_INTERFACE:
-		return NODE_INTERFACE;
-	case SYMBOL_MACRO:
-		return NODE_MACRO;
-	case SYMBOL_METHOD:
-		return NODE_METHOD;
-	case SYMBOL_MODULE:
-		return NODE_MODULE;
-	case SYMBOL_NAMESPACE:
-		return NODE_NAMESPACE;
-	case SYMBOL_PACKAGE:
-		return NODE_PACKAGE;
-	case SYMBOL_STRUCT:
-		return NODE_STRUCT;
-	case SYMBOL_TYPEDEF:
-		return NODE_TYPEDEF;
-	case SYMBOL_TYPE_PARAMETER:
-		return NODE_TYPE_PARAMETER;
-	case SYMBOL_UNION:
-		return NODE_UNION;
-	default:
-		break;
-	}
-	return NODE_SYMBOL;
-}
-
-Edge::EdgeType ParserClientImpl::referenceKindToEdgeType(ReferenceKind referenceKind) const
-{
-	switch (referenceKind)
-	{
-	case REFERENCE_TYPE_USAGE:
-		return Edge::EDGE_TYPE_USAGE;
-	case REFERENCE_USAGE:
-		return Edge::EDGE_USAGE;
-	case REFERENCE_CALL:
-		return Edge::EDGE_CALL;
-	case REFERENCE_INHERITANCE:
-		return Edge::EDGE_INHERITANCE;
-	case REFERENCE_OVERRIDE:
-		return Edge::EDGE_OVERRIDE;
-	case REFERENCE_TYPE_ARGUMENT:
-		return Edge::EDGE_TYPE_ARGUMENT;
-	case REFERENCE_TEMPLATE_SPECIALIZATION:
-		return Edge::EDGE_TEMPLATE_SPECIALIZATION;
-	case REFERENCE_INCLUDE:
-		return Edge::EDGE_INCLUDE;
-	case REFERENCE_IMPORT:
-		return Edge::EDGE_IMPORT;
-	case REFERENCE_MACRO_USAGE:
-		return Edge::EDGE_MACRO_USAGE;
-	case REFERENCE_ANNOTATION_USAGE:
-		return Edge::EDGE_ANNOTATION_USAGE;
-	default:
-		break;
-	}
-	return Edge::EDGE_UNDEFINED;
-}
-
-LocationType ParserClientImpl::parseLocationTypeToLocationType(ParseLocationType type) const
-{
-	switch (type)
-	{
-	case ParseLocationType::TOKEN:
-		return LOCATION_TOKEN;
-	case ParseLocationType::SCOPE:
-		return LOCATION_SCOPE;
-	case ParseLocationType::SIGNATURE:
-		return LOCATION_SIGNATURE;
-	case ParseLocationType::QUALIFIER:
-		return LOCATION_QUALIFIER;
-	case ParseLocationType::LOCAL:
-		return LOCATION_LOCAL_SYMBOL;
-	}
-	return LOCATION_TOKEN;
-}
 
 Id ParserClientImpl::addNodeHierarchy(const NameHierarchy& nameHierarchy)
 {
@@ -205,8 +217,8 @@ Id ParserClientImpl::addNodeHierarchy(const NameHierarchy& nameHierarchy)
 	Id firstNodeId = 0;
 	for (size_t i = nameHierarchy.size(); i > 0; i--)
 	{
-		std::pair<Id, bool> ret = m_storage->addNode(StorageNodeData(
-			nodeKindToInt(NODE_SYMBOL), NameHierarchy::serializeRange(nameHierarchy, 0, i)));
+		std::pair<Id, bool> ret = m_storage->addNode(StorageNodeData(NODE_SYMBOL, 
+			NameHierarchy::serializeRange(nameHierarchy, 0, i)));
 
 		if (!firstNodeId)
 		{
@@ -230,7 +242,7 @@ Id ParserClientImpl::addNodeHierarchy(const NameHierarchy& nameHierarchy)
 
 Id ParserClientImpl::addFileName(const FilePath& filePath)
 {
-	const std::wstring file = filePath.wstr();
+	const std::string file = filePath.str();
 
 	auto it = m_fileIdMap.find(file);
 	if (it != m_fileIdMap.end())
@@ -238,14 +250,14 @@ Id ParserClientImpl::addFileName(const FilePath& filePath)
 		return it->second;
 	}
 
-	const Id fileId = addNodeHierarchy(NameHierarchy(file, NAME_DELIMITER_FILE));
-	m_storage->setNodeType(fileId, nodeKindToInt(NODE_FILE));
+	const Id fileId = addNodeHierarchy(NameHierarchy(file, NameDelimiterType::FILE));
+	m_storage->setNodeType(fileId, NODE_FILE);
 
 	m_fileIdMap.emplace(file, fileId);
 	return fileId;
 }
 
-Id ParserClientImpl::addEdge(int type, Id sourceId, Id targetId)
+Id ParserClientImpl::addEdge(Edge::EdgeType type, Id sourceId, Id targetId)
 {
 	if (sourceId && targetId)
 	{
@@ -267,7 +279,7 @@ void ParserClientImpl::addSourceLocation(Id elementId, const ParseLocation& loca
 		location.startColumnNumber,
 		location.endLineNumber,
 		location.endColumnNumber,
-		locationTypeToInt(type)));
+		type));
 
 	m_storage->addOccurrence(StorageOccurrence(elementId, sourceLocationId));
 }

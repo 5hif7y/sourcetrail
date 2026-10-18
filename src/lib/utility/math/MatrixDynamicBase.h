@@ -34,9 +34,7 @@ private:
 };
 
 template <class T>
-MatrixDynamicBase<T>::MatrixDynamicBase()
-{
-}
+MatrixDynamicBase<T>::MatrixDynamicBase() = default;
 
 template <class T>
 MatrixDynamicBase<T>::MatrixDynamicBase(const unsigned int numColumns, const unsigned int numRows)
@@ -50,9 +48,7 @@ MatrixDynamicBase<T>::MatrixDynamicBase(const std::vector<std::vector<T>>& value
 }
 
 template <class T>
-MatrixDynamicBase<T>::~MatrixDynamicBase()
-{
-}
+MatrixDynamicBase<T>::~MatrixDynamicBase() = default;
 
 template <class T>
 T MatrixDynamicBase<T>::getValue(const unsigned int columnIndex, const unsigned int rowIndex) const

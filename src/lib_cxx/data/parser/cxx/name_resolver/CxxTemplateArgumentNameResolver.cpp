@@ -1,25 +1,20 @@
 #include "CxxTemplateArgumentNameResolver.h"
 
-#include <sstream>
+#include "CxxTypeNameResolver.h"
+#include "utilityClang.h"
 
 #include <clang/AST/DeclTemplate.h>
+#include <clang/AST/Expr.h>
 #include <clang/AST/PrettyPrinter.h>
 
-#include "CxxTypeNameResolver.h"
-#include "utilityString.h"
-
-CxxTemplateArgumentNameResolver::CxxTemplateArgumentNameResolver(
-	CanonicalFilePathCache* canonicalFilePathCache)
-	: CxxNameResolver(canonicalFilePathCache)
-{
-}
+using namespace utility;
 
 CxxTemplateArgumentNameResolver::CxxTemplateArgumentNameResolver(const CxxNameResolver* other)
 	: CxxNameResolver(other)
 {
 }
 
-std::wstring CxxTemplateArgumentNameResolver::getTemplateArgumentName(
+std::string CxxTemplateArgumentNameResolver::getTemplateArgumentName(
 	const clang::TemplateArgument& argument)
 {
 	// This doesn't work correctly if the template argument is dependent.
@@ -34,29 +29,41 @@ std::wstring CxxTemplateArgumentNameResolver::getTemplateArgumentName(
 			typeNameResolver.getName(argument.getAsType()));
 		return typeName->toString();
 	}
+	case clang::TemplateArgument::Expression:
+	{
+		if (const clang::DeclRefExpr *declRefExpr = clang::dyn_cast<clang::DeclRefExpr>(argument.getAsExpr()))
+		{
+			if (const clang::NonTypeTemplateParmDecl *nonTypeTemplateParmDecl = clang::dyn_cast<clang::NonTypeTemplateParmDecl>(declRefExpr->getDecl()))
+			{
+				if (const clang::IdentifierInfo *identifierInfo = nonTypeTemplateParmDecl->getIdentifier())
+				{
+					return identifierInfo->getName().str();
+				}
+			}
+		}
+		[[fallthrough]];
+	}
 	case clang::TemplateArgument::Integral:
 	case clang::TemplateArgument::Null:
 	case clang::TemplateArgument::Declaration:
 	case clang::TemplateArgument::NullPtr:
 	case clang::TemplateArgument::Template:
 	case clang::TemplateArgument::TemplateExpansion:	// handled correctly? template template parameter...
-	case clang::TemplateArgument::Expression:
+	case clang::TemplateArgument::StructuralValue:
 	{
-		clang::PrintingPolicy pp = clang::PrintingPolicy(clang::LangOptions());
-		pp.SuppressTagKeyword =
-			true;		   // value "true": for a class A it prints "A" instead of "class A"
-		pp.Bool = true;	   // value "true": prints bool type as "bool" instead of "_Bool"
+		clang::PrintingPolicy pp = makePrintingPolicyForCPlusPlus();
 
+		constexpr bool includeType = false;
 		std::string buf;
 		llvm::raw_string_ostream os(buf);
-		argument.print(pp, os);
-		return utility::decodeFromUtf8(os.str());
+		argument.print(pp, os, includeType);
+		return os.str();
 	}
 	case clang::TemplateArgument::Pack:
 	{
-		return L"<...>";
+		return "<...>";
 	}
 	}
 
-	return L"";
+	return "";
 }

@@ -1,11 +1,74 @@
 #include "QtLicenseWindow.h"
 
+#include "licenses.h"
+#include "QtExpanderButton.h"
+
+#include <aidkit/qt/Strings.hpp>
+
 #include <QLabel>
 #include <QVBoxLayout>
+#include <QToolButton>
 
-#include "licenses.h"
+using namespace std;
+using namespace aidkit::qt;
 
-QtLicenseWindow::QtLicenseWindow(QWidget* parent): QtWindow(false, parent)
+constexpr int WIDTH = 550;
+constexpr int SPACING = 20;
+
+static QtExpanderButton *createNameButton(const QString &name, const QString &version)
+{
+	QString buttonText = name;
+	if (!version.isEmpty())
+		buttonText += " (v%1)"_qs.arg(version);
+
+	QtExpanderButton *button = new QtExpanderButton(buttonText);
+
+	QFont font = button->font();
+	font.setPixelSize(36);
+	font.setBold(true);
+	button->setFont(font);
+
+	return button;
+}
+
+static QLabel *createUrlLabel(const QString &url)
+{
+	QLabel *label = new QLabel("<a href=\"%1\">%1</a>"_qs.arg(url));
+	label->setOpenExternalLinks(true);
+
+	return label;
+}
+
+static QLabel *createTextLabel(const QString &text)
+{
+	QLabel *label = new QLabel(text);
+	label->setFixedWidth(WIDTH);
+	label->setWordWrap(true);
+
+	return label;
+}
+
+static void addLicense(QWidget *parent, QBoxLayout *layout, const LicenseInfo &licenseInfo)
+{
+	QtExpanderButton *nameButton = createNameButton(licenseInfo.name, licenseInfo.version);
+	QLabel *urlLabel = createUrlLabel(licenseInfo.url);
+	QLabel *textLabel = createTextLabel(licenseInfo.license);
+	textLabel->setVisible(false);
+
+	QtExpanderButton::connect(nameButton, &QtExpanderButton::expanded, parent, [=](bool expanded)
+	{
+		textLabel->setVisible(expanded);
+	});
+
+	layout->addWidget(nameButton);
+	layout->addWidget(urlLabel);
+	layout->addWidget(textLabel);
+
+	layout->addSpacing(SPACING);
+}
+
+QtLicenseWindow::QtLicenseWindow(QWidget* parent)
+	: QtWindow(false, parent)
 {
 	setScrollAble(true);
 }
@@ -19,76 +82,21 @@ void QtLicenseWindow::populateWindow(QWidget* widget)
 {
 	QVBoxLayout* layout = new QVBoxLayout(widget);
 
-	QLabel* licenseName = new QLabel();
-	licenseName->setText(
-		QString::fromLatin1(licenseApp.name) +
-		QString::fromLatin1(
-			std::string(licenseApp.version).empty()
-				? ""
-				: (std::string(" (v") + licenseApp.version + ")").c_str()));
-	QFont _font = licenseName->font();
-	_font.setPixelSize(36);
-	_font.setBold(true);
-	licenseName->setFont(_font);
-	layout->addWidget(licenseName);
+	addLicense(this, layout, licenseApp);
 
-	QLabel* licenseURL = new QLabel();
-	licenseURL->setText(
-		QString::fromLatin1("<a href=\"%1\">%1</a>").arg(QString::fromLatin1(licenseApp.url)));
-	licenseURL->setOpenExternalLinks(true);
-	layout->addWidget(licenseURL);
-
-	QLabel* licenseText = new QLabel();
-	licenseText->setFixedWidth(550);
-	licenseText->setWordWrap(true);
-	licenseText->setText(QString::fromLatin1(licenseApp.license));
-	layout->addWidget(licenseText);
-
-	layout->addSpacing(30);
-
-	QLabel* header3rdParties = new QLabel(QStringLiteral(
-		"<b>Copyrights and Licenses for Third Party Software Distributed with Sourcetrail:</b><br "
-		"/>"
-		"Sourcetrail contains code written by the following third parties that have <br />"
-		"additional or alternate copyrights, licenses, and/or restrictions:"));
-	layout->addWidget(header3rdParties);
-
-	layout->addSpacing(30);
+	layout->addWidget(createTextLabel(tr("<b>Copyrights and Licenses for Third Party Software Distributed with Sourcetrail:</b>")));
+	layout->addSpacing(SPACING);
 
 	for (LicenseInfo license: licenses3rdParties)
-	{
-		QLabel* licenseName = new QLabel();
-		licenseName->setText(
-			QString::fromLatin1(license.name) +
-			QString::fromLatin1(
-				std::string(license.version).empty()
-					? ""
-					: (std::string(" (v") + license.version + ")").c_str()));
-		licenseName->setFont(_font);
-		layout->addWidget(licenseName);
-
-		QLabel* licenseURL = new QLabel();
-		licenseURL->setText(
-			QString::fromLatin1("<a href=\"%1\">%1</a>").arg(QString::fromLatin1(license.url)));
-		licenseURL->setOpenExternalLinks(true);
-		layout->addWidget(licenseURL);
-
-		QLabel* licenseText = new QLabel();
-		licenseText->setFixedWidth(550);
-		licenseText->setWordWrap(true);
-		licenseText->setText(QString::fromLatin1(license.license));
-		layout->addWidget(licenseText);
-
-		layout->addSpacing(30);
-	}
+		addLicense(this, layout, license);
 
 	widget->setLayout(layout);
 }
 
 void QtLicenseWindow::windowReady()
 {
-	updateTitle(QStringLiteral("License"));
-	updateCloseButton(QStringLiteral("Close"));
+	updateTitle(tr("License"));
+	updateCloseButton(tr("Close"));
 
 	setNextVisible(false);
 	setPreviousVisible(false);

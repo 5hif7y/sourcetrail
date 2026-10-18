@@ -9,7 +9,7 @@
 class IndexerComposite: public IndexerBase
 {
 public:
-	virtual ~IndexerComposite();
+	~IndexerComposite() override;
 
 	IndexerCommandType getSupportedIndexerCommandType() const override;
 

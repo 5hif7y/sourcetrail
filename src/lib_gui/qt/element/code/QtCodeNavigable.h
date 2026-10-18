@@ -37,7 +37,7 @@ public:
 	virtual void onWindowFocus() = 0;
 
 	virtual void findScreenMatches(
-		const std::wstring& query, std::vector<std::pair<QtCodeArea*, Id>>* screenMatches) = 0;
+		const std::string& query, std::vector<std::pair<QtCodeArea*, Id>>* screenMatches) = 0;
 
 	virtual void setFocus(Id locationId) = 0;
 	virtual void setFocusOnTop() = 0;
@@ -56,7 +56,7 @@ protected:
 	void ensurePercentVisibleAnimated(
 		double percentA, double percentB, bool animated, CodeScrollParams::Target target);
 
-	QRect getFocusRectForWidget(const QWidget* childWidget, const QWidget* parentWidget) const;
+	static QRect getFocusRectForWidget(const QWidget* childWidget, const QWidget* parentWidget);
 };
 
 #endif	  // QT_CODE_NAVIGABLE_H

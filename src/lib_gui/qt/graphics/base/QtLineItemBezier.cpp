@@ -4,7 +4,7 @@
 
 QtLineItemBezier::QtLineItemBezier(QGraphicsItem* parent): QtLineItemBase(parent) {}
 
-QtLineItemBezier::~QtLineItemBezier() {}
+QtLineItemBezier::~QtLineItemBezier() = default;
 
 QPainterPath QtLineItemBezier::shape() const
 {
@@ -20,7 +20,7 @@ QPainterPath QtLineItemBezier::shape() const
 	return path;
 }
 
-void QtLineItemBezier::paint(QPainter* painter, const QStyleOptionGraphicsItem* options, QWidget* widget)
+void QtLineItemBezier::paint(QPainter* painter, const QStyleOptionGraphicsItem*  /*options*/, QWidget*  /*widget*/)
 {
 	QPainterPath path = getCurve();
 

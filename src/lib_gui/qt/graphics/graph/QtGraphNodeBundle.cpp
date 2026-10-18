@@ -12,7 +12,7 @@ QtGraphNodeBundle::QtGraphNodeBundle(
 	Id tokenId,
 	size_t nodeCount,
 	NodeType type,
-	const std::wstring& name,
+	const std::string& name,
 	bool interactive)
 	: QtGraphNode(focusHandler), m_tokenId(tokenId), m_type(type)
 {
@@ -28,7 +28,7 @@ QtGraphNodeBundle::QtGraphNodeBundle(
 	this->setToolTip(QStringLiteral("bundle"));
 }
 
-QtGraphNodeBundle::~QtGraphNodeBundle() {}
+QtGraphNodeBundle::~QtGraphNodeBundle() = default;
 
 bool QtGraphNodeBundle::isBundleNode() const
 {
@@ -44,9 +44,9 @@ void QtGraphNodeBundle::onClick()
 {
 	MessageGraphNodeBundleSplit(
 		m_tokenId,
-		(!m_type.isUnknownSymbol() || getName() == L"Symbols") &&
-			getName() != L"Anonymous Namespaces",	 // TODO: move to language package
-		!m_type.isUnknownSymbol() || getName() == L"Symbols")
+		(!m_type.isUnknownSymbol() || getName() == "Symbols") &&
+			getName() != "Anonymous Namespaces",	 // TODO: move to language package
+		!m_type.isUnknownSymbol() || getName() == "Symbols")
 		.dispatch();
 }
 
@@ -81,12 +81,12 @@ void QtGraphNodeBundle::updateStyle()
 }
 
 
-void QtGraphNodeBundle::hoverEnterEvent(QGraphicsSceneHoverEvent* event)
+void QtGraphNodeBundle::hoverEnterEvent(QGraphicsSceneHoverEvent*  /*event*/)
 {
 	focusIn();
 }
 
-void QtGraphNodeBundle::hoverLeaveEvent(QGraphicsSceneHoverEvent* event)
+void QtGraphNodeBundle::hoverLeaveEvent(QGraphicsSceneHoverEvent*  /*event*/)
 {
 	focusOut();
 }

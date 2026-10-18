@@ -9,8 +9,7 @@
 #include <clang/Lex/PPCallbacks.h>
 #include <clang/Lex/Token.h>
 
-#include "FilePath.h"
-#include "types.h"
+#include "Id.h"
 
 class CanonicalFilePathCache;
 class ParserClient;
@@ -37,10 +36,11 @@ public:
 		llvm::StringRef fileName,
 		bool isAngled,
 		clang::CharSourceRange fileNameRange,
-		const clang::FileEntry* fileEntry,
+		clang::OptionalFileEntryRef fileEntry,
 		llvm::StringRef searchPath,
 		llvm::StringRef relativePath,
-		const clang::Module* imported,
+		const clang::Module* suggestedModule,
+		bool moduleImported,
 		clang::SrcMgr::CharacteristicKind fileType) override;
 
 	void MacroDefined(

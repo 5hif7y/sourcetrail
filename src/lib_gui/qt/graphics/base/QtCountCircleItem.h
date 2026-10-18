@@ -9,7 +9,7 @@ class QtCountCircleItem: public QtRoundedRectItem
 {
 public:
 	QtCountCircleItem(QGraphicsItem* parent);
-	virtual ~QtCountCircleItem();
+	~QtCountCircleItem() override;
 
 	void setPosition(const Vec2f& pos);
 	void setNumber(size_t number);

@@ -4,7 +4,7 @@
 
 QtCoreApplication::QtCoreApplication(int argc, char** argv): QCoreApplication(argc, argv) {}
 
-void QtCoreApplication::handleMessage(MessageQuitApplication* message)
+void QtCoreApplication::handleMessage(MessageQuitApplication*  /*message*/)
 {
 	std::cout << "Quitting" << std::endl;
 	emit quit();
@@ -22,11 +22,11 @@ void QtCoreApplication::handleMessage(MessageStatus* message)
 {
 	if (message->isError)
 	{
-		std::wcout << L"ERROR: ";
+		std::cout << "ERROR: ";
 	}
 
-	for (const std::wstring& status: message->stati())
+	for (const std::string& status: message->stati())
 	{
-		std::wcout << status << std::endl;
+		std::cout << status << std::endl;
 	}
 }

@@ -156,7 +156,7 @@ void StorageAccessProxy::setSubject(std::weak_ptr<StorageAccess> subject)
 DEF_GETTER_1(getNodeIdForFileNode, const FilePath&, Id, 0)
 DEF_GETTER_1(getNodeIdForNameHierarchy, const NameHierarchy&, Id, 0)
 DEF_GETTER_1(getNodeIdsForNameHierarchies, const std::vector<NameHierarchy>, std::vector<Id>, {})
-DEF_GETTER_1(getNameHierarchyForNodeId, Id, NameHierarchy, NameHierarchy(NAME_DELIMITER_UNKNOWN))
+DEF_GETTER_1(getNameHierarchyForNodeId, Id, NameHierarchy, NameHierarchy(NameDelimiterType::UNKNOWN))
 DEF_GETTER_1(getNameHierarchiesForNodeIds, const std::vector<Id>&, std::vector<NameHierarchy>, {})
 
 typedef std::map<Id, std::pair<Id, NameHierarchy>> NodeIdToParentFileMap;
@@ -166,13 +166,13 @@ DEF_GETTER_1(getNodeTypeForNodeWithId, Id, NodeType, NodeType(NODE_SYMBOL))
 DEF_GETTER_1(getEdgeById, Id, StorageEdge, StorageEdge())
 DEF_GETTER_2(
 	getFullTextSearchLocations,
-	const std::wstring&,
+	const std::string&,
 	bool,
 	std::shared_ptr<SourceLocationCollection>,
 	std::make_shared<SourceLocationCollection>())
 DEF_GETTER_3(
 	getAutocompletionMatches,
-	const std::wstring&,
+	const std::string&,
 	NodeTypeSet,
 	bool,
 	std::vector<SearchMatch>,
@@ -203,8 +203,8 @@ DEF_GETTER_7(
 	bool,
 	std::shared_ptr<Graph>,
 	std::make_shared<Graph>())
-DEF_GETTER_0(getAvailableNodeTypes, NodeKindMask, 0);
-DEF_GETTER_0(getAvailableEdgeTypes, Edge::TypeMask, 0);
+DEF_GETTER_0(getAvailableNodeTypes, NodeKindMask, 0)
+DEF_GETTER_0(getAvailableEdgeTypes, Edge::TypeMask, 0)
 DEF_GETTER_2(getActiveTokenIdsForId, Id, Id*, std::vector<Id>, {})
 DEF_GETTER_1(getNodeIdsForLocationIds, const std::vector<Id>&, std::vector<Id>, {})
 DEF_GETTER_1(
@@ -221,20 +221,20 @@ DEF_GETTER_1(
 	getSourceLocationsForFile,
 	const FilePath&,
 	std::shared_ptr<SourceLocationFile>,
-	std::make_shared<SourceLocationFile>(FilePath(), L"", false, false, false))
+	std::make_shared<SourceLocationFile>(FilePath(), "", false, false, false))
 DEF_GETTER_3(
 	getSourceLocationsForLinesInFile,
 	const FilePath&,
 	size_t,
 	size_t,
 	std::shared_ptr<SourceLocationFile>,
-	std::make_shared<SourceLocationFile>(FilePath(), L"", false, false, false))
+	std::make_shared<SourceLocationFile>(FilePath(), "", false, false, false))
 DEF_GETTER_2(
 	getSourceLocationsOfTypeInFile,
 	const FilePath&,
 	LocationType,
 	std::shared_ptr<SourceLocationFile>,
-	std::make_shared<SourceLocationFile>(FilePath(), L"", false, false, false))
+	std::make_shared<SourceLocationFile>(FilePath(), "", false, false, false))
 DEF_GETTER_2(getFileContent, const FilePath&, bool, std::shared_ptr<TextAccess>, nullptr)
 DEF_GETTER_1(getFileInfoForFileId, Id, FileInfo, FileInfo())
 DEF_GETTER_1(getFileInfoForFilePath, const FilePath&, FileInfo, FileInfo())
@@ -249,27 +249,19 @@ DEF_GETTER_1(
 	std::shared_ptr<SourceLocationCollection>,
 	std::make_shared<SourceLocationCollection>())
 
-Id StorageAccessProxy::addNodeBookmark(const NodeBookmark& bookmark)
+void StorageAccessProxy::addNodeBookmark(const NodeBookmark& bookmark)
 {
 	if (std::shared_ptr<StorageAccess> subject = m_subject.lock())
-	{
-		return subject->addNodeBookmark(bookmark);
-	}
-
-	return -1;
+		subject->addNodeBookmark(bookmark);
 }
 
-Id StorageAccessProxy::addEdgeBookmark(const EdgeBookmark& bookmark)
+void StorageAccessProxy::addEdgeBookmark(const EdgeBookmark& bookmark)
 {
 	if (std::shared_ptr<StorageAccess> subject = m_subject.lock())
-	{
-		return subject->addEdgeBookmark(bookmark);
-	}
-
-	return -1;
+		subject->addEdgeBookmark(bookmark);
 }
 
-Id StorageAccessProxy::addBookmarkCategory(const std::wstring& categoryName)
+Id StorageAccessProxy::addBookmarkCategory(const std::string& categoryName)
 {
 	if (std::shared_ptr<StorageAccess> subject = m_subject.lock())
 	{
@@ -280,10 +272,10 @@ Id StorageAccessProxy::addBookmarkCategory(const std::wstring& categoryName)
 }
 
 void StorageAccessProxy::updateBookmark(
-	const Id bookmarkId,
-	const std::wstring& name,
-	const std::wstring& comment,
-	const std::wstring& categoryName)
+	const BookmarkId bookmarkId,
+	const std::string& name,
+	const std::string& comment,
+	const std::string& categoryName)
 {
 	if (std::shared_ptr<StorageAccess> subject = m_subject.lock())
 	{
@@ -291,11 +283,11 @@ void StorageAccessProxy::updateBookmark(
 	}
 }
 
-void StorageAccessProxy::removeBookmark(const Id id)
+void StorageAccessProxy::removeBookmark(const BookmarkId bookmarkId)
 {
 	if (std::shared_ptr<StorageAccess> subject = m_subject.lock())
 	{
-		subject->removeBookmark(id);
+		subject->removeBookmark(bookmarkId);
 	}
 }
 

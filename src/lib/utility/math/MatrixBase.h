@@ -14,7 +14,7 @@
 		unsigned int n((nIdx));                                                                    \
 		unsigned int m((mIdx));                                                                    \
 		checkIndexInRange(n, m, __FUNCTION__);                                                     \
-	} while (0)
+	} while (false)
 
 template <class T, unsigned int N, unsigned int M>
 class MatrixBase
@@ -144,9 +144,7 @@ private:
 };
 
 template <class T, unsigned int N, unsigned int M>
-MatrixBase<T, N, M>::MatrixBase()
-{
-}
+MatrixBase<T, N, M>::MatrixBase() = default;
 
 template <class T, unsigned int N, unsigned int M>
 MatrixBase<T, N, M>::MatrixBase(const T values[N][M])
@@ -162,9 +160,7 @@ MatrixBase<T, N, M>::MatrixBase(const MatrixBase<U, N, M>& matrix)
 }
 
 template <class T, unsigned int N, unsigned int M>
-MatrixBase<T, N, M>::~MatrixBase()
-{
-}
+MatrixBase<T, N, M>::~MatrixBase() = default;
 
 template <class T, unsigned int N, unsigned int M>
 T MatrixBase<T, N, M>::getValue(const unsigned int columnIndex, const unsigned int rowIndex) const

@@ -2,12 +2,14 @@
 #define BOOKMARK_H
 
 #include <string>
-#include <vector>
 
 #include "TimeStamp.h"
-#include "types.h"
-
 #include "BookmarkCategory.h"
+
+enum class BookmarkId : std::size_t
+{
+	NONE = 0
+};
 
 class Bookmark
 {
@@ -30,38 +32,31 @@ public:
 	};
 
 	Bookmark(
-		const Id id,
-		const std::wstring& name,
-		const std::wstring& comment,
+		const BookmarkId bookmarkId,
+		const std::string& name,
+		const std::string& comment,
 		const TimeStamp& timeStamp,
 		const BookmarkCategory& category);
-	virtual ~Bookmark();
 
-	Id getId() const;
-	void setId(const Id id);
-
-	std::wstring getName() const;
-	void setName(const std::wstring& name);
-
-	std::wstring getComment() const;
-	void setComment(const std::wstring& comment);
-
-	TimeStamp getTimeStamp() const;
-	void setTimeStamp(const TimeStamp& timeStamp);
-
-	BookmarkCategory getCategory() const;
-	void setCategory(const BookmarkCategory& category);
-
-	bool isValid() const;
+	virtual ~Bookmark() = default;
+	
 	void setIsValid(const bool isValid = true);
+	bool isValid() const;
+	
+	BookmarkId getId() const;
+	std::string getName() const;
+	std::string getComment() const;
+	TimeStamp getTimeStamp() const;
+	BookmarkCategory getCategory() const;
 
 private:
-	Id m_id;
-	std::wstring m_name;
-	std::wstring m_comment;
-	TimeStamp m_timeStamp;
-	BookmarkCategory m_category;
-	bool m_isValid;
+	bool m_isValid = false;
+	
+	const BookmarkId m_bookmarkId;
+	const std::string m_name;
+	const std::string m_comment;
+	const TimeStamp m_timeStamp;
+	const BookmarkCategory m_category;
 };
 
 #endif	  // BOOKMARK_H

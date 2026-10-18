@@ -14,6 +14,7 @@
 #include "MessagePingReceived.h"
 #include "MessageRefresh.h"
 #include "MessageStatus.h"
+#include "MessageTextEncodingChanged.h"
 
 class StatusBarView;
 class StorageAccess;
@@ -28,10 +29,11 @@ class StatusBarController
 	, public MessageListener<MessagePingReceived>
 	, public MessageListener<MessageRefresh>
 	, public MessageListener<MessageStatus>
+	, public MessageListener<MessageTextEncodingChanged>
 {
 public:
 	StatusBarController(StorageAccess* storageAccess);
-	virtual ~StatusBarController(void);
+	~StatusBarController(void) override;
 
 	StatusBarView* getView();
 
@@ -46,8 +48,9 @@ private:
 	void handleMessage(MessagePingReceived* message) override;
 	void handleMessage(MessageRefresh* message) override;
 	void handleMessage(MessageStatus* message) override;
+	void handleMessage(MessageTextEncodingChanged *message) override;
 
-	void setStatus(const std::wstring& status, bool isError, bool showLoader);
+	void setStatus(const std::string& status, bool isError, bool showLoader);
 
 	StorageAccess* m_storageAccess;
 };

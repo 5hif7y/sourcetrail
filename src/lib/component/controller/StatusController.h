@@ -22,17 +22,17 @@ class StatusController
 {
 public:
 	StatusController();
-	~StatusController();
+	~StatusController() override;
 
 private:
 	StatusView* getView() const;
 
-	virtual void clear();
+	void clear() override;
 
-	virtual void handleMessage(MessageClearStatusView* message);
-	virtual void handleMessage(MessageShowStatus* message);
-	virtual void handleMessage(MessageStatus* message);
-	virtual void handleMessage(MessageStatusFilterChanged* message);
+	void handleMessage(MessageClearStatusView* message) override;
+	void handleMessage(MessageShowStatus* message) override;
+	void handleMessage(MessageStatus* message) override;
+	void handleMessage(MessageStatusFilterChanged* message) override;
 
 	void addStatus(const std::vector<Status> status);
 

@@ -284,12 +284,18 @@ Solarized on github    - https://github.com/altercation/solarized
 			<union>
 				<like>type</like>
 			</union>
+			<record>
+				<like>type</like>
+			</record>
 			<typedef>
 				<like>type</like>
 			</typedef>
 			<type_parameter>
 				<like>type</like>
 			</type_parameter>
+			<c_cast>
+				<like>type</like>
+			</c_cast>
 
 			<function>
 				<fill>
@@ -307,6 +313,9 @@ Solarized on github    - https://github.com/altercation/solarized
 			<method>
 				<like>function</like>
 			</method>
+			<concept>
+				<like>function</like>
+			</concept>
 
 			<global_variable>
 				<fill>

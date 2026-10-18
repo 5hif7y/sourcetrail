@@ -3,7 +3,7 @@
 
 #include "Message.h"
 #include "MessageActivateBase.h"
-#include "TabId.h"
+#include "TabIds.h"
 
 class MessageActivateLegend
 	: public Message<MessageActivateLegend>
@@ -12,7 +12,7 @@ class MessageActivateLegend
 public:
 	MessageActivateLegend()
 	{
-		setSchedulerId(TabId::currentTab());
+		setSchedulerId(TabIds::currentTab());
 	}
 
 	static const std::string getStaticType()

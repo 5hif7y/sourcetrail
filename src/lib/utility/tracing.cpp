@@ -30,7 +30,7 @@ std::shared_ptr<TraceEvent> Tracer::startEvent(const std::string& eventName)
 	return event;
 }
 
-void Tracer::finishEvent(std::shared_ptr<TraceEvent> event)
+void Tracer::finishEvent(std::shared_ptr<TraceEvent>  /*event*/)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -137,7 +137,7 @@ void Tracer::printTraces()
 			return a.time > b.time;
 		});
 
-	for (const std::pair<std::string, AccumulatedTraceEvent>& p: accumulatedEvents)
+	for (const auto &p: accumulatedEvents)
 	{
 		sortedEvents.insert(p.second);
 	}
@@ -162,7 +162,7 @@ void Tracer::printTraces()
 	m_events.clear();
 }
 
-Tracer::Tracer() {}
+Tracer::Tracer() = default;
 
 
 std::shared_ptr<AccumulatingTracer> AccumulatingTracer::s_instance;
@@ -208,7 +208,7 @@ void AccumulatingTracer::finishEvent(std::shared_ptr<TraceEvent> event)
 	AccumulatedTraceEvent* acc = &p.first->second;
 	if (p.second)
 	{
-		acc->event = TraceEvent(*(event.get()));
+		acc->event = TraceEvent(*event);
 		acc->time = event->time;
 		acc->count = 1;
 	}
@@ -244,7 +244,7 @@ void AccumulatingTracer::printTraces()
 			return a.time > b.time;
 		});
 
-	for (const std::pair<std::string, AccumulatedTraceEvent>& p: m_accumulatedEvents)
+	for (const auto &p: m_accumulatedEvents)
 	{
 		sortedEvents.insert(p.second);
 	}
@@ -269,4 +269,4 @@ void AccumulatingTracer::printTraces()
 	m_accumulatedEvents.clear();
 }
 
-AccumulatingTracer::AccumulatingTracer() {}
+AccumulatingTracer::AccumulatingTracer() = default;

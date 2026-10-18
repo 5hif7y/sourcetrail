@@ -1,9 +1,4 @@
-#include "includes.h"
-
-#include <csignal>
-#include <iostream>
-
-#include "language_packages.h"
+#include "setupApp.h"
 
 #include "Application.h"
 #include "ApplicationSettings.h"
@@ -16,6 +11,7 @@
 #include "MessageIndexingInterrupted.h"
 #include "MessageLoadProject.h"
 #include "MessageStatus.h"
+#include "Platform.h"
 #include "QtApplication.h"
 #include "QtCoreApplication.h"
 #include "QtNetworkFactory.h"
@@ -24,37 +20,105 @@
 #include "ScopedFunctor.h"
 #include "SourceGroupFactory.h"
 #include "SourceGroupFactoryModuleCustom.h"
-#include "UserPaths.h"
-#include "Version.h"
-#include "logging.h"
-#include "productVersion.h"
-#include "utility.h"
-#include "utilityApp.h"
+#include "language_packages.h"
 #include "utilityQt.h"
+#include "Version.h"
+#include "utilityString.h"
 
 #if BUILD_CXX_LANGUAGE_PACKAGE
-#	include "LanguagePackageCxx.h"
-#	include "SourceGroupFactoryModuleCxx.h"
+	#include "LanguagePackageCxx.h"
+	#include "SourceGroupFactoryModuleCxx.h"
 #endif	  // BUILD_CXX_LANGUAGE_PACKAGE
 
 #if BUILD_JAVA_LANGUAGE_PACKAGE
-#	include "LanguagePackageJava.h"
-#	include "SourceGroupFactoryModuleJava.h"
+	#include "LanguagePackageJava.h"
+	#include "SourceGroupFactoryModuleJava.h"
 #endif	  // BUILD_JAVA_LANGUAGE_PACKAGE
 
-#if BUILD_PYTHON_LANGUAGE_PACKAGE
-#	include "SourceGroupFactoryModulePython.h"
-#endif	  // BUILD_PYTHON_LANGUAGE_PACKAGE
+#if BOOST_OS_WINDOWS
+	#include <windows.h>
+#endif
 
-void signalHandler(int signum)
+#include <QByteArray>
+#include <QtEnvironmentVariables>
+
+#include <csignal>
+#include <iostream>
+
+using namespace utility;
+using namespace std;
+using namespace boost::filesystem;
+
+// Sourcetrail is now a GUI application i.e.: add_executable(Sourcetrail WIN32 ...), which means that Windows will not open a console window.
+// See issue "The console window is not hidden under Windows 11" (https://github.com/petermost/Sourcetrail/issues/19)
+// To still get log messages in the console, we try to attach to an existing console.
+// This means Sourcetrail will have the same behaviour under Linux and Windows:
+// - Start from file manager: No console with log messages
+// - Start from console and logging disabled: No log messages
+// - Start from console and logging enabled: Log messages
+// Summary: To get console log messages, Sourcetrail must be started from within a console and logging must be enabled.
+
+void setupConsoleWindow()
+{
+#if BOOST_OS_WINDOWS
+	bool hasConsole = false;
+
+	// Try to attach to the existing parent console:
+	if (AttachConsole(ATTACH_PARENT_PROCESS))
+	{
+		hasConsole = true;
+	}
+#if 0 // Disabled for now, until we know that the new behaviour is satisfactory.
+	// Otherwise create/open a new console:
+	else if (AllocConsole())
+	{
+		// The newly opened console window will gain the focus and will be in front of the main window,
+		// but this seems acceptable for users who have explicitly enabled/requested console logging.
+
+		hasConsole = true;
+		SetConsoleTitleW(L"Sourcetrail Console Logging");
+	}
+#endif
+	if (hasConsole)
+	{
+		// Redirect C streams:
+
+		FILE* fpDummy;
+		freopen_s(&fpDummy, "CONOUT$", "w", stdout);
+		freopen_s(&fpDummy, "CONOUT$", "w", stderr);
+		freopen_s(&fpDummy, "CONIN$", "r", stdin);
+
+		// Redirect Windows handles:
+
+		HANDLE hOut = CreateFileW(L"CONOUT$", GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
+		HANDLE hIn = CreateFileW(L"CONIN$", GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
+
+		SetStdHandle(STD_OUTPUT_HANDLE, hOut);
+		SetStdHandle(STD_ERROR_HANDLE, hOut);
+		SetStdHandle(STD_INPUT_HANDLE, hIn);
+
+		// Clear error flags and sync C++ streams:
+
+		std::clog.clear();
+		std::cerr.clear();
+		std::cout.clear();
+		std::cin.clear();
+
+		std::ios::sync_with_stdio(true);
+	}
+#endif
+}
+
+void signalHandler(int  /*signum*/)
 {
 	std::cout << "interrupt indexing" << std::endl;
 	MessageIndexingInterrupted().dispatch();
 }
 
-void setupLogging()
+static void setupLogging(const ApplicationSettings *settings)
 {
-	LogManager* logManager = LogManager::getInstance().get();
+	std::shared_ptr<LogManager> logManager = LogManager::getInstance();
+	logManager->setLoggingEnabled(settings->getLoggingEnabled());
 
 	std::shared_ptr<ConsoleLogger> consoleLogger = std::make_shared<ConsoleLogger>();
 	consoleLogger->setLogLevel(Logger::LOG_ALL);
@@ -62,8 +126,11 @@ void setupLogging()
 
 	std::shared_ptr<FileLogger> fileLogger = std::make_shared<FileLogger>();
 	fileLogger->setLogLevel(Logger::LOG_ALL);
-	fileLogger->deleteLogFiles(FileLogger::generateDatedFileName(L"log", L"", -30));
+	fileLogger->setLogDirectory(settings->getLogDirectoryPath());
+	fileLogger->setFileName(FileLogger::generateDatedFileName("log"));
 	logManager->addLogger(fileLogger);
+
+	fileLogger->deleteLogFiles(FileLogger::generateDatedFileName("log", -30));
 }
 
 void addLanguagePackages()
@@ -72,58 +139,43 @@ void addLanguagePackages()
 
 #if BUILD_CXX_LANGUAGE_PACKAGE
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleCxx>());
-#endif	  // BUILD_CXX_LANGUAGE_PACKAGE
+#endif
 
 #if BUILD_JAVA_LANGUAGE_PACKAGE
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleJava>());
-#endif	  // BUILD_JAVA_LANGUAGE_PACKAGE
-
-#if BUILD_PYTHON_LANGUAGE_PACKAGE
-	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModulePython>());
-#endif	  // BUILD_PYTHON_LANGUAGE_PACKAGE
+#endif
 
 #if BUILD_CXX_LANGUAGE_PACKAGE
 	LanguagePackageManager::getInstance()->addPackage(std::make_shared<LanguagePackageCxx>());
-#endif	  // BUILD_CXX_LANGUAGE_PACKAGE
+#endif
 
 #if BUILD_JAVA_LANGUAGE_PACKAGE
 	LanguagePackageManager::getInstance()->addPackage(std::make_shared<LanguagePackageJava>());
-#endif	  // BUILD_JAVA_LANGUAGE_PACKAGE
+#endif
 }
 
 int main(int argc, char* argv[])
 {
-	// auto p = utility::executeProcessBoost(utility::searchPath(L"mvn") + L" --version", FilePath("/Users/ebsi/Documents/boost_1_67_0"), 3000);
-	// std::wcout << p.first << " " << p.second << std::endl;
-	// return 0;
+	setupDefaultLocale();
 
+	// Must get the correct directory for:
+	// Windows: 'Sourcetrail' (doesn't exist, so canonical() would fail!)
+	// Windows: 'Sourcetrail.exe'
+	// Linux:   './Sourcetrail'
 
-	QCoreApplication::addLibraryPath(QStringLiteral("."));
+	const path appDirectory = weakly_canonical(argv[0]).parent_path();
+	setupAppDirectories(appDirectory.generic_string());
 
-#pragma warning(push)
-#pragma warning(disable : 4996)
-	if (utility::getOsType() == OS_LINUX && std::getenv("SOURCETRAIL_VIA_SCRIPT") == nullptr &&
-		!FilePath(QCoreApplication::applicationDirPath().toStdWString() + L"/../share").exists())
+	if constexpr (utility::Platform::isLinux())
 	{
-		std::cout << "ERROR: Please run Sourcetrail via the Sourcetrail.sh script!" << std::endl;
+		if (qgetenv("SOURCETRAIL_VIA_SCRIPT").isNull())
+		{
+			std::cout << "ERROR: Please run Sourcetrail via the Sourcetrail.sh script!" << std::endl;
+		}
 	}
-#pragma warning(pop)
-
-	QApplication::setApplicationName(QStringLiteral("Sourcetrail"));
-
-	if (utility::getOsType() != OS_LINUX)
-	{
-		QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);
-	}
-
-	Version version(VERSION_YEAR, VERSION_MINOR, VERSION_COMMIT, GIT_COMMIT_HASH);
-	QApplication::setApplicationVersion(version.toDisplayString().c_str());
-
-	MessageStatus(
-		std::wstring(L"Starting Sourcetrail ") +
-		(utility::getApplicationArchitectureType() == APPLICATION_ARCHITECTURE_X86_32 ? L"32" : L"64") +
-		L" bit, " + L"version " + version.toDisplayWString())
-		.dispatch();
+	const Version version = Version::getApplicationVersion();
+	MessageStatus("Starting Sourcetrail version "s + version.toDisplayString()).dispatch();
+	MessageStatus("Setting application directory: "s + appDirectory.generic_string()).dispatch();
 
 	commandline::CommandLineParser commandLineParser(version.toDisplayString());
 	commandLineParser.preparse(argc, argv);
@@ -132,21 +184,26 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
-	setupPlatform(argc, argv);
+	setupAppEnvironment(argc, argv);
 
 	if (commandLineParser.runWithoutGUI())
 	{
 		// headless Sourcetrail
+		[[maybe_unused]]
 		QtCoreApplication qtApp(argc, argv);
 
-		setupApp(argc, argv);
+		Application::createInstance(nullptr, nullptr);
+		shared_ptr<ApplicationSettings> appSettings = ApplicationSettings::getInstance();
 
-		setupLogging();
+		setupLogging(appSettings.get());
+		
+		[[maybe_unused]]
+		ScopedFunctor f([]()
+		{
+			Application::destroyInstance();
+		});
 
-		Application::createInstance(version, nullptr, nullptr);
-		ScopedFunctor f([]() { Application::destroyInstance(); });
-
-		ApplicationSettingsPrefiller::prefillPaths(ApplicationSettings::getInstance().get());
+		ApplicationSettingsPrefiller::prefillPaths(appSettings.get());
 		addLanguagePackages();
 
 		signal(SIGINT, signalHandler);
@@ -162,53 +219,42 @@ int main(int argc, char* argv[])
 
 		if (commandLineParser.hasError())
 		{
-			std::wcout << commandLineParser.getError() << std::endl;
+			std::cout << commandLineParser.getError() << std::endl;
 		}
 		else
 		{
-			MessageLoadProject(
-				commandLineParser.getProjectFilePath(),
-				false,
-				commandLineParser.getRefreshMode(),
-				commandLineParser.getShallowIndexingRequested())
-				.dispatch();
+			MessageLoadProject(commandLineParser.getProjectFilePath(), false, commandLineParser.getRefreshMode()).dispatch();
 		}
 
-		return qtApp.exec();
+		return QtCoreApplication::exec();
 	}
 	else
 	{
-#ifdef _WIN32
-		{
-			HWND consoleWnd = GetConsoleWindow();
-			DWORD dwProcessId;
-			GetWindowThreadProcessId(consoleWnd, &dwProcessId);
-			if (GetCurrentProcessId() == dwProcessId)
-			{
-				// Sourcetrail has not been started from console and thus has it's own console
-				ShowWindow(consoleWnd, SW_HIDE);
-			}
-		}
-#endif
+		[[maybe_unused]]
 		QtApplication qtApp(argc, argv);
-
-		setupApp(argc, argv);
-
-		setupLogging();
-
-		qtApp.setAttribute(Qt::AA_UseHighDpiPixmaps);
 
 		QtViewFactory viewFactory;
 		QtNetworkFactory networkFactory;
 
-		Application::createInstance(version, &viewFactory, &networkFactory);
-		ScopedFunctor f([]() { Application::destroyInstance(); });
+		Application::createInstance(&viewFactory, &networkFactory);
+		shared_ptr<ApplicationSettings> appSettings = ApplicationSettings::getInstance();
 
-		ApplicationSettingsPrefiller::prefillPaths(ApplicationSettings::getInstance().get());
+		if (appSettings->getLoggingEnabled())
+			setupConsoleWindow();
+
+		setupLogging(appSettings.get());
+
+		[[maybe_unused]]
+		ScopedFunctor f([]()
+		{
+			Application::destroyInstance();
+		});
+
+		ApplicationSettingsPrefiller::prefillPaths(appSettings.get());
 		addLanguagePackages();
 
-		utility::loadFontsFromDirectory(ResourcePaths::getFontsDirectoryPath(), L".otf");
-		utility::loadFontsFromDirectory(ResourcePaths::getFontsDirectoryPath(), L".ttf");
+		utility::loadFontsFromDirectory(ResourcePaths::getFontsDirectoryPath(), ".otf");
+		utility::loadFontsFromDirectory(ResourcePaths::getFontsDirectoryPath(), ".ttf");
 
 		if (commandLineParser.hasError())
 		{
@@ -216,9 +262,9 @@ int main(int argc, char* argv[])
 		}
 		else
 		{
-			MessageLoadProject(commandLineParser.getProjectFilePath(), false, REFRESH_NONE).dispatch();
+			MessageLoadProject(commandLineParser.getProjectFilePath(), false, RefreshMode::NONE).dispatch();
 		}
 
-		return qtApp.exec();
+		return QtApplication::exec();
 	}
 }

@@ -36,15 +36,15 @@ public:
 	void setIsRequired(bool isRequired);
 
 protected:
-	QLabel* createFormTitle(const QString& name) const;
+	static QLabel* createFormTitle(const QString& name);
 	QLabel* createFormLabel(QString name) const;
-	QLabel* createFormSubLabel(const QString& name) const;
-	QToolButton* createSourceGroupButton(const QString& name, const QString& iconPath) const;
+	static QLabel* createFormSubLabel(const QString& name);
+	static QToolButton* createSourceGroupButton(const QString& name, const QString& iconPath);
 
 	QtHelpButton* addHelpButton(
 		const QString& helpTitle, const QString& helpText, QGridLayout* layout, int row) const;
 	QPushButton* addFilesButton(const QString& name, QGridLayout* layout, int row) const;
-	QFrame* addSeparator(QGridLayout* layout, int row) const;
+	static QFrame* addSeparator(QGridLayout* layout, int row);
 
 	QtProjectWizardWindow* m_window;
 

@@ -34,7 +34,7 @@ public:
 		bool isInteractive,
 		bool horizontal,
 		TokenComponentBundledEdges::Direction direction);
-	virtual ~QtGraphEdge();
+	~QtGraphEdge() override;
 
 	const Edge* getData() const;
 
@@ -76,12 +76,12 @@ public:
 	QRectF getBoundingRect() const;
 
 protected:
-	virtual void mousePressEvent(QGraphicsSceneMouseEvent* event);
-	virtual void mouseMoveEvent(QGraphicsSceneMouseEvent* event);
-	virtual void mouseReleaseEvent(QGraphicsSceneMouseEvent* event);
+	void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
+	void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
+	void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
 
-	virtual void hoverEnterEvent(QGraphicsSceneHoverEvent* event);
-	virtual void hoverLeaveEvent(QGraphicsSceneHoverEvent* event);
+	void hoverEnterEvent(QGraphicsSceneHoverEvent* event) override;
+	void hoverLeaveEvent(QGraphicsSceneHoverEvent* event) override;
 
 private:
 	// used to send tooltip message on focusIn(), because both focus messages are filtered out if

@@ -1,6 +1,6 @@
 #include "TaskGroup.h"
 
-TaskGroup::TaskGroup() {}
+TaskGroup::TaskGroup() = default;
 
 std::shared_ptr<TaskGroup> TaskGroup::addChildTasks(std::shared_ptr<Task> child1)
 {

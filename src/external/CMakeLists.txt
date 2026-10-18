@@ -1,22 +1,17 @@
-add_files(
-	EXTERNAL
+# Use quotes to indicate a version literal:
+set(CppSQLite3_VERSION "\"3.2\"" PARENT_SCOPE)
 
-	catch/catch.hpp
-	
+add_library(External_lib_cppsqlite3
 	sqlite/CppSQLite3.cpp
 	sqlite/CppSQLite3.h
-
-	tinyxml/tinystr.cpp
-	tinyxml/tinystr.h
-	tinyxml/tinyxml.cpp
-	tinyxml/tinyxml.h
-	tinyxml/tinyxmlerror.cpp
-	tinyxml/tinyxmlparser.cpp
 )
 
-add_files(
-	EXTERNAL_C
+target_include_directories(External_lib_cppsqlite3 SYSTEM
+	PUBLIC
+		sqlite
+)
 
-	sqlite/sqlite3.c
-	sqlite/sqlite3.h
+target_link_libraries(External_lib_cppsqlite3
+	PUBLIC
+		External_lib_sqlite3
 )

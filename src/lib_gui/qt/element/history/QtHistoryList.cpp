@@ -1,20 +1,20 @@
 #include "QtHistoryList.h"
 
+#include "ColorScheme.h"
+#include "GraphViewStyle.h"
+#include "MessageHistoryToPosition.h"
+#include "MessageTabOpenWith.h"
+#include "QtDeviceScaledPixmap.h"
+#include "QtResources.h"
+#include "utilityQt.h"
+#include "utilityString.h"
+
 #include <QBoxLayout>
 #include <QLabel>
 #include <QMouseEvent>
 #include <QScrollBar>
 
-#include "MessageHistoryToPosition.h"
-#include "MessageTabOpenWith.h"
-#include "ResourcePaths.h"
-#include "utilityString.h"
-
-#include "QtDeviceScaledPixmap.h"
-#include "utilityQt.h"
-
-#include "ColorScheme.h"
-#include "GraphViewStyle.h"
+using namespace utility;
 
 QtHistoryItem::QtHistoryItem(const SearchMatch& match, size_t index, bool isCurrent)
 	: index(index), m_match(match)
@@ -24,10 +24,10 @@ QtHistoryItem::QtHistoryItem(const SearchMatch& match, size_t index, bool isCurr
 	layout->setContentsMargins(0, 0, 0, 0);
 	layout->setAlignment(Qt::AlignTop);
 
-	const std::wstring name = utility::elide(match.getFullName(), utility::ELIDE_RIGHT, 100);
+	const std::string name = utility::elide(match.getFullName(), utility::ELIDE_RIGHT, 100);
 
-	m_name = new QLabel(QString::fromStdWString(name), this);
-	m_name->setAttribute(Qt::WA_MacShowFocusRect, 0);
+	m_name = new QLabel(QString::fromStdString(name), this);
+	m_name->setAttribute(Qt::WA_MacShowFocusRect, false);
 	m_name->setAttribute(Qt::WA_LayoutUsesWidgetRect);	  // fixes layouting on Mac
 	m_name->setObjectName(
 		isCurrent ? QStringLiteral("history_item_current") : QStringLiteral("history_item"));
@@ -46,17 +46,13 @@ QtHistoryItem::QtHistoryItem(const SearchMatch& match, size_t index, bool isCurr
 	ColorScheme* scheme = ColorScheme::getInstance().get();
 	if (match.searchType == SearchMatch::SEARCH_TOKEN)
 	{
-		m_indicatorColor =
-			GraphViewStyle::getNodeColor(match.nodeType.getUnderscoredTypeString(), false).fill;
-		m_indicatorHoverColor =
-			GraphViewStyle::getNodeColor(match.nodeType.getUnderscoredTypeString(), true).fill;
+		m_indicatorColor = GraphViewStyle::getNodeColor(match.nodeType.getUnderscoredTypeString(), false).fill;
+		m_indicatorHoverColor = GraphViewStyle::getNodeColor(match.nodeType.getUnderscoredTypeString(), true).fill;
 	}
 	else
 	{
-		m_indicatorColor = scheme->getSearchTypeColor(
-			utility::encodeToUtf8(match.getSearchTypeName()), "fill");
-		m_indicatorHoverColor = scheme->getSearchTypeColor(
-			utility::encodeToUtf8(match.getSearchTypeName()), "fill", "hover");
+		m_indicatorColor = scheme->getSearchTypeColor(match.getSearchTypeName(), "fill");
+		m_indicatorHoverColor = scheme->getSearchTypeColor(match.getSearchTypeName(), "fill", "hover");
 	}
 
 	std::stringstream css;
@@ -65,8 +61,7 @@ QtHistoryItem::QtHistoryItem(const SearchMatch& match, size_t index, bool isCurr
 
 	if (isCurrent)
 	{
-		QtDeviceScaledPixmap pixmap(QString::fromStdWString(
-			ResourcePaths::getGuiDirectoryPath().concatenate(L"history_list/images/arrow.png").wstr()));
+		QtDeviceScaledPixmap pixmap(QString::fromUtf8(QtResources::HISTORY_LIST_ARROW));
 		pixmap.scaleToHeight(size.height() / 3);
 
 		QLabel* arrow = new QLabel(this);
@@ -89,7 +84,7 @@ const SearchMatch& QtHistoryItem::getMatch() const
 	return m_match;
 }
 
-void QtHistoryItem::enterEvent(QEvent* event)
+void QtHistoryItem::enterEvent(QEnterEvent *event)
 {
 	QWidget::enterEvent(event);
 
@@ -143,8 +138,7 @@ void QtHistoryListWidget::mouseReleaseEvent(QMouseEvent* event)
 	QListWidget::mouseReleaseEvent(event);
 }
 
-
-QtHistoryList::QtHistoryList(const std::vector<SearchMatch>& history, size_t currentIndex)
+QtHistoryList::QtHistoryList(const std::vector<SearchMatch> &history, size_t currentIndex)
 	: m_currentIndex(currentIndex)
 {
 	setWindowFlags(Qt::Popup);
@@ -157,15 +151,13 @@ QtHistoryList::QtHistoryList(const std::vector<SearchMatch>& history, size_t cur
 
 	for (size_t i = 0; i < history.size(); i++)
 	{
-		QListWidgetItem* item = new QListWidgetItem(m_list);
-		QtHistoryItem* line = new QtHistoryItem(history[i], i, i == currentIndex);
+		QListWidgetItem *item = new QListWidgetItem(m_list);
+		QtHistoryItem *line = new QtHistoryItem(history[i], i, i == currentIndex);
 		item->setSizeHint(line->getSizeHint());
 		m_list->setItemWidget(item, line);
 	}
 
-	setStyleSheet(utility::getStyleSheet(
-					  ResourcePaths::getGuiDirectoryPath().concatenate(L"history_list/history_list.css"))
-					  .c_str());
+	setStyleSheet(QtResources::loadStyleSheet(QtResources::HISTORY_LIST_CSS));
 
 	connect(m_list, &QListWidget::itemClicked, this, &QtHistoryList::onItemClicked);
 }
@@ -190,7 +182,7 @@ void QtHistoryList::showPopup(QPoint pos)
 	show();
 }
 
-void QtHistoryList::closeEvent(QCloseEvent* event)
+void QtHistoryList::closeEvent(QCloseEvent*  /*event*/)
 {
 	emit closed();
 }

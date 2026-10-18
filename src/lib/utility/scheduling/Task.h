@@ -1,9 +1,10 @@
 #ifndef TASK_H
 #define TASK_H
 
-#include <memory>
+#include "Id.h"
+#include "TabIds.h"
 
-#include "types.h"
+#include <memory>
 
 class Blackboard;
 
@@ -17,9 +18,9 @@ public:
 		STATE_SUCCESS,
 		STATE_FAILURE
 	};
-
-	static void dispatch(Id schedulerId, std::shared_ptr<Task> task);
-	static void dispatchNext(Id schedulerId, std::shared_ptr<Task> task);
+	
+	static void dispatch(TabId schedulerId, std::shared_ptr<Task> task);
+	static void dispatchNext(TabId schedulerId, std::shared_ptr<Task> task);
 
 	virtual ~Task() = default;
 

@@ -10,13 +10,13 @@ class QtIconButton: public QPushButton
 	Q_OBJECT
 public:
 	QtIconButton(const FilePath& iconPath, const FilePath& hoveredIconPath, QWidget* parent = nullptr);
-	~QtIconButton() = default;
+	~QtIconButton() override = default;
 
 	void setColor(QColor color);
 
 protected:
-	void enterEvent(QEvent* event);
-	void leaveEvent(QEvent* event);
+	void enterEvent(QEnterEvent* event) override;
+	void leaveEvent(QEvent* event) override;
 
 private:
 	void setIconFromPath(const FilePath& path);

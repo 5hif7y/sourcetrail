@@ -7,14 +7,17 @@
 #include "VectorBase.h"
 
 template <class T>
-class Vector2: public VectorBase<T, 2>
+class Vector2 final : public VectorBase<T, 2>
 {
 public:
 	Vector2();
 	Vector2(const T& x, const T& y);
 	Vector2(const VectorBase<T, 2>& vector);
 	Vector2(const Vector2<T>& vector);
-	virtual ~Vector2();
+
+	Vector2 &operator = (const Vector2 &) = default;
+
+	~Vector2();
 
 	T getValue(const unsigned int index) const;
 	void setValue(const unsigned int index, const T& value);
@@ -72,9 +75,7 @@ Vector2<T>::Vector2(const Vector2<T>& vector)
 }
 
 template <class T>
-Vector2<T>::~Vector2()
-{
-}
+Vector2<T>::~Vector2() = default;
 
 template <class T>
 T Vector2<T>::getValue(const unsigned int index) const

@@ -10,8 +10,8 @@ public:
 	QtProjectWizardContentPathsExclude(
 		std::shared_ptr<SourceGroupSettings> settings, QtProjectWizardWindow* window);
 
-	virtual void load() override;
-	virtual void save() override;
+	void load() override;
+	void save() override;
 };
 
 #endif	  // QT_PROJECT_WIZARD_CONTENT_PATHS_EXCLUDE_H

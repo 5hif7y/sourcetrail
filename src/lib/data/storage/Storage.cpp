@@ -3,7 +3,7 @@
 #include "logging.h"
 #include "tracing.h"
 
-Storage::Storage() {}
+Storage::Storage() = default;
 
 void Storage::inject(Storage* injected)
 {

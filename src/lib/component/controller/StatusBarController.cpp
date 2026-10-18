@@ -9,7 +9,7 @@ StatusBarController::StatusBarController(StorageAccess* storageAccess)
 {
 }
 
-StatusBarController::~StatusBarController() {}
+StatusBarController::~StatusBarController() = default;
 
 StatusBarView* StatusBarController::getView()
 {
@@ -21,7 +21,7 @@ void StatusBarController::clear()
 	getView()->setErrorCount(ErrorCountInfo());
 }
 
-void StatusBarController::handleMessage(MessageErrorCountClear* message)
+void StatusBarController::handleMessage(MessageErrorCountClear*  /*message*/)
 {
 	getView()->setErrorCount(ErrorCountInfo());
 }
@@ -31,13 +31,13 @@ void StatusBarController::handleMessage(MessageErrorCountUpdate* message)
 	getView()->setErrorCount(message->errorCount);
 }
 
-void StatusBarController::handleMessage(MessageIndexingFinished* message)
+void StatusBarController::handleMessage(MessageIndexingFinished*  /*message*/)
 {
 	getView()->setErrorCount(m_storageAccess->getErrorCount());
 	getView()->hideIndexingProgress();
 }
 
-void StatusBarController::handleMessage(MessageIndexingStarted* message)
+void StatusBarController::handleMessage(MessageIndexingStarted*  /*message*/)
 {
 	getView()->showIndexingProgress(0);
 }
@@ -56,18 +56,18 @@ void StatusBarController::handleMessage(MessageIndexingStatus* message)
 
 void StatusBarController::handleMessage(MessagePingReceived* message)
 {
-	std::wstring status = L"No IDE connected";
+	std::string status = "No IDE connected";
 
 	if (!message->ideName.empty())
 	{
-		status = L"Connected to ";
+		status = "Connected to ";
 		status += message->ideName;
 	}
 
 	getView()->showIdeStatus(status);
 }
 
-void StatusBarController::handleMessage(MessageRefresh* message)
+void StatusBarController::handleMessage(MessageRefresh*  /*message*/)
 {
 	getView()->setErrorCount(m_storageAccess->getErrorCount());
 }
@@ -80,11 +80,16 @@ void StatusBarController::handleMessage(MessageStatus* message)
 	}
 }
 
-void StatusBarController::setStatus(const std::wstring& status, bool isError, bool showLoader)
+void StatusBarController::handleMessage(MessageTextEncodingChanged *message)
+{
+	getView()->showTextEncoding(message->textEncoding);
+}
+
+void StatusBarController::setStatus(const std::string& status, bool isError, bool showLoader)
 {
 	if (!status.empty())
 	{
-		LOG_INFO(L"STATUS " + status);
+		LOG_INFO("STATUS " + status);
 	}
 
 	getView()->showMessage(status, isError, showLoader);

@@ -12,17 +12,17 @@
 #include "StorageAccess.h"
 
 IDECommunicationController::IDECommunicationController(StorageAccess* storageAccess)
-	: m_storageAccess(storageAccess), m_enabled(true)
+	: m_storageAccess(storageAccess) 
 {
 }
 
-IDECommunicationController::~IDECommunicationController() {}
+IDECommunicationController::~IDECommunicationController() = default;
 
 void IDECommunicationController::clear() {}
 
-void IDECommunicationController::handleIncomingMessage(const std::wstring& message)
+void IDECommunicationController::handleIncomingMessage(const std::string& message)
 {
-	if (m_enabled == false)
+	if (!m_enabled)
 	{
 		return;
 	}
@@ -92,9 +92,9 @@ void IDECommunicationController::handleSetActiveTokenMessage(
 				[&selectedLocationIds, &cursorColumn](SourceLocation* startLocation) {
 					const SourceLocation* endLocation = startLocation->getEndLocation();
 
-					if ((startLocation->getType() == LOCATION_TOKEN ||
-						 startLocation->getType() == LOCATION_QUALIFIER ||
-						 startLocation->getType() == LOCATION_UNSOLVED) &&
+					if ((startLocation->getType() == LocationType::TOKEN ||
+						 startLocation->getType() == LocationType::QUALIFIER ||
+						 startLocation->getType() == LocationType::UNSOLVED) &&
 						startLocation->getLineNumber() == endLocation->getLineNumber() &&
 						startLocation->getColumnNumber() <= cursorColumn &&
 						endLocation->getColumnNumber() + 1 >= cursorColumn)
@@ -106,9 +106,9 @@ void IDECommunicationController::handleSetActiveTokenMessage(
 			if (!selectedLocationIds.empty())
 			{
 				MessageStatus(
-					L"Activating source location from plug-in succeeded: " + filePath.wstr() +
-					L", row: " + std::to_wstring(message.row) + L", col: " +
-					std::to_wstring(message.column))
+					"Activating source location from plug-in succeeded: " + filePath.str() +
+					", row: " + std::to_string(message.row) + ", col: " +
+					std::to_string(message.column))
 					.dispatch();
 
 				MessageTabOpenWith(0, selectedLocationIds[0]).showNewTab(true).dispatch();
@@ -125,8 +125,8 @@ void IDECommunicationController::handleSetActiveTokenMessage(
 		else
 		{
 			MessageStatus(
-				L"Activating source location from plug-in failed. File " + filePath.wstr() +
-					L" was not found in the project.",
+				"Activating source location from plug-in failed. File " + filePath.str() +
+					" was not found in the project.",
 				true)
 				.dispatch();
 		}
@@ -134,7 +134,7 @@ void IDECommunicationController::handleSetActiveTokenMessage(
 }
 
 void IDECommunicationController::handleCreateProjectMessage(
-	const NetworkProtocolHelper::CreateProjectMessage& message)
+	const NetworkProtocolHelper::CreateProjectMessage&  /*message*/)
 {
 	LOG_ERROR_STREAM(<< "Network Protocol CreateProjectMessage not supported anymore.");
 }
@@ -161,10 +161,10 @@ void IDECommunicationController::handlePing(const NetworkProtocolHelper::PingMes
 
 		if (msg.ideName.empty())
 		{
-			msg.ideName = L"unknown IDE";
+			msg.ideName = "unknown IDE";
 		}
 
-		LOG_INFO(msg.ideName + L" instance detected via plugin port");
+		LOG_INFO(msg.ideName + " instance detected via plugin port");
 		msg.dispatch();
 	}
 	else
@@ -181,29 +181,29 @@ void IDECommunicationController::handleMessage(MessageWindowFocus* message)
 	}
 }
 
-void IDECommunicationController::handleMessage(MessageIDECreateCDB* message)
+void IDECommunicationController::handleMessage(MessageIDECreateCDB*  /*message*/)
 {
-	std::wstring networkMessage = NetworkProtocolHelper::buildCreateCDBMessage();
+	std::string networkMessage = NetworkProtocolHelper::buildCreateCDBMessage();
 
-	MessageStatus(L"Requesting IDE to create Compilation Database via plug-in.").dispatch();
+	MessageStatus("Requesting IDE to create Compilation Database via plug-in.").dispatch();
 
 	sendMessage(networkMessage);
 }
 
 void IDECommunicationController::handleMessage(MessageMoveIDECursor* message)
 {
-	std::wstring networkMessage = NetworkProtocolHelper::buildSetIDECursorMessage(
+	std::string networkMessage = NetworkProtocolHelper::buildSetIDECursorMessage(
 		message->filePath, message->row, message->column);
 
 	MessageStatus(
-		L"Jump to source location via plug-in: " + message->filePath.wstr() + L", row: " +
-		std::to_wstring(message->row) + L", col: " + std::to_wstring(message->column))
+		"Jump to source location via plug-in: " + message->filePath.str() + ", row: " +
+		std::to_string(message->row) + ", col: " + std::to_string(message->column))
 		.dispatch();
 
 	sendMessage(networkMessage);
 }
 
-void IDECommunicationController::handleMessage(MessagePluginPortChange* message)
+void IDECommunicationController::handleMessage(MessagePluginPortChange*  /*message*/)
 {
 	stopListening();
 	startListening();

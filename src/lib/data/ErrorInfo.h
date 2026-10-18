@@ -8,23 +8,22 @@ struct ErrorInfo
 {
 	ErrorInfo()
 		: id(0)
-		, message(L"")
-		, filePath(L"")
-		, lineNumber(-1)
+		, 
+		 lineNumber(-1)
 		, columnNumber(-1)
-		, translationUnit(L"")
-		, fatal(0)
-		, indexed(0)
+		, 
+		 fatal(false)
+		, indexed(false)
 	{
 	}
 
 	ErrorInfo(
 		Id id,
-		std::wstring message,
-		std::wstring filePath,
+		std::string message,
+		std::string filePath,
 		size_t lineNumber,
 		size_t columnNumber,
-		std::wstring translationUnit,
+		std::string translationUnit,
 		bool fatal,
 		bool indexed)
 		: id(id)
@@ -40,13 +39,13 @@ struct ErrorInfo
 
 	Id id;
 
-	std::wstring message;
+	std::string message;
 
-	std::wstring filePath;
+	std::string filePath;
 	size_t lineNumber;
 	size_t columnNumber;
 
-	std::wstring translationUnit;
+	std::string translationUnit;
 	bool fatal;
 	bool indexed;
 };

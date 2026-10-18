@@ -1,11 +1,13 @@
-#include "catch.hpp"
-
-#include <chrono>
-#include <thread>
+#include "Catch2.hpp"
 
 #include "Message.h"
 #include "MessageListener.h"
 #include "MessageQueue.h"
+
+#include <chrono>
+#include <thread>
+
+// IMPORTANT: Ensure that MessageQueue::m_sendMessagesAsTasks is set to false, otherwise the test will fail!
 
 namespace
 {
@@ -30,12 +32,12 @@ public:
 class TestMessageListener: public MessageListener<TestMessage>
 {
 public:
-	TestMessageListener(): m_messageCount(0) {}
+	TestMessageListener() = default;
 
-	int m_messageCount;
+	int m_messageCount = 0;
 
 private:
-	virtual void handleMessage(TestMessage* message)
+	void handleMessage(TestMessage*  /*message*/) override
 	{
 		m_messageCount++;
 	}
@@ -44,12 +46,12 @@ private:
 class Test2MessageListener: public MessageListener<Test2Message>
 {
 public:
-	Test2MessageListener(): m_messageCount(0) {}
+	Test2MessageListener() = default;
 
-	int m_messageCount;
+	int m_messageCount = 0;
 
 private:
-	virtual void handleMessage(Test2Message* message)
+	void handleMessage(Test2Message*  /*message*/) override
 	{
 		m_messageCount++;
 		TestMessage().dispatch();
@@ -62,7 +64,7 @@ public:
 	std::shared_ptr<TestMessageListener> m_listener;
 
 private:
-	virtual void handleMessage(Test2Message* message)
+	void handleMessage(Test2Message*  /*message*/) override
 	{
 		m_listener = std::make_shared<TestMessageListener>();
 	}
@@ -76,7 +78,7 @@ public:
 	std::shared_ptr<TestMessageListener> m_listener;
 
 private:
-	virtual void handleMessage(TestMessage* message)
+	void handleMessage(TestMessage*  /*message*/) override
 	{
 		if (!m_listener)
 		{
@@ -84,7 +86,7 @@ private:
 		}
 	}
 
-	virtual void handleMessage(Test2Message* message)
+	void handleMessage(Test2Message*  /*message*/) override
 	{
 		m_listener.reset();
 	}
@@ -96,9 +98,9 @@ public:
 	std::vector<std::shared_ptr<TestMessageListener>> m_listeners;
 
 private:
-	virtual void handleMessage(TestMessage* message)
+	void handleMessage(TestMessage*  /*message*/) override
 	{
-		if (!m_listeners.size())
+		if (m_listeners.empty())
 		{
 			for (size_t i = 0; i < 5; i++)
 			{
@@ -111,33 +113,35 @@ private:
 void waitForThread()
 {
 	static const int THREAD_WAIT_TIME_MS = 20;
-	do
+
+	while (MessageQueue::getInstance()->hasMessagesQueued())
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(THREAD_WAIT_TIME_MS));
-	} while (MessageQueue::getInstance()->hasMessagesQueued());
+	}
 }
+
 }	 // namespace
 
-TEST_CASE("message loop starts and stops")
+TEST_CASE("message queue loop starts and stops")
 {
-	REQUIRE(!MessageQueue::getInstance()->loopIsRunning());
+	REQUIRE(!MessageQueue::getInstance()->isLoopRunning());
 
-	MessageQueue::getInstance()->startMessageLoopThreaded();
-
-	waitForThread();
-
-	REQUIRE(MessageQueue::getInstance()->loopIsRunning());
-
-	MessageQueue::getInstance()->stopMessageLoop();
+	MessageQueue::getInstance()->startLoopThread();
 
 	waitForThread();
 
-	REQUIRE(!MessageQueue::getInstance()->loopIsRunning());
+	REQUIRE(MessageQueue::getInstance()->isLoopRunning());
+
+	MessageQueue::getInstance()->stopLoopThread();
+
+	waitForThread();
+
+	REQUIRE(!MessageQueue::getInstance()->isLoopRunning());
 }
 
-TEST_CASE("registered listener receives messages")
+TEST_CASE("message queue registered listener receives messages")
 {
-	MessageQueue::getInstance()->startMessageLoopThreaded();
+	MessageQueue::getInstance()->startLoopThread();
 
 	TestMessageListener listener;
 	Test2MessageListener listener2;
@@ -148,15 +152,15 @@ TEST_CASE("registered listener receives messages")
 
 	waitForThread();
 
-	MessageQueue::getInstance()->stopMessageLoop();
+	MessageQueue::getInstance()->stopLoopThread();
 
 	REQUIRE(3 == listener.m_messageCount);
 	REQUIRE(0 == listener2.m_messageCount);
 }
 
-TEST_CASE("message dispatching within message handling")
+TEST_CASE("message queue dispatching within message handling") // FAIL
 {
-	MessageQueue::getInstance()->startMessageLoopThreaded();
+	MessageQueue::getInstance()->startLoopThread();
 
 	TestMessageListener listener;
 	Test2MessageListener listener2;
@@ -165,15 +169,15 @@ TEST_CASE("message dispatching within message handling")
 
 	waitForThread();
 
-	MessageQueue::getInstance()->stopMessageLoop();
+	MessageQueue::getInstance()->stopLoopThread();
 
 	REQUIRE(1 == listener.m_messageCount);
 	REQUIRE(1 == listener2.m_messageCount);
 }
 
-TEST_CASE("listener registration within message handling")
+TEST_CASE("message queue listener registration within message handling")
 {
-	MessageQueue::getInstance()->startMessageLoopThreaded();
+	MessageQueue::getInstance()->startLoopThread();
 
 	Test3MessageListener listener;
 
@@ -182,7 +186,7 @@ TEST_CASE("listener registration within message handling")
 
 	waitForThread();
 
-	MessageQueue::getInstance()->stopMessageLoop();
+	MessageQueue::getInstance()->stopLoopThread();
 
 	REQUIRE(listener.m_listener);
 	if (listener.m_listener)
@@ -191,9 +195,9 @@ TEST_CASE("listener registration within message handling")
 	}
 }
 
-TEST_CASE("listener unregistration within message handling")
+TEST_CASE("message queue listener unregistration within message handling")
 {
-	MessageQueue::getInstance()->startMessageLoopThreaded();
+	MessageQueue::getInstance()->startLoopThread();
 
 	Test4MessageListener listener;
 
@@ -207,7 +211,7 @@ TEST_CASE("listener unregistration within message handling")
 
 	waitForThread();
 
-	MessageQueue::getInstance()->stopMessageLoop();
+	MessageQueue::getInstance()->stopLoopThread();
 
 	REQUIRE(listener.m_listener);
 	if (listener.m_listener)
@@ -216,9 +220,9 @@ TEST_CASE("listener unregistration within message handling")
 	}
 }
 
-TEST_CASE("listener registration to front and back within message handling")
+TEST_CASE("message queue listener registration to front and back within message handling")
 {
-	MessageQueue::getInstance()->startMessageLoopThreaded();
+	MessageQueue::getInstance()->startLoopThread();
 
 	Test5MessageListener listener;
 
@@ -228,7 +232,7 @@ TEST_CASE("listener registration to front and back within message handling")
 
 	waitForThread();
 
-	MessageQueue::getInstance()->stopMessageLoop();
+	MessageQueue::getInstance()->stopLoopThread();
 
 	REQUIRE(5 == listener.m_listeners.size());
 	REQUIRE(2 == listener.m_listeners[0]->m_messageCount);

@@ -1,16 +1,10 @@
 #include "QtProjectWizard.h"
 
-#include <QFileDialog>
-#include <QListWidget>
-#include <QMessageBox>
-#include <QScrollArea>
-#include <QSysInfo>
-#include <QTimer>
-
-#include "language_packages.h"
-
+#include "Application.h"
 #include "MessageLoadProject.h"
 #include "MessageStatus.h"
+#include "Platform.h"
+#include "QtMessageBox.h"
 #include "QtProjectWizardContent.h"
 #include "QtProjectWizardContentCustomCommand.h"
 #include "QtProjectWizardContentExtensions.h"
@@ -23,16 +17,20 @@
 #include "QtProjectWizardContentSourceGroupData.h"
 #include "QtProjectWizardContentSourceGroupInfoText.h"
 #include "QtProjectWizardContentUnloadable.h"
-#include "ResourcePaths.h"
+#include "QtResources.h"
 #include "SourceGroupSettingsCustomCommand.h"
 #include "SourceGroupSettingsUnloadable.h"
+#include "ToolChain.h"
+#include "language_packages.h"
 #include "utility.h"
-#include "utilityApp.h"
 #include "utilityPathDetection.h"
-#include "utilityString.h"
 #include "utilityUuid.h"
 
-#include "Application.h"
+#include <QFileDialog>
+#include <QListWidget>
+#include <QScrollArea>
+#include <QSysInfo>
+#include <QTimer>
 
 #if BUILD_CXX_LANGUAGE_PACKAGE
 #	include "QtProjectWizardContentCStandard.h"
@@ -66,10 +64,7 @@
 #	include "SourceGroupSettingsJavaMaven.h"
 #endif	  // BUILD_JAVA_LANGUAGE_PACKAGE
 
-#if BUILD_PYTHON_LANGUAGE_PACKAGE
-#	include "QtProjectWizardContentPathPythonEnvironment.h"
-#	include "SourceGroupSettingsPythonEmpty.h"
-#endif	  // BUILD_PYTHON_LANGUAGE_PACKAGE
+using namespace std;
 
 namespace
 {
@@ -108,10 +103,10 @@ void addMsvcCompatibilityFlagsOnDemand(std::shared_ptr<SourceGroupSettingsWithCx
 {
 	if (applicationSettingsContainVisualStudioHeaderSearchPaths())
 	{
-		std::vector<std::wstring> flags = settings->getCompilerFlags();
-		flags.push_back(L"-fms-extensions");
-		flags.push_back(L"-fms-compatibility");
-		flags.push_back(L"-fms-compatibility-version=19");
+		std::vector<std::string> flags = settings->getCompilerFlags();
+		flags.push_back(ClangCompiler::msExtensionsOption());
+		flags.push_back(ClangCompiler::msCompatibilityOption());
+		flags.push_back(ClangCompiler::msCompatibilityVersionOption(VisualStudio::getLatestMsvcVersion()));
 		settings->setCompilerFlags(flags);
 	}
 }
@@ -145,7 +140,7 @@ void addSourceGroupContents<SourceGroupSettingsCEmpty>(
 	group->addContent(new QtProjectWizardContentPathsHeaderSearchGlobal(window));
 	group->addSpace();
 
-	if (utility::getOsType() == OS_MAC)
+	if constexpr (utility::Platform::isMac())
 	{
 		group->addContent(new QtProjectWizardContentPathsFrameworkSearch(settings, window));
 		group->addContent(new QtProjectWizardContentPathsFrameworkSearchGlobal(window));
@@ -176,7 +171,7 @@ void addSourceGroupContents<SourceGroupSettingsCppEmpty>(
 	group->addContent(new QtProjectWizardContentPathsHeaderSearchGlobal(window));
 	group->addSpace();
 
-	if (utility::getOsType() == OS_MAC)
+	if constexpr (utility::Platform::isMac())
 	{
 		group->addContent(new QtProjectWizardContentPathsFrameworkSearch(settings, window));
 		group->addContent(new QtProjectWizardContentPathsFrameworkSearchGlobal(window));
@@ -204,7 +199,7 @@ void addSourceGroupContents<SourceGroupSettingsCxxCdb>(
 	group->addContent(new QtProjectWizardContentPathsHeaderSearchGlobal(window));
 	group->addSpace();
 
-	if (utility::getOsType() == OS_MAC)
+	if constexpr (utility::Platform::isMac())
 	{
 		group->addContent(new QtProjectWizardContentPathsFrameworkSearch(settings, window, true));
 		group->addContent(new QtProjectWizardContentPathsFrameworkSearchGlobal(window));
@@ -237,7 +232,7 @@ void addSourceGroupContents<SourceGroupSettingsCxxCodeblocks>(
 	group->addContent(new QtProjectWizardContentPathsHeaderSearchGlobal(window));
 	group->addSpace();
 
-	if (utility::getOsType() == OS_MAC)
+	if constexpr (utility::Platform::isMac())
 	{
 		group->addContent(new QtProjectWizardContentPathsFrameworkSearch(settings, window, true));
 		group->addContent(new QtProjectWizardContentPathsFrameworkSearchGlobal(window));
@@ -294,21 +289,6 @@ void addSourceGroupContents<SourceGroupSettingsJavaGradle>(
 }
 
 #endif	  // BUILD_JAVA_LANGUAGE_PACKAGE
-#if BUILD_PYTHON_LANGUAGE_PACKAGE
-
-template <>
-void addSourceGroupContents<SourceGroupSettingsPythonEmpty>(
-	QtProjectWizardContentGroup* group,
-	std::shared_ptr<SourceGroupSettingsPythonEmpty> settings,
-	QtProjectWizardWindow* window)
-{
-	group->addContent(new QtProjectWizardContentPathPythonEnvironment(settings, window));
-	group->addContent(new QtProjectWizardContentPathsSource(settings, window));
-	group->addContent(new QtProjectWizardContentPathsExclude(settings, window));
-	group->addContent(new QtProjectWizardContentExtensions(settings, window));
-}
-
-#endif	  // BUILD_PYTHON_LANGUAGE_PACKAGE
 
 template <>
 void addSourceGroupContents<SourceGroupSettingsCustomCommand>(
@@ -335,9 +315,6 @@ void addSourceGroupContents<SourceGroupSettingsUnloadable>(
 QtProjectWizard::QtProjectWizard(QWidget* parent)
 	: QtProjectWizardWindow(parent, false)
 	, m_windowStack(this)
-	, m_editing(false)
-	, m_previouslySelectedIndex(-1)
-	, m_contentWidget(nullptr)
 {
 	setScrollAble(true);
 
@@ -438,7 +415,7 @@ void QtProjectWizard::populateWindow(QWidget* widget)
 		menuLayout->addWidget(sourceGroupLabel);
 
 		m_sourceGroupList = new QListWidget();
-		m_sourceGroupList->setAttribute(Qt::WA_MacShowFocusRect, 0);
+		m_sourceGroupList->setAttribute(Qt::WA_MacShowFocusRect, false);
 		connect(
 			m_sourceGroupList,
 			&QListWidget::currentRowChanged,
@@ -450,17 +427,11 @@ void QtProjectWizard::populateWindow(QWidget* widget)
 		buttonsLayout->setContentsMargins(0, 0, 0, 0);
 		buttonsLayout->setSpacing(0);
 
-		QPushButton* addButton = new QtIconButton(
-			ResourcePaths::getGuiDirectoryPath().concatenate(L"window/source_group_add.png"),
-			ResourcePaths::getGuiDirectoryPath().concatenate(L"window/source_group_add_hover.png"));
+		QPushButton* addButton = new QtIconButton(QtResources::WINDOW_SOURCE_GROUP_ADD, QtResources::WINDOW_SOURCE_GROUP_ADD_HOVER);
 
-		m_removeButton = new QtIconButton(
-			ResourcePaths::getGuiDirectoryPath().concatenate(L"window/source_group_delete.png"),
-			ResourcePaths::getGuiDirectoryPath().concatenate(L"window/source_group_delete_hover.png"));
+		m_removeButton = new QtIconButton(QtResources::WINDOW_SOURCE_GROUP_DELETE, QtResources::WINDOW_SOURCE_GROUP_DELETE_HOVER);
 
-		m_duplicateButton = new QtIconButton(
-			ResourcePaths::getGuiDirectoryPath().concatenate(L"window/source_group_copy.png"),
-			ResourcePaths::getGuiDirectoryPath().concatenate(L"window/source_group_copy_hover.png"));
+		m_duplicateButton = new QtIconButton(QtResources::WINDOW_SOURCE_GROUP_COPY, QtResources::WINDOW_SOURCE_GROUP_COPY_HOVER);
 
 		addButton->setIconSize(QSize(20, 20));
 		m_removeButton->setIconSize(QSize(20, 20));
@@ -552,7 +523,7 @@ void QtProjectWizard::windowReady()
 
 void QtProjectWizard::handlePrevious()
 {
-	QtWindow::handlePrevious();
+	QtProjectWizardWindow::handlePrevious();
 }
 
 QtProjectWizardWindow* QtProjectWizard::createWindowWithContent(
@@ -581,7 +552,7 @@ void QtProjectWizard::updateSourceGroupList()
 	for (const std::shared_ptr<SourceGroupSettings>& group: m_allSourceGroupSettings)
 	{
 		QString name = QString::fromStdString(group->getName());
-		if (group->getStatus() == SOURCE_GROUP_STATUS_DISABLED)
+		if (group->getStatus() == SourceGroupStatusType::DISABLED)
 		{
 			name = "(" + name + ")";
 		}
@@ -736,14 +707,6 @@ void QtProjectWizard::selectedSourceGroupChanged(int index)
 		addSourceGroupContents(summary, settings, this);
 	}
 #endif	  // BUILD_JAVA_LANGUAGE_PACKAGE
-#if BUILD_PYTHON_LANGUAGE_PACKAGE
-	else if (
-		std::shared_ptr<SourceGroupSettingsPythonEmpty> settings =
-			std::dynamic_pointer_cast<SourceGroupSettingsPythonEmpty>(group))
-	{
-		addSourceGroupContents(summary, settings, this);
-	}
-#endif	  // BUILD_PYTHON_LANGUAGE_PACKAGE
 
 	summary->addSpace();
 	summary->addContent(new QtProjectWizardContentRequiredLabel(this));
@@ -770,16 +733,13 @@ void QtProjectWizard::removeSelectedSourceGroup()
 		return;
 	}
 
-	QMessageBox msgBox(this);
+	QtMessageBox msgBox(this);
 	msgBox.setText(QStringLiteral("Remove Source Group"));
-	msgBox.setInformativeText(
-		QStringLiteral("Do you really want to remove this source group from the project?"));
-	msgBox.addButton(QStringLiteral("Yes"), QMessageBox::ButtonRole::YesRole);
-	msgBox.addButton(QStringLiteral("No"), QMessageBox::ButtonRole::NoRole);
-	msgBox.setIcon(QMessageBox::Icon::Question);
-	int ret = msgBox.exec();
-
-	if (ret == 0)	 // QMessageBox::Yes
+	msgBox.setInformativeText(QStringLiteral("Do you really want to remove this source group from the project?"));
+	QPushButton *yesButton = msgBox.addButton(QStringLiteral("Yes"), QtMessageBox::ButtonRole::YesRole);
+	msgBox.addButton(QStringLiteral("No"), QtMessageBox::ButtonRole::NoRole);
+	msgBox.setIcon(QtMessageBox::Icon::Question);
+	if (msgBox.execModal() == yesButton)	 // QtMessageBox::Yes
 	{
 		int currentRow = m_sourceGroupList->currentRow();
 		m_allSourceGroupSettings.erase(m_allSourceGroupSettings.begin() + currentRow);
@@ -930,7 +890,7 @@ void QtProjectWizard::newSourceGroupFromVS()
 	window->resize(QSize(560, 320));
 
 	connect(window, &QtProjectWizardWindow::next, [this]() {
-		selectedProjectType(SOURCE_GROUP_CXX_CDB);
+		selectedProjectType(SourceGroupType::CXX_CDB);
 	});
 
 	window->show();
@@ -948,7 +908,7 @@ void QtProjectWizard::selectedProjectType(SourceGroupType sourceGroupType)
 	switch (sourceGroupType)
 	{
 #if BUILD_CXX_LANGUAGE_PACKAGE
-	case SOURCE_GROUP_C_EMPTY:
+	case SourceGroupType::C_EMPTY:
 	{
 		std::shared_ptr<SourceGroupSettingsCEmpty> cxxSettings =
 			std::make_shared<SourceGroupSettingsCEmpty>(sourceGroupId, m_projectSettings.get());
@@ -956,7 +916,7 @@ void QtProjectWizard::selectedProjectType(SourceGroupType sourceGroupType)
 		settings = cxxSettings;
 	}
 	break;
-	case SOURCE_GROUP_CPP_EMPTY:
+	case SourceGroupType::CXX_EMPTY:
 	{
 		std::shared_ptr<SourceGroupSettingsCppEmpty> cxxSettings =
 			std::make_shared<SourceGroupSettingsCppEmpty>(sourceGroupId, m_projectSettings.get());
@@ -964,11 +924,11 @@ void QtProjectWizard::selectedProjectType(SourceGroupType sourceGroupType)
 		settings = cxxSettings;
 	}
 	break;
-	case SOURCE_GROUP_CXX_CDB:
+	case SourceGroupType::CXX_CDB:
 		settings = std::make_shared<SourceGroupSettingsCxxCdb>(
 			sourceGroupId, m_projectSettings.get());
 		break;
-	case SOURCE_GROUP_CXX_CODEBLOCKS:
+	case SourceGroupType::CXX_CODEBLOCKS:
 	{
 		std::shared_ptr<SourceGroupSettingsCxxCodeblocks> cxxSettings =
 			std::make_shared<SourceGroupSettingsCxxCodeblocks>(
@@ -977,38 +937,31 @@ void QtProjectWizard::selectedProjectType(SourceGroupType sourceGroupType)
 		settings = cxxSettings;
 	}
 	break;
-	case SOURCE_GROUP_CXX_VS:
+	case SourceGroupType::CXX_VS:
 		newSourceGroupFromVS();
 		return;
 #endif	  // BUILD_CXX_LANGUAGE_PACKAGE
 
 #if BUILD_JAVA_LANGUAGE_PACKAGE
-	case SOURCE_GROUP_JAVA_EMPTY:
+	case SourceGroupType::JAVA_EMPTY:
 		settings = std::make_shared<SourceGroupSettingsJavaEmpty>(
 			sourceGroupId, m_projectSettings.get());
 		break;
-	case SOURCE_GROUP_JAVA_MAVEN:
+	case SourceGroupType::JAVA_MAVEN:
 		settings = std::make_shared<SourceGroupSettingsJavaMaven>(
 			sourceGroupId, m_projectSettings.get());
 		break;
-	case SOURCE_GROUP_JAVA_GRADLE:
+	case SourceGroupType::JAVA_GRADLE:
 		settings = std::make_shared<SourceGroupSettingsJavaGradle>(
 			sourceGroupId, m_projectSettings.get());
 		break;
 #endif	  // BUILD_JAVA_LANGUAGE_PACKAGE
 
-#if BUILD_PYTHON_LANGUAGE_PACKAGE
-	case SOURCE_GROUP_PYTHON_EMPTY:
-		settings = std::make_shared<SourceGroupSettingsPythonEmpty>(
-			sourceGroupId, m_projectSettings.get());
-		break;
-#endif	  // BUILD_PYTHON_LANGUAGE_PACKAGE
-
-	case SOURCE_GROUP_CUSTOM_COMMAND:
+	case SourceGroupType::CUSTOM_COMMAND:
 		settings = std::make_shared<SourceGroupSettingsCustomCommand>(
 			sourceGroupId, m_projectSettings.get());
 		break;
-	case SOURCE_GROUP_UNKNOWN:
+	case SourceGroupType::UNKNOWN:
 		break;
 	}
 
@@ -1040,15 +993,15 @@ void QtProjectWizard::createProject()
 	m_projectSettings->setAllSourceGroupSettings(m_allSourceGroupSettings);
 	if (!m_projectSettings->save(path))
 	{
-		MessageStatus(L"Unable to save project to location: " + path.wstr()).dispatch();
+		MessageStatus("Unable to save project to location: " + path.str()).dispatch();
 
-		QMessageBox msgBox(this);
+		QtMessageBox msgBox(this);
 		msgBox.setText(QStringLiteral("Could not create Project"));
-		msgBox.setInformativeText(QString::fromStdWString(
-			L"<p>Sourcetrail was unable to save the project to the specified path. Please pick a "
-			L"different project location.</p>"));
-		msgBox.addButton(QStringLiteral("Ok"), QMessageBox::ButtonRole::AcceptRole);
-		msgBox.exec();
+		msgBox.setInformativeText(QString::fromStdString(
+			"<p>Sourcetrail was unable to save the project to the specified path. Please pick a "
+			"different project location.</p>"));
+		msgBox.addButton(QStringLiteral("Ok"), QtMessageBox::ButtonRole::AcceptRole);
+		msgBox.execModal();
 
 		return;
 	}
@@ -1061,14 +1014,14 @@ void QtProjectWizard::createProject()
 		if (currentProject)
 		{
 			settingsChanged = !(
-				currentProject->settingsEqualExceptNameAndLocation(*(m_projectSettings.get())));
+				currentProject->settingsEqualExceptNameAndLocation(*m_projectSettings));
 		}
 
-		settingsChanged |= !(m_appSettings == *ApplicationSettings::getInstance().get());
+		settingsChanged |= !(m_appSettings == *ApplicationSettings::getInstance());
 	}
 	else
 	{
-		MessageStatus(L"Created project: " + path.wstr()).dispatch();
+		MessageStatus("Created project: " + path.str()).dispatch();
 	}
 
 	MessageLoadProject(path, settingsChanged).dispatch();

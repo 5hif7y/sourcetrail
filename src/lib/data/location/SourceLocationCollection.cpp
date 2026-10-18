@@ -3,9 +3,9 @@
 #include "SourceLocationFile.h"
 #include "logging.h"
 
-SourceLocationCollection::SourceLocationCollection() {}
+SourceLocationCollection::SourceLocationCollection() = default;
 
-SourceLocationCollection::~SourceLocationCollection() {}
+SourceLocationCollection::~SourceLocationCollection() = default;
 
 const std::map<FilePath, std::shared_ptr<SourceLocationFile>>& SourceLocationCollection::
 	getSourceLocationFiles() const
@@ -16,7 +16,7 @@ const std::map<FilePath, std::shared_ptr<SourceLocationFile>>& SourceLocationCol
 size_t SourceLocationCollection::getSourceLocationCount() const
 {
 	size_t count = 0;
-	for (auto& p: m_files)
+	for (const auto& p: m_files)
 	{
 		count += p.second->getSourceLocationCount();
 	}
@@ -43,7 +43,7 @@ std::shared_ptr<SourceLocationFile> SourceLocationCollection::getSourceLocationF
 
 SourceLocation* SourceLocationCollection::getSourceLocationById(Id locationId) const
 {
-	for (auto& p: m_files)
+	for (const auto& p: m_files)
 	{
 		SourceLocation* location = p.second->getSourceLocationById(locationId);
 		if (location)
@@ -69,9 +69,9 @@ SourceLocation* SourceLocationCollection::addSourceLocation(
 		(startLineNumber == endLineNumber && startColumnNumber > endColumnNumber))
 	{
 		LOG_ERROR(
-			L"SourceLocation has wrong boundaries: " + filePath.wstr() + L" " +
-			std::to_wstring(startLineNumber) + L":" + std::to_wstring(startColumnNumber) + L" " +
-			std::to_wstring(endLineNumber) + L":" + std::to_wstring(endColumnNumber));
+			"SourceLocation has wrong boundaries: " + filePath.str() + " " +
+			std::to_string(startLineNumber) + ":" + std::to_string(startColumnNumber) + " " +
+			std::to_string(endLineNumber) + ":" + std::to_string(endColumnNumber));
 		return nullptr;
 	}
 
@@ -125,7 +125,7 @@ void SourceLocationCollection::addSourceLocationFile(std::shared_ptr<SourceLocat
 void SourceLocationCollection::forEachSourceLocationFile(
 	std::function<void(std::shared_ptr<SourceLocationFile>)> func) const
 {
-	for (auto& p: m_files)
+	for (const auto& p: m_files)
 	{
 		func(p.second);
 	}
@@ -133,14 +133,14 @@ void SourceLocationCollection::forEachSourceLocationFile(
 
 void SourceLocationCollection::forEachSourceLocation(std::function<void(SourceLocation*)> func) const
 {
-	for (auto& p: m_files)
+	for (const auto& p: m_files)
 	{
 		p.second->forEachSourceLocation(func);
 	}
 }
 
 SourceLocationFile* SourceLocationCollection::createSourceLocationFile(
-	const FilePath& filePath, const std::wstring& language, bool isWhole, bool isComplete, bool isIndexed)
+	const FilePath& filePath, const std::string& language, bool isWhole, bool isComplete, bool isIndexed)
 {
 	SourceLocationFile* file = getSourceLocationFileByPath(filePath).get();
 	if (file)
@@ -154,10 +154,10 @@ SourceLocationFile* SourceLocationCollection::createSourceLocationFile(
 	return filePtr.get();
 }
 
-std::wostream& operator<<(std::wostream& ostream, const SourceLocationCollection& base)
+std::ostream& operator<<(std::ostream& ostream, const SourceLocationCollection& base)
 {
-	ostream << L"Locations:\n";
+	ostream << "Locations:\n";
 	base.forEachSourceLocationFile(
-		[&ostream](std::shared_ptr<SourceLocationFile> f) { ostream << *(f.get()); });
+		[&ostream](std::shared_ptr<SourceLocationFile> f) { ostream << *f; });
 	return ostream;
 }

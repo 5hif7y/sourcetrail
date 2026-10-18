@@ -1,72 +1,82 @@
 #ifndef MESSAGE_QUEUE_H
 #define MESSAGE_QUEUE_H
 
+#include "LoopThread.h"
+#include "MessageListenerBase.h"
+
+#include <aidkit/concurrent/thread_shared.hpp>
+
+#include <boost/multi_index_container.hpp>
+#include <boost/multi_index/sequenced_index.hpp>
+#include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/member.hpp>
+#include <boost/multi_index/mem_fun.hpp>
+#include <boost/multi_index/identity.hpp>
+#include <boost/multi_index/tag.hpp>
+#include <boost/multi_index/key.hpp>
+
 #include <deque>
 #include <memory>
-#include <mutex>
 #include <vector>
-
-#include "types.h"
 
 class MessageBase;
 class MessageFilter;
-class MessageListenerBase;
 
-class MessageQueue
+class MessageQueue final : public LoopThread
 {
 public:
 	typedef std::deque<std::shared_ptr<MessageBase>> MessageBufferType;
 
 	static std::shared_ptr<MessageQueue> getInstance();
 
-	~MessageQueue();
-
 	void registerListener(MessageListenerBase* listener);
 	void unregisterListener(MessageListenerBase* listener);
-
-	MessageListenerBase* getListenerById(Id listenerId) const;
 
 	void addMessageFilter(std::shared_ptr<MessageFilter> filter);
 
 	void pushMessage(std::shared_ptr<MessageBase> message);
 	void processMessage(std::shared_ptr<MessageBase> message, bool asNextTask);
 
-	void startMessageLoopThreaded();
-	void startMessageLoop();
-	void stopMessageLoop();
+	using LoopThread::isLoopRunning; // Only needed for unit tests!
+	bool hasMessagesQueued() const; // Only needed for unit tests!
 
-	bool loopIsRunning() const;
-	bool hasMessagesQueued() const;
-
-	void setSendMessagesAsTasks(bool sendMessagesAsTasks);
+	bool setSendMessagesAsTasks(bool sendMessagesAsTasks);
 
 private:
-	static std::shared_ptr<MessageQueue> s_instance;
+	// Declare a container which allows sequential and hashed access:
 
-	MessageQueue();
+	struct ListenerSequenceTag {};
+	struct ListenerHashTag {};
+
+	using ListenerSequenceIndex = boost::multi_index::sequenced<boost::multi_index::tag<ListenerSequenceTag>>;
+	using ListenerHashIndex = boost::multi_index::hashed_unique<boost::multi_index::tag<ListenerHashTag>, boost::multi_index::identity<MessageListenerBase *>>;
+
+	using ListenerContainer = boost::multi_index::multi_index_container<
+		MessageListenerBase *,
+		boost::multi_index::indexed_by<
+			ListenerSequenceIndex,
+			ListenerHashIndex
+		>
+	>;
+
+	MessageQueue() = default;
+
 	MessageQueue(const MessageQueue&) = delete;
-	void operator=(const MessageQueue&) = delete;
+	MessageQueue &operator=(const MessageQueue&) = delete;
 
-	void processMessages();
-	void sendMessage(std::shared_ptr<MessageBase> message);
+	void doThreadLoop() noexcept override;
+
+	void sendMessage(std::shared_ptr<MessageBase> message) const;
 	void sendMessageAsTask(std::shared_ptr<MessageBase> message, bool asNextTask) const;
 
-	MessageBufferType m_messageBuffer;
-	std::vector<MessageListenerBase*> m_listeners;
-	std::vector<std::shared_ptr<MessageFilter>> m_filters;
+	bool isListenerRegistered(const MessageListenerBase *listener) const;
 
-	size_t m_currentListenerIndex;
-	size_t m_listenersLength;
+	aidkit::concurrent::thread_shared<MessageBufferType> m_messageBuffer;
+	aidkit::concurrent::thread_shared<std::vector<std::shared_ptr<MessageFilter>>> m_filters;
 
-	bool m_loopIsRunning;
-	bool m_threadIsRunning;
+	aidkit::concurrent::thread_shared<ListenerContainer> m_listeners;
 
-	mutable std::mutex m_messageBufferMutex;
-	mutable std::mutex m_listenersMutex;
-	mutable std::mutex m_loopMutex;
-	mutable std::mutex m_threadMutex;
-
-	bool m_sendMessagesAsTasks;
+	bool m_sendMessagesAsTasks = false;
 };
 
 #endif	  // MESSAGE_QUEUE_H

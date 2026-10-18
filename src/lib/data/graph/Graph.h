@@ -62,8 +62,8 @@ public:
 	bool hasTrailOrigin() const;
 	void setHasTrailOrigin(bool hasOrigin);
 
-	void print(std::wostream& ostream) const;
-	void printBasic(std::wostream& ostream) const;
+	void print(std::ostream& ostream) const;
+	void printBasic(std::ostream& ostream) const;
 
 private:
 	Graph(const Graph&);
@@ -74,10 +74,10 @@ private:
 	std::map<Id, std::shared_ptr<Node>> m_nodes;
 	std::map<Id, std::shared_ptr<Edge>> m_edges;
 
-	TrailMode m_trailMode;
+	TrailMode m_trailMode = TRAIL_NONE;
 	bool m_hasTrailOrigin;
 };
 
-std::wostream& operator<<(std::wostream& ostream, const Graph& graph);
+std::ostream& operator<<(std::ostream& ostream, const Graph& graph);
 
 #endif	  // GRAPH_H

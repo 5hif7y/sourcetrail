@@ -6,7 +6,7 @@
 class MessageFilter
 {
 public:
-	virtual ~MessageFilter() {}
+	virtual ~MessageFilter() = default;
 
 	virtual void filter(MessageQueue::MessageBufferType* messageBuffer) = 0;
 };

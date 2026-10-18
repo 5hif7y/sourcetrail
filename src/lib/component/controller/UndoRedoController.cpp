@@ -1,8 +1,8 @@
 #include "UndoRedoController.h"
 
 #include "MessageFlushUpdates.h"
-#include "MessageSearch.h"
 #include "utility.h"
+#include "utilityMainFunction.h"
 
 #include "Application.h"
 #include "Project.h"
@@ -14,7 +14,7 @@ UndoRedoController::UndoRedoController(StorageAccess* storageAccess): m_storageA
 	m_iterator = m_list.end();
 }
 
-Id UndoRedoController::getSchedulerId() const
+TabId UndoRedoController::getSchedulerId() const
 {
 	return Controller::getTabId();
 }
@@ -220,7 +220,7 @@ void UndoRedoController::handleMessage(MessageGraphNodeMove* message)
 	processCommand(command);
 }
 
-void UndoRedoController::handleMessage(MessageHistoryRedo* message)
+void UndoRedoController::handleMessage(MessageHistoryRedo*  /*message*/)
 {
 	if (m_iterator == m_list.end())
 	{
@@ -297,7 +297,7 @@ void UndoRedoController::handleMessage(MessageHistoryToPosition* message)
 	updateHistory();
 }
 
-void UndoRedoController::handleMessage(MessageHistoryUndo* message)
+void UndoRedoController::handleMessage(MessageHistoryUndo*  /*message*/)
 {
 	if (!m_list.size())
 	{
@@ -338,7 +338,7 @@ void UndoRedoController::handleMessage(MessageHistoryUndo* message)
 	updateHistory();
 }
 
-void UndoRedoController::handleMessage(MessageIndexingFinished* message)
+void UndoRedoController::handleMessage(MessageIndexingFinished*  /*message*/)
 {
 	std::list<Command> newList;
 
@@ -506,9 +506,7 @@ void UndoRedoController::replayCommand(std::list<Command>::iterator it)
 
 			for (SearchMatch match: matches)
 			{
-				// TODO: replace duplicate main definition fix with better solution
-				if (match.nodeType.getKind() != NODE_FUNCTION || !match.tokenNames.size() ||
-					match.tokenNames[0].getRawName() != L"main")
+				if (!isMainFunction(match))
 				{
 					match.tokenIds = m_storageAccess->getNodeIdsForNameHierarchies(match.tokenNames);
 				}
@@ -529,7 +527,7 @@ void UndoRedoController::replayCommand(std::list<Command>::iterator it)
 			Application::getInstance()->getCurrentProject();
 		if (currentProject && currentProject->isIndexing())
 		{
-			Application::getInstance()->handleDialog(L"Errors cannot be activated while indexing.");
+			Application::getInstance()->handleDialog("Errors cannot be activated while indexing.");
 
 			ErrorFilter filter;
 			filter.error = false;

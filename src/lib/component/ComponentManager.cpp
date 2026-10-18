@@ -15,6 +15,10 @@
 #include "ViewFactory.h"
 #include "logging.h"
 
+using namespace std;
+
+using view_initializer_list = initializer_list<shared_ptr<View>>;
+
 namespace
 {
 template <class Container>
@@ -37,100 +41,68 @@ void ComponentManager::clear()
 	reverseErase(m_singleViews);
 }
 
-void ComponentManager::setupMain(ViewLayout* viewLayout, Id appId)
+void ComponentManager::setupMain(ViewLayout* viewLayout, TabId appId)
 {
-	std::shared_ptr<CompositeView> compositeView =
-		m_componentFactory.getViewFactory()->createCompositeView(
-			viewLayout, CompositeView::DIRECTION_HORIZONTAL, "Search", 0);
+	std::shared_ptr<CompositeView> compositeView = m_componentFactory.getViewFactory()->createCompositeView(viewLayout, CompositeView::DIRECTION_HORIZONTAL, "Search", TabId::NONE);
 	m_singleViews.push_back(compositeView);
 
-	std::shared_ptr<UndoRedoView> undoRedoView =
-		m_componentFactory.getViewFactory()->createUndoRedoView(compositeView.get());
-	std::shared_ptr<RefreshView> refreshView =
-		m_componentFactory.getViewFactory()->createRefreshView(compositeView.get());
-	std::shared_ptr<SearchView> searchView = m_componentFactory.getViewFactory()->createSearchView(
-		compositeView.get());
-
-	std::shared_ptr<BookmarkButtonsView> bookmarkView =
-		m_componentFactory.getViewFactory()->createBookmarkButtonsView(compositeView.get());
+	std::shared_ptr<UndoRedoView> undoRedoView = m_componentFactory.getViewFactory()->createUndoRedoView(compositeView.get());
+	std::shared_ptr<RefreshView> refreshView = m_componentFactory.getViewFactory()->createRefreshView(compositeView.get());
+	std::shared_ptr<SearchView> searchView = m_componentFactory.getViewFactory()->createSearchView(compositeView.get());
+	std::shared_ptr<BookmarkButtonsView> bookmarkView = m_componentFactory.getViewFactory()->createBookmarkButtonsView(compositeView.get());
 	bookmarkView->setTabId(appId);
 
-	std::shared_ptr<GraphView> graphView = m_componentFactory.getViewFactory()->createGraphView(
-		viewLayout);
-	std::shared_ptr<CodeView> codeView = m_componentFactory.getViewFactory()->createCodeView(
-		viewLayout);
+	std::shared_ptr<GraphView> graphView = m_componentFactory.getViewFactory()->createGraphView(viewLayout);
+	std::shared_ptr<CodeView> codeView = m_componentFactory.getViewFactory()->createCodeView(viewLayout);
 
-	for (std::shared_ptr<View> view: std::vector<std::shared_ptr<View>>(
-			 {undoRedoView, searchView, bookmarkView, graphView, codeView}))
+	for (auto view : view_initializer_list{ undoRedoView, refreshView, searchView, bookmarkView, graphView, codeView })
 	{
 		view->setEnabled(false);
+		m_singleViews.push_back(view);
 	}
 
-	m_singleViews.push_back(undoRedoView);
-	m_singleViews.push_back(refreshView);
-	m_singleViews.push_back(searchView);
-	m_singleViews.push_back(bookmarkView);
-	m_singleViews.push_back(graphView);
-	m_singleViews.push_back(codeView);
-
-	std::shared_ptr<Component> screenSearchComponent =
-		m_componentFactory.createScreenSearchComponent(viewLayout);
-	ScreenSearchController* screenSearchController =
-		screenSearchComponent->getController<ScreenSearchController>();
+	std::shared_ptr<Component> screenSearchComponent = m_componentFactory.createScreenSearchComponent(viewLayout);
+	ScreenSearchController* screenSearchController = screenSearchComponent->getController<ScreenSearchController>();
 	screenSearchController->addResponder(graphView.get());
 	screenSearchController->addResponder(codeView.get());
 	m_components.push_back(screenSearchComponent);
 
-	std::shared_ptr<Component> tabsComponent = m_componentFactory.createTabsComponent(
-		viewLayout, screenSearchController);
+	std::shared_ptr<Component> tabsComponent = m_componentFactory.createTabsComponent(viewLayout, screenSearchController);
 	m_components.push_back(tabsComponent);
 
-	std::shared_ptr<Component> tooltipComponent = m_componentFactory.createTooltipComponent(
-		viewLayout);
+	std::shared_ptr<Component> tooltipComponent = m_componentFactory.createTooltipComponent(viewLayout);
 	m_components.push_back(tooltipComponent);
 
-	for (DialogView::UseCase useCase:
-		 {DialogView::UseCase::GENERAL,
-		  DialogView::UseCase::INDEXING,
-		  DialogView::UseCase::PROJECT_SETUP})
+	for (auto useCase : { DialogView::UseCase::GENERAL, DialogView::UseCase::INDEXING, DialogView::UseCase::PROJECT_SETUP})
 	{
-		m_dialogViews.emplace(
-			useCase,
-			m_componentFactory.getViewFactory()->createDialogView(
-				viewLayout, useCase, m_componentFactory.getStorageAccess()));
+		m_dialogViews.emplace(useCase, m_componentFactory.getViewFactory()->createDialogView(viewLayout, useCase, m_componentFactory.getStorageAccess()));
 	}
 
 	m_dialogViews[DialogView::UseCase::INDEXING]->setDialogsHideable(true);
 
-	std::shared_ptr<TabbedView> tabbedView = m_componentFactory.getViewFactory()->createTabbedView(
-		viewLayout, "Status");
+	std::shared_ptr<TabbedView> tabbedView = m_componentFactory.getViewFactory()->createTabbedView(viewLayout, "Status");
 	m_singleViews.push_back(tabbedView);
 
-	std::shared_ptr<Component> statusComponent = m_componentFactory.createStatusComponent(
-		tabbedView.get());
+	std::shared_ptr<Component> statusComponent = m_componentFactory.createStatusComponent(tabbedView.get());
 	m_components.push_back(statusComponent);
 
-	std::shared_ptr<Component> errorComponent = m_componentFactory.createErrorComponent(
-		tabbedView.get());
+	std::shared_ptr<Component> errorComponent = m_componentFactory.createErrorComponent(tabbedView.get());
 	m_components.push_back(errorComponent);
 
-	std::shared_ptr<Component> bookmarkComponent = m_componentFactory.createBookmarkComponent(
-		compositeView.get());
+	std::shared_ptr<Component> bookmarkComponent = m_componentFactory.createBookmarkComponent(compositeView.get());
 	m_components.push_back(bookmarkComponent);
 
 	std::shared_ptr<Component> activationComponent = m_componentFactory.createActivationComponent();
 	m_components.push_back(activationComponent);
 
-	std::shared_ptr<Component> statusBarComponent = m_componentFactory.createStatusBarComponent(
-		viewLayout);
+	std::shared_ptr<Component> statusBarComponent = m_componentFactory.createStatusBarComponent(viewLayout);
 	m_components.push_back(statusBarComponent);
 
-	std::shared_ptr<Component> customTrailComponent = m_componentFactory.createCustomTrailComponent(
-		viewLayout);
+	std::shared_ptr<Component> customTrailComponent = m_componentFactory.createCustomTrailComponent(viewLayout);
 	m_components.push_back(customTrailComponent);
 }
 
-void ComponentManager::setupTab(ViewLayout* viewLayout, Id tabId, ScreenSearchSender* screenSearchSender)
+void ComponentManager::setupTab(ViewLayout* viewLayout, TabId tabId, ScreenSearchSender* screenSearchSender)
 {
 	std::shared_ptr<CompositeView> compositeView =
 		m_componentFactory.getViewFactory()->createCompositeView(

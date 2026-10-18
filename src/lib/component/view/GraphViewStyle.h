@@ -21,22 +21,22 @@ public:
 	{
 		NodeMargins();
 
-		int left;
-		int right;
+		int left = 0;
+		int right = 0;
 
-		int top;
-		int bottom;
+		int top = 0;
+		int bottom = 0;
 
-		int spacingX;
-		int spacingY;
-		int spacingA;
+		int spacingX = 0;
+		int spacingY = 0;
+		int spacingA = 0;
 
-		int minWidth;
+		int minWidth = 0;
 
-		float charWidth;
-		float charHeight;
+		float charWidth = 0.0f;
+		float charHeight = 0.0f;
 
-		int iconWidth;
+		int iconWidth = 0;
 	};
 
 	struct NodeColor
@@ -54,22 +54,22 @@ public:
 
 		NodeColor color;
 
-		int cornerRadius;
+		int cornerRadius = 0;
 
-		int borderWidth;
-		bool borderDashed;
+		int borderWidth = 0;
+		bool borderDashed = false;
 
 		std::string fontName;
-		size_t fontSize;
-		bool fontBold;
+		size_t fontSize = 0;
+		bool fontBold = false;
 
 		Vec2i textOffset;
 
 		FilePath iconPath;
 		Vec2i iconOffset;
-		size_t iconSize;
+		size_t iconSize = 0;
 
-		bool hasHatching;
+		bool hasHatching = false;
 	};
 
 	struct EdgeStyle
@@ -78,20 +78,20 @@ public:
 
 		std::string color;
 
-		float width;
-		int zValue;
+		float width = 0;
+		int zValue = 0;
 
-		int arrowLength;
-		int arrowWidth;
-		bool arrowClosed;
+		int arrowLength = 0;
+		int arrowWidth = 0;
+		bool arrowClosed = false;
 
-		int cornerRadius;
-		int verticalOffset;
+		int cornerRadius = 0;
+		int verticalOffset = 0;
 
 		Vec2i originOffset;
 		Vec2i targetOffset;
 
-		bool dashed;
+		bool dashed = false;
 	};
 
 	static std::shared_ptr<GraphViewStyleImpl> getImpl();

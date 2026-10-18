@@ -46,7 +46,7 @@ SourceLocation::SourceLocation(const SourceLocation* other, SourceLocationFile* 
 {
 }
 
-SourceLocation::~SourceLocation() {}
+SourceLocation::~SourceLocation() = default;
 
 bool SourceLocation::operator==(const SourceLocation& rhs) const
 {
@@ -199,34 +199,29 @@ bool SourceLocation::isEndLocation() const
 
 bool SourceLocation::isScopeLocation() const
 {
-	return m_type == LOCATION_SCOPE;
+	return m_type == LocationType::SCOPE;
 }
 
-bool SourceLocation::isFullTextSearchMatch() const
-{
-	return m_type == LOCATION_FULLTEXT_SEARCH;
-}
-
-std::wostream& operator<<(std::wostream& ostream, const SourceLocation& location)
+std::ostream& operator<<(std::ostream& ostream, const SourceLocation& location)
 {
 	if (location.isStartLocation())
 	{
-		ostream << L'<';
+		ostream << '<';
 	}
 
-	ostream << location.getColumnNumber() << L":[ ";
+	ostream << location.getColumnNumber() << ":[ ";
 	for (Id tokenId: location.getTokenIds())
 	{
-		ostream << L'\b' << tokenId << L' ';
+		ostream << '\b' << tokenId << ' ';
 	}
 
-	ostream << L"\b]";
+	ostream << "\b]";
 
 	if (location.isEndLocation())
 	{
-		ostream << L'>';
+		ostream << '>';
 	}
 
-	ostream << L' ';
+	ostream << ' ';
 	return ostream;
 }

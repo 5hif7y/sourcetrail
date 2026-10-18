@@ -7,9 +7,9 @@ class QtNetworkFactory: public NetworkFactory
 {
 public:
 	QtNetworkFactory();
-	virtual ~QtNetworkFactory();
+	~QtNetworkFactory() override;
 
-	virtual std::shared_ptr<IDECommunicationController> createIDECommunicationController(
+	std::shared_ptr<IDECommunicationController> createIDECommunicationController(
 		StorageAccess* storageAccess) const override;
 };
 

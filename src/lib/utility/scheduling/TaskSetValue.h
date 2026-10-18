@@ -27,7 +27,7 @@ TaskSetValue<T>::TaskSetValue(const std::string& valueName, T value)
 }
 
 template <typename T>
-void TaskSetValue<T>::doEnter(std::shared_ptr<Blackboard> blackboard)
+void TaskSetValue<T>::doEnter(std::shared_ptr<Blackboard>  /*blackboard*/)
 {
 }
 
@@ -39,12 +39,12 @@ Task::TaskState TaskSetValue<T>::doUpdate(std::shared_ptr<Blackboard> blackboard
 }
 
 template <typename T>
-void TaskSetValue<T>::doExit(std::shared_ptr<Blackboard> blackboard)
+void TaskSetValue<T>::doExit(std::shared_ptr<Blackboard>  /*blackboard*/)
 {
 }
 
 template <typename T>
-void TaskSetValue<T>::doReset(std::shared_ptr<Blackboard> blackboard)
+void TaskSetValue<T>::doReset(std::shared_ptr<Blackboard>  /*blackboard*/)
 {
 }
 

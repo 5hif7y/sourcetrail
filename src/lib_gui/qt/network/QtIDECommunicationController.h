@@ -14,15 +14,15 @@ class QtIDECommunicationController: public IDECommunicationController
 {
 public:
 	QtIDECommunicationController(QObject* parent, StorageAccess* storageAccess);
-	~QtIDECommunicationController();
+	~QtIDECommunicationController() override;
 
-	virtual void startListening();
-	virtual void stopListening();
+	void startListening() override;
+	void stopListening() override;
 
-	virtual bool isListening() const;
+	bool isListening() const override;
 
 private:
-	virtual void sendMessage(const std::wstring& message) const;
+	void sendMessage(const std::string& message) const override;
 
 	QtTcpWrapper m_tcpWrapper;
 

@@ -2,7 +2,6 @@
 #define QT_SMART_SEARCH_BOX_H
 
 #include <deque>
-#include <memory>
 
 #include <QLineEdit>
 #include <QPushButton>
@@ -30,42 +29,45 @@ private slots:
 class QtSmartSearchBox: public QLineEdit
 {
 	Q_OBJECT
-
-signals:
-	void autocomplete(const std::wstring& query, NodeTypeSet acceptedNodeTypes);
-	void search(const std::vector<SearchMatch>& matches, NodeTypeSet acceptedNodeTypes);
-	void fullTextSearch(const std::wstring& query, bool caseSensitive);
-
-public slots:
-	void startSearch();
-
+	
 public:
-	QtSmartSearchBox(const QString& placeholder, bool supportsFullTextSearch, QWidget* parent = nullptr);
-	virtual ~QtSmartSearchBox();
+	explicit QtSmartSearchBox(QWidget* parent = nullptr);
 
+	// Shadow QLineEdit::setPlaceholderText:
+	void setPlaceholderText(const QString &);
+	void setFullTextSearchSupport(bool supportsFullTextSearch);
+	
 	QCompleter* getCompleter() const;
 	std::vector<SearchMatch> getMatches() const;
-
+	
 	void setAutocompletionList(const std::vector<SearchMatch>& autocompletionList);
 	void setMatches(const std::vector<SearchMatch>& matches);
 	void setFocus();
 	void findFulltext();
-
+	
 	void refreshStyle();
+	
+signals:
+	void autocomplete(const std::string& query, NodeTypeSet acceptedNodeTypes);
+	void search(const std::vector<SearchMatch>& matches, NodeTypeSet acceptedNodeTypes);
+	void fullTextSearch(const std::string& query, bool caseSensitive);
+	
+public slots:
+	void startSearch();
 
 protected:
-	virtual bool event(QEvent* event);
-	virtual void resizeEvent(QResizeEvent* event);
+	bool event(QEvent* event) override;
+	void resizeEvent(QResizeEvent* event) override;
 
-	virtual void focusInEvent(QFocusEvent* event);
-	virtual void focusOutEvent(QFocusEvent* event);
+	void focusInEvent(QFocusEvent* event) override;
+	void focusOutEvent(QFocusEvent* event) override;
 
-	virtual void keyPressEvent(QKeyEvent* event);
-	virtual void keyReleaseEvent(QKeyEvent* event);
+	void keyPressEvent(QKeyEvent* event) override;
+	void keyReleaseEvent(QKeyEvent* event) override;
 
-	virtual void mouseMoveEvent(QMouseEvent* event);
-	virtual void mousePressEvent(QMouseEvent* event);
-	virtual void mouseReleaseEvent(QMouseEvent* event);
+	void mouseMoveEvent(QMouseEvent* event) override;
+	void mousePressEvent(QMouseEvent* event) override;
+	void mouseReleaseEvent(QMouseEvent* event) override;
 
 private slots:
 	void onTextEdited(const QString& text);
@@ -92,7 +94,7 @@ private:
 	void layoutElements();
 
 	bool hasSelectedElements() const;
-	std::wstring getSelectedString() const;
+	std::string getSelectedString() const;
 
 	void selectAllElementsWith(bool selected);
 	void selectElementsTo(size_t idx, bool selected);
@@ -106,15 +108,15 @@ private:
 
 	void startFullTextSearch();
 
-	std::deque<SearchMatch> getMatchesForInput(const std::wstring& text) const;
+	static std::deque<SearchMatch> getMatchesForInput(const std::string& text);
 
 	NodeTypeSet getMatchAcceptedNodeTypes() const;
 	bool lastMatchIsNoFilter() const;
 
-	const QString m_placeholder;
-	const bool m_supportsFullTextSearch;
+	QString m_placeholder;
+	bool m_supportsFullTextSearch = false;
 
-	bool m_allowTextChange;
+	bool m_allowTextChange = false;
 	QString m_oldText;
 
 	std::deque<SearchMatch> m_matches;
@@ -122,14 +124,14 @@ private:
 
 	std::vector<QtSearchElement*> m_elements;
 
-	size_t m_cursorIndex;
+	size_t m_cursorIndex = 0;
 
 	SearchMatch m_highlightedMatch;
 
-	bool m_shiftKeyDown;
-	bool m_mousePressed;
-	int m_mouseX;
-	bool m_ignoreNextMousePress;
+	bool m_shiftKeyDown = false;
+	bool m_mousePressed = false;
+	int m_mouseX = 0;
+	bool m_ignoreNextMousePress = false;
 
 	QWidget* m_highlightRect;
 	QtAutocompletionList* m_completer;

@@ -2,9 +2,9 @@
 
 #include "QtIDECommunicationController.h"
 
-QtNetworkFactory::QtNetworkFactory() {}
+QtNetworkFactory::QtNetworkFactory() = default;
 
-QtNetworkFactory::~QtNetworkFactory() {}
+QtNetworkFactory::~QtNetworkFactory() = default;
 
 std::shared_ptr<IDECommunicationController> QtNetworkFactory::createIDECommunicationController(
 	StorageAccess* storageAccess) const

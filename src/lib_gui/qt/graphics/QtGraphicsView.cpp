@@ -1,16 +1,5 @@
 #include "QtGraphicsView.h"
 
-#include <QDir>
-#include <QMouseEvent>
-#include <QScrollBar>
-#include <QTimer>
-
-#include <QApplication>
-#include <QClipboard>
-#include <QParallelAnimationGroup>
-#include <QPropertyAnimation>
-#include <QSvgGenerator>
-
 #include "ApplicationSettings.h"
 #include "GraphFocusHandler.h"
 #include "MessageActivateLegend.h"
@@ -22,6 +11,7 @@
 #include "MessageHistoryRedo.h"
 #include "MessageHistoryUndo.h"
 #include "MessageTabOpenWith.h"
+#include "QtActions.h"
 #include "QtContextMenu.h"
 #include "QtFileDialog.h"
 #include "QtGraphEdge.h"
@@ -30,21 +20,31 @@
 #include "QtGraphNodeData.h"
 #include "QtGraphNodeExpandToggle.h"
 #include "QtSelfRefreshIconButton.h"
-#include "ResourcePaths.h"
-#include "utilityApp.h"
 #include "utilityQt.h"
+#include "QtResources.h"
+
+#include <QDir>
+#include <QMouseEvent>
+#include <QScrollBar>
+#include <QTimer>
+#include <QApplication>
+#include <QClipboard>
+#include <QParallelAnimationGroup>
+#include <QPropertyAnimation>
+#include <QSvgGenerator>
+
+constexpr float ZOOM_IN_BUTTON_SPEED = 20.0f;
+constexpr float ZOOM_OUT_BUTTON_SPEED = -20.0f;
+
+constexpr int SCROLL_DELTA = 30;
+constexpr float ZOOM_DELTA = 50.0f;
+
 
 QtGraphicsView::QtGraphicsView(GraphFocusHandler* focusHandler, QWidget* parent)
 	: QGraphicsView(parent)
 	, m_focusHandler(focusHandler)
 	, m_zoomFactor(ApplicationSettings::getInstance()->getGraphZoomLevel())
-	, m_appZoomFactor(1.0f)
-	, m_zoomInButtonSpeed(20.0f)
-	, m_zoomOutButtonSpeed(-20.0f)
 {
-	QString modifierName = utility::getOsType() == OS_MAC ? QStringLiteral("Cmd")
-														  : QStringLiteral("Ctrl");
-
 	setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
 
 	m_timer = std::make_shared<QTimer>(this);
@@ -57,77 +57,59 @@ QtGraphicsView::QtGraphicsView(GraphFocusHandler* focusHandler, QWidget* parent)
 	m_zoomLabelTimer = std::make_shared<QTimer>(this);
 	connect(m_zoomLabelTimer.get(), &QTimer::timeout, this, &QtGraphicsView::hideZoomLabel);
 
-	m_openInTabAction = new QAction(
-		QStringLiteral("Open in New Tab (Ctrl + Shift + Left Click)"), this);
-#if defined(Q_OS_MAC)
-	m_openInTabAction->setText(QStringLiteral("Open in New Tab (Cmd + Shift + Left Click)"));
-#endif
-	m_openInTabAction->setStatusTip(QStringLiteral("Open this node in a new tab"));
-	m_openInTabAction->setToolTip(QStringLiteral("Open this node in a new tab"));
+	m_openInTabAction = new QAction(QtActions::openInNewTabWithMouse().menuText(), this);
+	m_openInTabAction->setStatusTip(tr("Open this node in a new tab"));
+	m_openInTabAction->setToolTip(tr("Open this node in a new tab"));
 	connect(m_openInTabAction, &QAction::triggered, this, &QtGraphicsView::openInTab);
 
-	m_copyNodeNameAction = new QAction(QStringLiteral("Copy Name"), this);
-	m_copyNodeNameAction->setStatusTip(
-		QStringLiteral("Copies the name of this node to the clipboard"));
-	m_copyNodeNameAction->setToolTip(
-		QStringLiteral("Copies the name of this node to the clipboard"));
+	m_copyNodeNameAction = new QAction(tr("Copy Name"), this);
+	m_copyNodeNameAction->setStatusTip(tr("Copies the name of this node to the clipboard"));
+	m_copyNodeNameAction->setToolTip(tr("Copies the name of this node to the clipboard"));
 	connect(m_copyNodeNameAction, &QAction::triggered, this, &QtGraphicsView::copyNodeName);
 
-	m_collapseAction = new QAction(QStringLiteral("Collapse Node (Shift + Left Click)"), this);
-	m_collapseAction->setStatusTip(QStringLiteral("Hide the unconnected members of the node"));
-	m_collapseAction->setToolTip(QStringLiteral("Hide the unconnected members of the node"));
+	m_collapseAction = new QAction(QtActions::collapseNodeWithMouse().menuText(), this);
+	m_collapseAction->setStatusTip(tr("Hide the unconnected members of the node"));
+	m_collapseAction->setToolTip(tr("Hide the unconnected members of the node"));
 	connect(m_collapseAction, &QAction::triggered, this, &QtGraphicsView::collapseNode);
 
-	m_expandAction = new QAction(QStringLiteral("Expand Node (Shift + Left Click)"), this);
-	m_expandAction->setStatusTip(QStringLiteral("Show unconnected members of the node"));
-	m_expandAction->setToolTip(QStringLiteral("Show unconnected members of the node"));
+	m_expandAction = new QAction(QtActions::expandNodeWithMouse().menuText(), this);
+	m_expandAction->setStatusTip(tr("Show unconnected members of the node"));
+	m_expandAction->setToolTip(tr("Show unconnected members of the node"));
 	connect(m_expandAction, &QAction::triggered, this, &QtGraphicsView::expandNode);
 
-	m_showInIDEAction = new QAction(
-		QStringLiteral("Show Definition in IDE (Ctrl + Left Click)"), this);
-#if defined(Q_OS_MAC)
-	m_showInIDEAction->setText("Show Definition in IDE (Cmd + Left Click)");
-#endif
-	m_showInIDEAction->setStatusTip(
-		QStringLiteral("Show definition of this symbol in the IDE (via plug-in)"));
-	m_showInIDEAction->setToolTip(
-		QStringLiteral("Show definition of this symbol in the IDE (via plug-in)"));
+	m_showInIDEAction = new QAction(QtActions::showInIDEWithMouse().menuText(), this);
+	m_showInIDEAction->setStatusTip(tr("Show definition of this symbol in the IDE (via plug-in)"));
+	m_showInIDEAction->setToolTip(tr("Show definition of this symbol in the IDE (via plug-in)"));
 	connect(m_showInIDEAction, &QAction::triggered, this, &QtGraphicsView::showInIDE);
 
-	m_showDefinitionAction = new QAction(
-		QStringLiteral("Show Definition (Ctrl + Alt + Left Click)"), this);
-#if defined(Q_OS_MAC)
-	m_showDefinitionAction->setText("Show Definition (Cmd + Alt + Left Click)");
-#endif
-	m_showDefinitionAction->setStatusTip(
-		QStringLiteral("Show definition of this symbol in the code"));
-	m_showDefinitionAction->setToolTip(
-		QStringLiteral("Show definition of this symbol in the code"));
+	m_showDefinitionAction = new QAction(QtActions::showDefinitionWithMouse().menuText(), this);
+	m_showDefinitionAction->setStatusTip(tr("Show definition of this symbol in the code"));
+	m_showDefinitionAction->setToolTip(tr("Show definition of this symbol in the code"));
 	connect(m_showDefinitionAction, &QAction::triggered, this, &QtGraphicsView::showDefinition);
 
-	m_hideNodeAction = new QAction(QStringLiteral("Hide Node (Alt + Left Click)"), this);
-	m_hideNodeAction->setStatusTip(QStringLiteral("Hide the node from this graph"));
-	m_hideNodeAction->setToolTip(QStringLiteral("Hide the node from this graph"));
+	m_hideNodeAction = new QAction(QtActions::hideNodeWithMouse().menuText(), this);
+	m_hideNodeAction->setStatusTip(tr("Hide the node from this graph"));
+	m_hideNodeAction->setToolTip(tr("Hide the node from this graph"));
 	connect(m_hideNodeAction, &QAction::triggered, this, &QtGraphicsView::hideNode);
 
-	m_hideEdgeAction = new QAction(QStringLiteral("Hide Edge (Alt + Left Click)"), this);
-	m_hideEdgeAction->setStatusTip(QStringLiteral("Hide the edge from this graph"));
-	m_hideEdgeAction->setToolTip(QStringLiteral("Hide the edge from this graph"));
+	m_hideEdgeAction = new QAction(QtActions::hideEdgeWithMouse().menuText(), this);
+	m_hideEdgeAction->setStatusTip(tr("Hide the edge from this graph"));
+	m_hideEdgeAction->setToolTip(tr("Hide the edge from this graph"));
 	connect(m_hideEdgeAction, &QAction::triggered, this, &QtGraphicsView::hideEdge);
 
-	m_bookmarkNodeAction = new QAction(QStringLiteral("Bookmark Node"), this);
-	m_bookmarkNodeAction->setStatusTip(QStringLiteral("Create a bookmark for this node"));
-	m_bookmarkNodeAction->setToolTip(QStringLiteral("Create a bookmark for this node"));
+	m_bookmarkNodeAction = new QAction(QtActions::bookmarkNode().menuText(), this);
+	m_bookmarkNodeAction->setStatusTip(tr("Create a bookmark for this node"));
+	m_bookmarkNodeAction->setToolTip(tr("Create a bookmark for this node"));
 	connect(m_bookmarkNodeAction, &QAction::triggered, this, &QtGraphicsView::bookmarkNode);
 
-	m_exportGraphAction = new QAction(QStringLiteral("Save as Image"), this);
-	m_exportGraphAction->setStatusTip(QStringLiteral("Save this graph as image file"));
-	m_exportGraphAction->setToolTip(QStringLiteral("Save this graph as image file"));
+	m_exportGraphAction = new QAction(QtActions::saveAsImage().menuText(), this);
+	m_exportGraphAction->setStatusTip(tr("Save this graph as image file"));
+	m_exportGraphAction->setToolTip(tr("Save this graph as image file"));
 	connect(m_exportGraphAction, &QAction::triggered, this, &QtGraphicsView::exportGraph);
 
-	m_copyGraphAction = new QAction(QStringLiteral("Save to Clipboard"), this);
-	m_copyGraphAction->setStatusTip(QStringLiteral("Save this graph as image to the Clipboard"));
-	m_copyGraphAction->setToolTip(QStringLiteral("Save this graph as image to the Clipboard"));
+	m_copyGraphAction = new QAction(QtActions::copyToClipboard().menuText(), this);
+	m_copyGraphAction->setStatusTip(tr("Save this graph as image to the Clipboard"));
+	m_copyGraphAction->setToolTip(tr("Save this graph as image to the Clipboard"));
 	connect(m_copyGraphAction, &QAction::triggered, this, &QtGraphicsView::copyGraph);
 
 	m_focusIndicator = new QWidget(this);
@@ -138,36 +120,24 @@ QtGraphicsView::QtGraphicsView(GraphFocusHandler* focusHandler, QWidget* parent)
 	m_zoomState->setObjectName(QStringLiteral("zoom_state"));
 	m_zoomState->hide();
 
-	m_zoomInButton = new QtSelfRefreshIconButton(
-		QLatin1String(""),
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"graph_view/images/zoom_in.png"),
-		"search/button",
-		this);
+	m_zoomInButton = new QtSelfRefreshIconButton("", QtResources::GRAPH_VIEW_ZOOM_IN, "search/button", this);
 	m_zoomInButton->setObjectName(QStringLiteral("zoom_in_button"));
 	m_zoomInButton->setAutoRepeat(true);
-	m_zoomInButton->setToolTip("zoom in (" + modifierName + " + Mousewheel forward)");
+	m_zoomInButton->setToolTip(QtActions::zoomIn().tooltip());
 	connect(m_zoomInButton, &QPushButton::pressed, this, &QtGraphicsView::zoomInPressed);
 
-	m_zoomOutButton = new QtSelfRefreshIconButton(
-		QLatin1String(""),
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"graph_view/images/zoom_out.png"),
-		"search/button",
-		this);
+	m_zoomOutButton = new QtSelfRefreshIconButton("", QtResources::GRAPH_VIEW_ZOOM_OUT, "search/button", this);
 	m_zoomOutButton->setObjectName(QStringLiteral("zoom_out_button"));
 	m_zoomOutButton->setAutoRepeat(true);
-	m_zoomOutButton->setToolTip("zoom out (" + modifierName + " + Mousewheel back)");
+	m_zoomOutButton->setToolTip(QtActions::zoomOut().tooltip());
 	connect(m_zoomOutButton, &QPushButton::pressed, this, &QtGraphicsView::zoomOutPressed);
 
-	m_legendButton = new QtSelfRefreshIconButton(
-		QLatin1String(""),
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"graph_view/images/legend.png"),
-		"search/button",
-		this);
+	m_legendButton = new QtSelfRefreshIconButton("", QtResources::GRAPH_VIEW_LEGEND, "search/button", this);
 	m_legendButton->setObjectName(QStringLiteral("legend_button"));
-	m_legendButton->setToolTip(QStringLiteral("show legend"));
+	m_legendButton->setToolTip(QtActions::showLegend().tooltip());
 	connect(m_legendButton, &QPushButton::clicked, this, &QtGraphicsView::legendClicked);
 
-	m_tabId = TabId::currentTab();
+	m_tabId = TabIds::currentTab();
 }
 
 float QtGraphicsView::getZoomFactor() const
@@ -186,7 +156,7 @@ void QtGraphicsView::setSceneRect(const QRectF& rect)
 	QGraphicsView::setSceneRect(rect);
 	scene()->setSceneRect(rect);
 	m_imageCached = toQImage();
-	m_tabId = TabId::currentTab();
+	m_tabId = TabIds::currentTab();
 }
 
 QtGraphNode* QtGraphicsView::getNodeAtCursorPosition() const
@@ -279,8 +249,7 @@ void QtGraphicsView::resizeEvent(QResizeEvent* event)
 	m_zoomState->setGeometry(QRect(31, event->size().height() - 27, 65, 19));
 	m_zoomInButton->setGeometry(QRect(8, event->size().height() - 50, 19, 19));
 	m_zoomOutButton->setGeometry(QRect(8, event->size().height() - 27, 18, 19));
-	m_legendButton->setGeometry(
-		QRect(event->size().width() - 24, event->size().height() - 24, 18, 18));
+	m_legendButton->setGeometry(QRect(event->size().width() - 24, event->size().height() - 24, 18, 18));
 
 	m_zoomInButton->setIconSize(QSize(15, 15));
 	m_zoomOutButton->setIconSize(QSize(15, 15));
@@ -318,116 +287,83 @@ void QtGraphicsView::mouseReleaseEvent(QMouseEvent* event)
 
 void QtGraphicsView::keyPressEvent(QKeyEvent* event)
 {
-	bool moved = moves();
-	bool shift = event->modifiers() & Qt::ShiftModifier;
-	bool alt = event->modifiers() & Qt::AltModifier;
-	bool ctrl = event->modifiers() & Qt::ControlModifier;
+	bool moved = m_lastAction != Action::Unknown;
 
-	switch (event->key())
+	Action action;
+	switch (action = QtActions::detectAction(event))
 	{
-	case Qt::Key_Up:
-		if (ctrl && !alt)
-		{
-			m_up = true;
+		case Action::ZoomIn:
+		case Action::ZoomOut:
+		case Action::MoveViewUp:
+		case Action::MoveViewDown:
+		case Action::MoveViewLeft:
+		case Action::MoveViewRight:
+			m_lastAction = action;
 			break;
-		}
-	case Qt::Key_K:
-	case Qt::Key_W:
-		if (!ctrl && !alt)
-		{
-			m_focusHandler->focusNext(GraphFocusHandler::Direction::UP, shift);
-		}
-		break;
 
-	case Qt::Key_Down:
-		if (ctrl && !alt)
-		{
-			m_down = true;
+		case Action::MoveFocusUp:
+			m_focusHandler->focusNext(GraphFocusHandler::Direction::UP, false);
 			break;
-		}
-	case Qt::Key_J:
-	case Qt::Key_S:
-		if (!alt && !ctrl)
-		{
-			m_focusHandler->focusNext(GraphFocusHandler::Direction::DOWN, shift);
-		}
-		break;
 
-	case Qt::Key_Left:
-		if (ctrl && !shift && !alt)
-		{
-			m_left = true;
+		case Action::MoveReferenceFocusUp:
+			m_focusHandler->focusNext(GraphFocusHandler::Direction::UP, true);
 			break;
-		}
-	case Qt::Key_H:
-	case Qt::Key_A:
-		if (!alt && !ctrl)
-		{
-			m_focusHandler->focusNext(GraphFocusHandler::Direction::LEFT, shift);
-		}
-		break;
 
-	case Qt::Key_Right:
-		if (ctrl && !shift && !alt)
-		{
-			m_right = true;
+		case Action::MoveFocusDown:
+			m_focusHandler->focusNext(GraphFocusHandler::Direction::DOWN, false);
 			break;
-		}
-	case Qt::Key_L:
-	case Qt::Key_D:
-		if (!alt && !ctrl)
-		{
-			m_focusHandler->focusNext(GraphFocusHandler::Direction::RIGHT, shift);
-		}
-		break;
 
-	case Qt::Key_E:
-	case Qt::Key_Return:
-		if (ctrl && shift)
-		{
+		case Action::MoveReferenceFocusDown:
+			m_focusHandler->focusNext(GraphFocusHandler::Direction::DOWN, true);
+			break;
+
+		case Action::MoveFocusLeft:
+			m_focusHandler->focusNext(GraphFocusHandler::Direction::LEFT, false);
+			break;
+
+		case Action::MoveReferenceFocusLeft:
+			m_focusHandler->focusNext(GraphFocusHandler::Direction::LEFT, true);
+			break;
+
+		case Action::MoveFocusRight:
+			m_focusHandler->focusNext(GraphFocusHandler::Direction::RIGHT, false);
+			break;
+
+		case Action::MoveReferenceFocusRight:
+			m_focusHandler->focusNext(GraphFocusHandler::Direction::RIGHT, true);
+			break;
+
+		case Action::ActivateFocusInNewTab:
 			m_focusHandler->activateFocus(true);
-		}
-		else if (shift)
-		{
+			break;
+
+		case Action::ExpandFocus:
 			m_focusHandler->expandFocus();
-		}
-		else
-		{
+			break;
+
+		case Action::ActivateFocus:
 			m_focusHandler->activateFocus(false);
-		}
-		break;
+			break;
 
-	case Qt::Key_Y:
-	case Qt::Key_Z:
-		if (!alt && !ctrl)
-		{
-			if (shift)
-			{
-				MessageHistoryRedo().dispatch();
-			}
-			else
-			{
-				MessageHistoryUndo().dispatch();
-			}
-		}
-		break;
+		case Action::RedoHistory:
+			MessageHistoryRedo().dispatch();
+			break;
 
-	case Qt::Key_0:
-		setZoomFactor(1.0f);
-		updateTransform();
-		break;
-	case Qt::Key_Shift:
-		m_shift = true;
-		break;
-	case Qt::Key_Control:
-		m_ctrl = true;
-		break;
-	default:
-		QGraphicsView::keyPressEvent(event);
-		return;
+		case Action::UndoHistory:
+			MessageHistoryUndo().dispatch();
+			break;
+
+		case Action::ResetZoom:
+			setZoomFactor(1.0f);
+			updateTransform();
+			break;
+
+		default:
+			QGraphicsView::keyPressEvent(event);
+			return;
 	}
 
-	if (!moved && moves())
+	if (!moved && m_lastAction != Action::Unknown)
 	{
 		m_timer->start(20);
 	}
@@ -435,35 +371,25 @@ void QtGraphicsView::keyPressEvent(QKeyEvent* event)
 	m_timerStopper->start(1000);
 }
 
-void QtGraphicsView::keyReleaseEvent(QKeyEvent* event)
+void QtGraphicsView::keyReleaseEvent(QKeyEvent *event)
 {
-	switch (event->key())
+	switch (QtActions::detectAction(event))
 	{
-	case Qt::Key_Up:
-	case Qt::Key_W:
-		m_up = false;
-		break;
-	case Qt::Key_Down:
-	case Qt::Key_S:
-		m_down = false;
-		break;
-	case Qt::Key_Left:
-		m_left = false;
-		break;
-	case Qt::Key_Right:
-		m_right = false;
-		break;
-	case Qt::Key_Shift:
-		m_shift = false;
-		break;
-	case Qt::Key_Control:
-		m_ctrl = false;
-		break;
-	default:
-		return;
+		case Action::ZoomIn:
+		case Action::ZoomOut:
+		case Action::MoveViewUp:
+		case Action::MoveViewDown:
+		case Action::MoveViewLeft:
+		case Action::MoveViewRight:
+			m_lastAction = Action::Unknown;
+			break;
+
+		default:
+			QGraphicsView::keyReleaseEvent(event);
+			return;
 	}
 
-	if (!moves())
+	if (m_lastAction == Action::Unknown)
 	{
 		m_timer->stop();
 	}
@@ -477,7 +403,7 @@ void QtGraphicsView::wheelEvent(QWheelEvent* event)
 
 	if (zoomDefault != (shiftPressed | ctrlPressed))
 	{
-		if (event->angleDelta().y() != 0.0f)
+		if (event->angleDelta().y() != 0)
 		{
 			updateZoom(static_cast<float>(event->angleDelta().y()));
 		}
@@ -491,7 +417,7 @@ void QtGraphicsView::wheelEvent(QWheelEvent* event)
 void QtGraphicsView::contextMenuEvent(QContextMenuEvent* event)
 {
 	m_openInTabNodeId = 0;
-	m_clipboardNodeName = L"";
+	m_clipboardNodeName = "";
 	m_collapseNodeId = 0;
 	m_expandNodeId = 0;
 	m_hideNodeId = 0;
@@ -527,7 +453,7 @@ void QtGraphicsView::contextMenuEvent(QContextMenuEvent* event)
 
 			if (!m_collapseNodeId && !m_expandNodeId)
 			{
-				for (auto subNode: node->getSubNodes())
+				for (auto *subNode: node->getSubNodes())
 				{
 					if (subNode->isExpandToggleNode())
 					{
@@ -555,14 +481,14 @@ void QtGraphicsView::contextMenuEvent(QContextMenuEvent* event)
 		}
 	}
 
-	m_openInTabAction->setEnabled(m_openInTabNodeId);
-	m_collapseAction->setEnabled(m_collapseNodeId);
-	m_expandAction->setEnabled(m_expandNodeId);
-	m_showInIDEAction->setEnabled(m_hideNodeId);
-	m_showDefinitionAction->setEnabled(m_hideNodeId);
-	m_hideNodeAction->setEnabled(m_hideNodeId);
-	m_hideEdgeAction->setEnabled(m_hideEdgeId);
-	m_bookmarkNodeAction->setEnabled(m_bookmarkNodeId);
+	m_openInTabAction->setEnabled(m_openInTabNodeId != 0);
+	m_collapseAction->setEnabled(m_collapseNodeId != 0);
+	m_expandAction->setEnabled(m_expandNodeId != 0);
+	m_showInIDEAction->setEnabled(m_hideNodeId != 0);
+	m_showDefinitionAction->setEnabled(m_hideNodeId != 0);
+	m_hideNodeAction->setEnabled(m_hideNodeId != 0);
+	m_hideEdgeAction->setEnabled(m_hideEdgeId != 0);
+	m_bookmarkNodeAction->setEnabled(m_bookmarkNodeId != 0);
 
 	m_copyNodeNameAction->setEnabled(!m_clipboardNodeName.empty());
 
@@ -600,7 +526,7 @@ void QtGraphicsView::contextMenuEvent(QContextMenuEvent* event)
 	menu.show();
 }
 
-void QtGraphicsView::focusInEvent(QFocusEvent* event)
+void QtGraphicsView::focusInEvent(QFocusEvent*  /*event*/)
 {
 	m_focusIndicator->show();
 	emit focusIn();
@@ -608,7 +534,7 @@ void QtGraphicsView::focusInEvent(QFocusEvent* event)
 	MessageFocusView(MessageFocusView::ViewType::GRAPH).dispatch();
 }
 
-void QtGraphicsView::focusOutEvent(QFocusEvent* event)
+void QtGraphicsView::focusOutEvent(QFocusEvent*  /*event*/)
 {
 	m_focusIndicator->hide();
 	emit focusOut();
@@ -616,42 +542,37 @@ void QtGraphicsView::focusOutEvent(QFocusEvent* event)
 
 void QtGraphicsView::updateTimer()
 {
-	const int ds = 30;
-	const float dz = 50.0f;
-
 	int x = 0;
 	int y = 0;
 
-	if (m_shift && m_ctrl)
+	switch (m_lastAction)
 	{
-		if (m_up)
-		{
-			updateZoom(dz);
-		}
-		else if (m_down)
-		{
-			updateZoom(-dz);
-		}
-	}
-	else if (m_ctrl)
-	{
-		if (m_up)
-		{
-			y -= ds;
-		}
-		else if (m_down)
-		{
-			y += ds;
-		}
+		case Action::ZoomIn:
+			updateZoom(ZOOM_DELTA);
+			break;
 
-		if (m_left)
-		{
-			x -= ds;
-		}
-		else if (m_right)
-		{
-			x += ds;
-		}
+		case Action::ZoomOut:
+			updateZoom(-ZOOM_DELTA);
+			break;
+
+		case Action::MoveViewUp:
+			y -= SCROLL_DELTA;
+			break;
+
+		case Action::MoveViewDown:
+			y += SCROLL_DELTA;
+			break;
+
+		case Action::MoveViewLeft:
+			x -= SCROLL_DELTA;
+			break;
+
+		case Action::MoveViewRight:
+			x += SCROLL_DELTA;
+			break;
+
+		default:
+			return;
 	}
 
 	if (x != 0)
@@ -726,15 +647,15 @@ void QtGraphicsView::exportGraph()
 			QStringLiteral("Save image"),
 			FilePath(),
 			QStringLiteral("PNG (*.png);;JPEG (*.JPEG);;BMP Files (*.bmp);;SVG (*.svg)"))
-			.toStdWString());
+			.toStdString());
 
-	if (filePath.extension() == L".svg")
+	if (filePath.extension() == ".svg")
 	{
 		QSvgGenerator svgGen;
-		svgGen.setFileName(QString::fromStdWString(filePath.wstr()));
+		svgGen.setFileName(QString::fromStdString(filePath.str()));
 		svgGen.setSize(scene()->sceneRect().size().toSize());
 		svgGen.setViewBox(QRect(QPoint(0, 0), scene()->sceneRect().size().toSize()));
-		svgGen.setTitle(QString::fromStdWString(filePath.withoutExtension().fileName()));
+		svgGen.setTitle(QString::fromStdString(filePath.withoutExtension().fileName()));
 		svgGen.setDescription(QStringLiteral("Graph exported from Sourcetrail") + QChar(0x00AE));
 
 		QPainter painter(&svgGen);
@@ -760,7 +681,7 @@ void QtGraphicsView::exportGraph()
 	}
 	else if (!filePath.empty())
 	{
-		toQImage().save(QString::fromStdWString(filePath.wstr()));
+		toQImage().save(QString::fromStdString(filePath.str()));
 	}
 }
 
@@ -771,7 +692,7 @@ void QtGraphicsView::copyGraph()
 
 void QtGraphicsView::copyNodeName()
 {
-	QApplication::clipboard()->setText(QString::fromStdWString(m_clipboardNodeName));
+	QApplication::clipboard()->setText(QString::fromStdString(m_clipboardNodeName));
 }
 
 void QtGraphicsView::collapseNode()
@@ -811,12 +732,12 @@ void QtGraphicsView::bookmarkNode()
 
 void QtGraphicsView::zoomInPressed()
 {
-	updateZoom(m_zoomInButtonSpeed);
+	updateZoom(ZOOM_IN_BUTTON_SPEED);
 }
 
 void QtGraphicsView::zoomOutPressed()
 {
-	updateZoom(m_zoomOutButtonSpeed);
+	updateZoom(ZOOM_OUT_BUTTON_SPEED);
 }
 
 void QtGraphicsView::hideZoomLabel()
@@ -827,11 +748,6 @@ void QtGraphicsView::hideZoomLabel()
 void QtGraphicsView::legendClicked()
 {
 	MessageActivateLegend().dispatch();
-}
-
-bool QtGraphicsView::moves() const
-{
-	return m_up || m_down || m_left || m_right;
 }
 
 void QtGraphicsView::setZoomFactor(float zoomFactor)

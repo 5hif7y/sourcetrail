@@ -318,30 +318,25 @@ End of search list.
 
 ## Finding Java Runtime Library Location
 
-The current version of Sourcetrail requires an installation of the Java 8 runtime environment to index any Java project. Make sure that Sourcetrail and your JRE share the same kind or architecture (a 32 bit Sourcetrail requires a 32 bit JRE). To locate the required library file, please refer to the applicable description below.
+The current version of Sourcetrail requires an installation of the Java runtime environment to index any Java project. Make sure that Sourcetrail and your JRE share the same kind or architecture (a 32 bit Sourcetrail requires a 32 bit JRE). To locate the required library file, please refer to the applicable description below.
 
 ### Windows
 
-The Java Runtime Library (called `jvm.dll`) can be found inside of your JRE install folder and looks like this:
-`<path_to_jre>/bin/client/jvm.dll`
+The Java Runtime Library (called `jvm.dll`) can be found inside of your JDK install folder and looks like this:
+`<jre_path>/bin/server/jvm.dll`
 
 ### macOS
 
-The Java Runtime Library (called `libjli.dylib`) can be found inside of your JDK install folder. Run the following command in your terminal to find the location of your default Java installation:
+The Java Runtime Library (called `libjvm.dylib`) can be found inside of your JDK install folder. Run the following command in your terminal to find the location of your default Java installation:
 `/usr/libexec/java_home`
 
 This should give you a path looking like this:
-`/Library/Java/JavaVirtualMachines/<jdk_version>/Contents/Home`
-
-The `"libjli.dylib"` should be available at:
-`/Library/Java/JavaVirtualMachines/<jdk_version>/Contents/MacOS/libjli.dylib`
-
-Insert the full path to `libjli.dylib` into the **Java Path** setting in the [Preferences Window](#preferences-window).
+`<jre_path>/lib/server/libjvm.dylib`
 
 ### Linux
 
-The Java Runtime Library (called `libjvm.so`) can be found inside of your JRE install folder and looks like this:
-`<path_to_jre>/lib/<arch>/server/libjvm.so`
+The Java Runtime Library (called `libjvm.so`) can be found inside of your JDK install folder and looks like this:
+`<jre_path>/lib/server/libjvm.so`
 
 # Interface
 
@@ -478,7 +473,7 @@ The Preferences window lets you define settings for all projects. You can open t
 | Plugin Port | Port number that Sourcetrail sends outgoing messages to.
 | Indexer threads | Define how many parallel threads are used during indexing. Setting this value to `default` will cause Sourcetrail to detect the ideal number of threads based on the CPU and use as many threads for indexing.
 | Multi process C/C++ indexing | Enable C/C++ indexer threads to run in a different process. This prevents the application from crashing due to unforeseen exceptions while indexing.
-| Java Path | If you want to use Sourcetrail on Java source code, please specify a path to your Java 8 runtime library. Please keep in mind that a 32 bit Sourcetrail requires a 32 bit version of Java while a 64 bit Sourcetrail requires a 64 bit Java to be working correctly. You can either use the button below for automatic detection or add the path manually. For instructions on how to find your Java runtime path see (Finding Java Runtime Library Location](#finding-java-runtime-library-location).
+| Java Path | If you want to use Sourcetrail on Java source code, please specify a path to your Java runtime library. Please keep in mind that a 32 bit Sourcetrail requires a 32 bit version of Java while a 64 bit Sourcetrail requires a 64 bit Java to be working correctly. You can either use the button below for automatic detection or add the path manually. For instructions on how to find your Java runtime path see (Finding Java Runtime Library Location](#finding-java-runtime-library-location).
 | JRE System Library | Add the jar files of your JRE System Library. These jars can be found inside your JRE install directory. You can either use the button below for automatic detection or add the paths manually.
 | Maven Path | Only required for indexing projects using Maven. Provide the location of your installed Maven executable. You can also use the auto detection.
 | Post Processing | Enable a post processing step to solve unsolved references after the indexing is done. These references will be marked "ambiguous" to indicate that some of these edges may never be encountered during runtime of the indexed code because the post processing only relies on symbol names and types.
@@ -505,10 +500,6 @@ This dialog displays the number of files for indexing and clearing before indexi
 * **Incomplete & updated files:** Reindexes all files that had errors during last indexing, all files depending on those and all updated files.
 * **All files:** Deletes the previous index and reindexes all files.
 
-
-**Shallow Python Indexing**
-
-For Python projects a checkbox **Shallow Python Indexing** is additionally displayed. When checked, references within your code base (calls, usages, etc.) are resolved by name, which is imprecise but much faster than in-depth indexing. Use this option for a quick first indexing pass and start browsing the code base while running a second pass for in-depth indexing.
 
 <img src="docs/documentation/start_indexing_dialog.png" width="600" alt="Start Indexing Dialog">
 

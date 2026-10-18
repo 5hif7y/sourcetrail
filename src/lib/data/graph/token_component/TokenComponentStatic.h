@@ -6,7 +6,7 @@
 class TokenComponentStatic: public TokenComponent
 {
 public:
-	virtual std::shared_ptr<TokenComponent> copy() const;
+	std::shared_ptr<TokenComponent> copy() const override;
 };
 
 #endif	  // TOKEN_COMPONENT_STATIC_H

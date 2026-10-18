@@ -10,7 +10,7 @@ CommandlineCommand::CommandlineCommand(
 {
 }
 
-CommandlineCommand::~CommandlineCommand() {}
+CommandlineCommand::~CommandlineCommand() = default;
 
 const std::string& CommandlineCommand::name()
 {

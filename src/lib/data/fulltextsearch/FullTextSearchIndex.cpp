@@ -4,7 +4,7 @@
 #include "logging.h"
 #include "tracing.h"
 
-void FullTextSearchIndex::addFile(Id fileId, const std::wstring& fileContent)
+void FullTextSearchIndex::addFile(Id fileId, const std::string& fileContent)
 {
 	if (fileContent.empty())
 	{
@@ -24,18 +24,18 @@ void FullTextSearchIndex::addFile(Id fileId, const std::wstring& fileContent)
 	}
 }
 
-std::vector<FullTextSearchResult> FullTextSearchIndex::searchForTerm(const std::wstring& term) const
+std::vector<FullTextSearchResult> FullTextSearchIndex::searchForTerm(const std::string& term) const
 {
 	TRACE();
 
 	std::vector<FullTextSearchResult> ret;
 	{
 		std::lock_guard<std::mutex> lock(m_filesMutex);
-		for (auto& f: m_files)
+		for (const FullTextSearchFile &fullTextSearchFile : m_files)
 		{
 			FullTextSearchResult hit;
-			hit.fileId = f.fileId;
-			hit.positions = f.array.searchForTerm(term);
+			hit.fileId = fullTextSearchFile.fileId;
+			hit.positions = fullTextSearchFile.array.searchForTerm(term);
 			std::sort(hit.positions.begin(), hit.positions.end());
 			if (!hit.positions.empty())
 			{

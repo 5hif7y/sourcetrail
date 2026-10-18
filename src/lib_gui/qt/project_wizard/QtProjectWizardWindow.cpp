@@ -9,7 +9,7 @@
 #include "utilityQt.h"
 
 QtProjectWizardWindow::QtProjectWizardWindow(QWidget* parent, bool showSeparator)
-	: QtWindow(false, parent), m_content(nullptr), m_showSeparator(showSeparator)
+	: QtWindow(false, parent),  m_showSeparator(showSeparator)
 {
 }
 

@@ -1,21 +1,25 @@
 #ifndef ACCESS_KIND_H
 #define ACCESS_KIND_H
 
+#include "utilityEnum.h"
+
 #include <string>
 
-enum AccessKind
-{	 // these values need to be the same as AccessKind in Java code
-	ACCESS_NONE = 0,
-	ACCESS_PUBLIC = 1,
-	ACCESS_PROTECTED = 2,
-	ACCESS_PRIVATE = 3,
-	ACCESS_DEFAULT = 4,
-	ACCESS_TEMPLATE_PARAMETER = 5,
-	ACCESS_TYPE_PARAMETER = 6
+// These values need to be the same as AccessKind in Java code (see AccessKind.java)
+enum class AccessKind
+{	 
+	NONE = 0,
+	PUBLIC = 1,
+	PROTECTED = 2,
+	PRIVATE = 3,
+	DEFAULT = 4,
+	TEMPLATE_PARAMETER = 5,
+	TYPE_PARAMETER = 6
 };
 
-AccessKind intToAccessKind(int v);
-int accessKindToInt(AccessKind t);
-std::wstring accessKindToString(AccessKind t);
+template <>
+AccessKind intToEnum(int value);
+
+std::string accessKindToString(AccessKind t);
 
 #endif	  // ACCESS_KIND_H

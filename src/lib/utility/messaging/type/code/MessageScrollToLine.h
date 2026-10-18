@@ -3,14 +3,14 @@
 
 #include "FilePath.h"
 #include "Message.h"
-#include "TabId.h"
+#include "TabIds.h"
 
 class MessageScrollToLine: public Message<MessageScrollToLine>
 {
 public:
 	MessageScrollToLine(const FilePath& filePath, size_t line): filePath(filePath), line(line)
 	{
-		setSchedulerId(TabId::currentTab());
+		setSchedulerId(TabIds::currentTab());
 	}
 
 	static const std::string getStaticType()
@@ -18,9 +18,9 @@ public:
 		return "MessageScrollToLine";
 	}
 
-	void print(std::wostream& os) const override
+	void print(std::ostream& os) const override
 	{
-		os << filePath.wstr() << L":" << line;
+		os << filePath.str() << ":" << line;
 	}
 
 	const FilePath filePath;

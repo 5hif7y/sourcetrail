@@ -15,20 +15,20 @@ public:
 		Id tokenId,
 		size_t nodeCount,
 		NodeType type,
-		const std::wstring& name,
+		const std::string& name,
 		bool interactive);
-	virtual ~QtGraphNodeBundle();
+	~QtGraphNodeBundle() override;
 
 	// QtGraphNode implementation
-	virtual bool isBundleNode() const;
-	virtual Id getTokenId() const;
+	bool isBundleNode() const override;
+	Id getTokenId() const override;
 
-	virtual void onClick();
-	virtual void updateStyle();
+	void onClick() override;
+	void updateStyle() override;
 
 protected:
-	virtual void hoverEnterEvent(QGraphicsSceneHoverEvent* event);
-	virtual void hoverLeaveEvent(QGraphicsSceneHoverEvent* event);
+	void hoverEnterEvent(QGraphicsSceneHoverEvent* event) override;
+	void hoverLeaveEvent(QGraphicsSceneHoverEvent* event) override;
 
 private:
 	QtCountCircleItem* m_circle;

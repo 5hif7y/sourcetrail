@@ -25,15 +25,15 @@ public:
 
 	void show();
 
-	void enableUndo(bool enabled);
-	void enableRedo(bool enabled);
+	static void enableUndo(bool enabled);
+	static void enableRedo(bool enabled);
 
 private slots:
-	void undoActionTriggered();
-	void redoActionTriggered();
+	static void undoActionTriggered();
+	static void redoActionTriggered();
 
-	void copyFullPathActionTriggered();
-	void openContainingFolderActionTriggered();
+	static void copyFullPathActionTriggered();
+	static void openContainingFolderActionTriggered();
 
 private:
 	QtContextMenu();

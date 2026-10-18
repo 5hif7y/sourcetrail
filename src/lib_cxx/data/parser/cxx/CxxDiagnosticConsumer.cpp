@@ -9,9 +9,11 @@
 #include "utilityClang.h"
 #include "utilityString.h"
 
+using namespace clang;
+
 CxxDiagnosticConsumer::CxxDiagnosticConsumer(
 	clang::raw_ostream& os,
-	clang::DiagnosticOptions* diags,
+	clang::DiagnosticOptions &diags,
 	std::shared_ptr<ParserClient> client,
 	std::shared_ptr<CanonicalFilePathCache> canonicalFilePathCache,
 	const FilePath& sourceFilePath,
@@ -61,7 +63,7 @@ void CxxDiagnosticConsumer::HandleDiagnostic(
 		{
 			return;
 		}
-		if (utility::isPrefix<std::string>("unknown argument:", message))
+		if (utility::isPrefix("unknown argument:", message))
 		{
 			return;
 		}
@@ -81,9 +83,7 @@ void CxxDiagnosticConsumer::HandleDiagnostic(
 			}
 
 			clang::FileID clangFileId = sourceManager.getFileID(loc);
-			const clang::FileEntry* fileEntry = sourceManager.getFileEntryForID(clangFileId);
-
-			if (fileEntry != nullptr && fileEntry->isValid())
+			if (sourceManager.getFileEntryForID(clangFileId) != nullptr)
 			{
 				ParseLocation location = utility::getParseLocation(
 					loc, sourceManager, nullptr, m_canonicalFilePathCache);
@@ -94,10 +94,10 @@ void CxxDiagnosticConsumer::HandleDiagnostic(
 			}
 			else
 			{
-				fileEntry = sourceManager.getFileEntryForID(sourceManager.getMainFileID());
-				if (fileEntry != nullptr && fileEntry->isValid())
+				const OptionalFileEntryRef fileEntry = sourceManager.getFileEntryRefForID(sourceManager.getMainFileID());
+				if (fileEntry)
 				{
-					filePath = m_canonicalFilePathCache->getCanonicalFilePath(fileEntry);
+					filePath = m_canonicalFilePathCache->getCanonicalFilePath(*fileEntry);
 					fileId = m_client->recordFile(
 						filePath, false /*keeps the "indexed" state if the file already exists*/);
 					lineNumber = 1;
@@ -117,7 +117,7 @@ void CxxDiagnosticConsumer::HandleDiagnostic(
 		if (fileId != 0)
 		{
 			m_client->recordError(
-				utility::decodeFromUtf8(message),
+				message,
 				level == clang::DiagnosticsEngine::Fatal,
 				m_canonicalFilePathCache->getFileRegister()->hasFilePath(filePath),
 				m_sourceFilePath,

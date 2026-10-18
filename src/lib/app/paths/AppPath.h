@@ -7,10 +7,10 @@ class AppPath
 {
 public:
 	static FilePath getSharedDataDirectoryPath();
-	static bool setSharedDataDirectoryPath(const FilePath& path);
+	static void setSharedDataDirectoryPath(const FilePath& path);
 
 	static FilePath getCxxIndexerFilePath();
-	static bool setCxxIndexerDirectoryPath(const FilePath& path);
+	static void setCxxIndexerDirectoryPath(const FilePath& path);
 
 private:
 	static FilePath s_sharedDataDirectoryPath;

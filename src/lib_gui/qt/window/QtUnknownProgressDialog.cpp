@@ -36,7 +36,7 @@ QSize QtUnknownProgressDialog::sizeHint() const
 	return QSize(350, 280);
 }
 
-void QtUnknownProgressDialog::closeEvent(QCloseEvent* event)
+void QtUnknownProgressDialog::closeEvent(QCloseEvent*  /*event*/)
 {
 	emit visibleChanged(false);
 }

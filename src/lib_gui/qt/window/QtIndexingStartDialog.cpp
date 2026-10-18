@@ -10,8 +10,6 @@
 QtIndexingStartDialog::QtIndexingStartDialog(
 	const std::vector<RefreshMode>& enabledModes,
 	const RefreshMode initialMode,
-	bool enabledShallowOption,
-	bool initialShallowState,
 	QWidget* parent)
 	: QtIndexingDialog(true, parent)
 {
@@ -50,15 +48,7 @@ QtIndexingStartDialog::QtIndexingStartDialog(
 				"last indexing, all updated files and all files "
 				"depending on those.<br /><br />"
 				"<b>All files:</b> Deletes the previous index and reindexes all files from "
-				"scratch.<br /><br />") +
-			(enabledShallowOption
-				 ? "<br /><b>Shallow Python Indexing:</b> References within your code base (calls, "
-				   "usages, etc.) are resolved by name, which is "
-				   "imprecise but much faster than in-depth indexing.<br />"
-				   "<i>Hint: Use this option for a quick first indexing pass and start browsing "
-				   "the code base "
-				   "while running a second pass for in-depth indexing.<br /><br />"
-				 : "")));
+				"scratch.<br /><br />")));
 	helpButton->setColor(Qt::white);
 	modeTitleLayout->addWidget(helpButton);
 
@@ -68,13 +58,13 @@ QtIndexingStartDialog::QtIndexingStartDialog(
 	modeLayout->addSpacing(5);
 
 	m_refreshModeButtons.emplace(
-		REFRESH_UPDATED_FILES, new QRadioButton(QStringLiteral("Updated files")));
+		RefreshMode::UPDATED_FILES, new QRadioButton(QStringLiteral("Updated files")));
 	m_refreshModeButtons.emplace(
-		REFRESH_UPDATED_AND_INCOMPLETE_FILES,
+		RefreshMode::UPDATED_AND_INCOMPLETE_FILES,
 		new QRadioButton(QStringLiteral("Incomplete && updated files")));
-	m_refreshModeButtons.emplace(REFRESH_ALL_FILES, new QRadioButton(QStringLiteral("All files")));
+	m_refreshModeButtons.emplace(RefreshMode::ALL_FILES, new QRadioButton(QStringLiteral("All files")));
 
-	std::function<void(bool)> func = [=](bool checked) {
+	std::function<void(bool)> func = [=, this](bool checked) {
 		if (!checked)
 		{
 			return;
@@ -106,17 +96,6 @@ QtIndexingStartDialog::QtIndexingStartDialog(
 	for (RefreshMode mode: enabledModes)
 	{
 		m_refreshModeButtons[mode]->setEnabled(true);
-	}
-
-	if (enabledShallowOption)
-	{
-		QCheckBox* shallowIndexingCheckBox = new QCheckBox(
-			QStringLiteral("Shallow Python Indexing"));
-		connect(shallowIndexingCheckBox, &QCheckBox::toggled, [=]() {
-			emit setShallowIndexing(shallowIndexingCheckBox->isChecked());
-		});
-		shallowIndexingCheckBox->setChecked(initialShallowState);
-		modeLayout->addWidget(shallowIndexingCheckBox);
 	}
 
 	subLayout->addLayout(modeLayout);
@@ -163,7 +142,7 @@ void QtIndexingStartDialog::updateRefreshInfo(const RefreshInfo& info)
 	m_clearLabel->setText("Files to clear: " + QString::number(clearCount));
 	m_indexLabel->setText("Source files to index: " + QString::number(indexCount));
 
-	m_clearLabel->setVisible(clearCount && info.mode != REFRESH_ALL_FILES);
+	m_clearLabel->setVisible(clearCount && info.mode != RefreshMode::ALL_FILES);
 	m_indexLabel->setVisible(true);
 }
 
@@ -172,7 +151,7 @@ void QtIndexingStartDialog::resizeEvent(QResizeEvent* event)
 	QtIndexingDialog::resizeEvent(event);
 }
 
-void QtIndexingStartDialog::closeEvent(QCloseEvent* event)
+void QtIndexingStartDialog::closeEvent(QCloseEvent*  /*event*/)
 {
 	emit QtIndexingDialog::canceled();
 }

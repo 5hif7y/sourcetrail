@@ -1,6 +1,6 @@
-
-add_files(
-	LIB
+add_library(Sourcetrail_lib
+	${CMAKE_CURRENT_BINARY_DIR}/language_packages.h
+	${CMAKE_CURRENT_BINARY_DIR}/productVersion.h
 
 	app/paths/AppPath.cpp
 	app/paths/AppPath.h
@@ -67,6 +67,7 @@ add_files(
 	component/view/helper/CodeScrollParams.h
 	component/view/helper/CodeSnippetParams.cpp
 	component/view/helper/CodeSnippetParams.h
+
 	component/view/BookmarkButtonsView.cpp
 	component/view/BookmarkButtonsView.h
 	component/view/BookmarkView.cpp
@@ -123,8 +124,8 @@ add_files(
 	component/NetworkFactory.h
 	component/Tab.cpp
 	component/Tab.h
-	component/TabId.cpp
-	component/TabId.h
+	component/TabIds.cpp
+	component/TabIds.h
 
 	data/bookmark/Bookmark.cpp
 	data/bookmark/Bookmark.h
@@ -247,12 +248,6 @@ add_files(
 	data/search/SearchMatch.cpp
 	data/search/SearchMatch.h
 
-	data/storage/migration/SqliteStorageMigration.cpp
-	data/storage/migration/SqliteStorageMigration.h
-	data/storage/migration/SqliteStorageMigrationLambda.cpp
-	data/storage/migration/SqliteStorageMigrationLambda.h
-	data/storage/migration/SqliteStorageMigrator.h
-
 	data/storage/sqlite/SqliteBookmarkStorage.cpp
 	data/storage/sqlite/SqliteBookmarkStorage.h
 	data/storage/sqlite/SqliteDatabaseIndex.cpp
@@ -322,6 +317,7 @@ add_files(
 	project/Project.cpp
 	project/Project.h
 	project/RefreshInfo.h
+	project/RefreshInfo.cpp
 	project/RefreshInfoGenerator.h
 	project/RefreshInfoGenerator.cpp
 	project/SourceGroup.cpp
@@ -334,16 +330,6 @@ add_files(
 	project/SourceGroupFactoryModule.h
 	project/SourceGroupFactoryModuleCustom.cpp
 	project/SourceGroupFactoryModuleCustom.h
-
-	settings/migration/SettingsMigration.cpp
-	settings/migration/SettingsMigration.h
-	settings/migration/SettingsMigrationDeleteKey.cpp
-	settings/migration/SettingsMigrationDeleteKey.h
-	settings/migration/SettingsMigrationLambda.cpp
-	settings/migration/SettingsMigrationLambda.h
-	settings/migration/SettingsMigrationMoveKey.cpp
-	settings/migration/SettingsMigrationMoveKey.h
-	settings/migration/SettingsMigrator.h
 
 	settings/source_group/component/SourceGroupSettingsWithCustomCommand.cpp
 	settings/source_group/component/SourceGroupSettingsWithCustomCommand.h
@@ -367,6 +353,8 @@ add_files(
 	settings/source_group/SourceGroupType.cpp
 	settings/source_group/SourceGroupType.h
 
+	settings/ToolChain.cpp
+	settings/ToolChain.h
 	settings/ApplicationSettings.cpp
 	settings/ApplicationSettings.h
 	settings/ApplicationSettingsPrefiller.cpp
@@ -384,6 +372,7 @@ add_files(
 	utility/commandline/CommandlineHelper.h
 	utility/commandline/CommandLineParser.cpp
 	utility/commandline/CommandLineParser.h
+
 	utility/commandline/commands/CommandlineCommand.cpp
 	utility/commandline/commands/CommandlineCommand.h
 	utility/commandline/commands/CommandlineCommandConfig.cpp
@@ -425,6 +414,7 @@ add_files(
 	utility/logging/LogManagerImplementation.cpp
 	utility/logging/LogManagerImplementation.h
 	utility/logging/LogMessage.h
+	utility/logging/LogMessage.cpp
 
 	utility/math/Color.h
 	utility/math/MatrixBase.h
@@ -533,6 +523,7 @@ add_files(
 	utility/messaging/type/MessageStatus.h
 	utility/messaging/type/MessageStatusFilterChanged.h
 	utility/messaging/type/MessageSwitchColorScheme.h
+	utility/messaging/type/MessageTextEncodingChanged.h
 	utility/messaging/type/MessageTooltipHide.h
 	utility/messaging/type/MessageTooltipShow.h
 	utility/messaging/type/MessageWindowChanged.h
@@ -549,9 +540,6 @@ add_files(
 	utility/messaging/MessageListenerBase.h
 	utility/messaging/MessageQueue.cpp
 	utility/messaging/MessageQueue.h
-
-	utility/migration/Migration.h
-	utility/migration/Migrator.h
 
 	utility/scheduling/Blackboard.cpp
 	utility/scheduling/Blackboard.h
@@ -586,14 +574,19 @@ add_files(
 
 	utility/text/TextAccess.cpp
 	utility/text/TextAccess.h
+	utility/text/TextCodec.cpp
+	utility/text/TextCodec.h
 
-	utility/ApplicationArchitectureType.h
 	utility/ConfigManager.cpp
 	utility/ConfigManager.h
+	utility/Id.cpp
+	utility/Id.h
+	utility/LoopThread.h 
+	utility/LoopThread.cpp
 	utility/LowMemoryStringMap.h
-	utility/Optional.h
 	utility/OrderedCache.h
-	utility/OsType.h
+	utility/Platform.cpp
+	utility/Platform.h
 	utility/Property.h
 	utility/ScopedFunctor.cpp
 	utility/ScopedFunctor.h
@@ -601,90 +594,166 @@ add_files(
 	utility/SingleValueCache.h
 	utility/TimeStamp.cpp
 	utility/TimeStamp.h
+	utility/Tree.h
+	utility/UnorderedCache.h
+	utility/Version.cpp
+	utility/Version.h
 	utility/tracing.cpp
 	utility/tracing.h
-	utility/Tree.h
 	utility/types.h
-	utility/UnorderedCache.h
 	utility/utility.cpp
 	utility/utility.h
-	utility/utilityLibrary.h
+	utility/utilityEnum.h
+	utility/utilityMainFunction.cpp
+	utility/utilityMainFunction.h
+	utility/utilityString.cpp
+	utility/utilityString.h
 	utility/utilityUuid.cpp
 	utility/utilityUuid.h
 	utility/utilityXml.cpp
 	utility/utilityXml.h
-	utility/Version.cpp
-	utility/Version.h
+)
+setDefaultTargetOptions(Sourcetrail_lib)
+
+target_include_directories(Sourcetrail_lib
+	PUBLIC
+		app/paths
+		app
+		component/controller/helper
+		component/controller
+		component/view/helper
+		component/view
+		component
+		data/bookmark
+		data/fulltextsearch
+		data/graph/token_component
+		data/graph
+		data/indexer/interprocess/shared_types
+		data/indexer/interprocess
+		data/indexer
+		data/location
+		data/name
+		data/parser
+		data/search
+		data/storage/sqlite
+		data/storage/type
+		data/storage
+		data/tooltip
+		data
+		project
+		settings/source_group/component
+		settings/source_group/type
+		settings/source_group
+		settings
+		utility/commandline
+		utility/commandline/commands
+		utility/file
+		utility/interprocess
+		utility/logging
+		utility/math
+		utility/messaging/filter_types
+		utility/messaging/type/activation
+		utility/messaging/type/bookmark
+		utility/messaging/type/code
+		utility/messaging/type/custom_trail
+		utility/messaging/type/error
+		utility/messaging/type/focus
+		utility/messaging/type/graph
+		utility/messaging/type/history
+		utility/messaging/type/indexing
+		utility/messaging/type/plugin
+		utility/messaging/type/search
+		utility/messaging/type/tab
+		utility/messaging/type
+		utility/messaging
+		utility/scheduling
+		utility/text
+		utility
 )
 
-if (WIN32)
-	add_files(
-		LIB
-
-		utility/utilityWindows.cpp
-		utility/utilityWindows.h
-	)
-endif()
-
 if (BUILD_CXX_LANGUAGE_PACKAGE)
-	add_files(
-		LIB
+	target_sources(Sourcetrail_lib
+		PRIVATE
+			settings/source_group/component/cxx/SourceGroupSettingsWithCppStandard.cpp
+			settings/source_group/component/cxx/SourceGroupSettingsWithCppStandard.h
+			settings/source_group/component/cxx/SourceGroupSettingsWithCStandard.cpp
+			settings/source_group/component/cxx/SourceGroupSettingsWithCStandard.h
+			settings/source_group/component/cxx/SourceGroupSettingsWithCxxCdbPath.cpp
+			settings/source_group/component/cxx/SourceGroupSettingsWithCxxCdbPath.h
+			settings/source_group/component/cxx/SourceGroupSettingsWithCxxCodeblocksPath.cpp
+			settings/source_group/component/cxx/SourceGroupSettingsWithCxxCodeblocksPath.h
+			settings/source_group/component/cxx/SourceGroupSettingsWithCxxCrossCompilationOptions.cpp
+			settings/source_group/component/cxx/SourceGroupSettingsWithCxxCrossCompilationOptions.h
+			settings/source_group/component/cxx/SourceGroupSettingsWithCxxPathsAndFlags.cpp
+			settings/source_group/component/cxx/SourceGroupSettingsWithCxxPathsAndFlags.h
+			settings/source_group/component/cxx/SourceGroupSettingsWithCxxPchOptions.cpp
+			settings/source_group/component/cxx/SourceGroupSettingsWithCxxPchOptions.h
+			settings/source_group/component/cxx/SourceGroupSettingsWithIndexedHeaderPaths.cpp
+			settings/source_group/component/cxx/SourceGroupSettingsWithIndexedHeaderPaths.h
+			settings/source_group/component/cxx/SourceGroupSettingsWithSourceExtensionsC.h
+			settings/source_group/component/cxx/SourceGroupSettingsWithSourceExtensionsCpp.h
 
-		settings/source_group/component/cxx/SourceGroupSettingsWithCppStandard.cpp
-		settings/source_group/component/cxx/SourceGroupSettingsWithCppStandard.h
-		settings/source_group/component/cxx/SourceGroupSettingsWithCStandard.cpp
-		settings/source_group/component/cxx/SourceGroupSettingsWithCStandard.h
-		settings/source_group/component/cxx/SourceGroupSettingsWithCxxCdbPath.cpp
-		settings/source_group/component/cxx/SourceGroupSettingsWithCxxCdbPath.h
-		settings/source_group/component/cxx/SourceGroupSettingsWithCxxCodeblocksPath.cpp
-		settings/source_group/component/cxx/SourceGroupSettingsWithCxxCodeblocksPath.h
-		settings/source_group/component/cxx/SourceGroupSettingsWithCxxCrossCompilationOptions.cpp
-		settings/source_group/component/cxx/SourceGroupSettingsWithCxxCrossCompilationOptions.h
-		settings/source_group/component/cxx/SourceGroupSettingsWithCxxPathsAndFlags.cpp
-		settings/source_group/component/cxx/SourceGroupSettingsWithCxxPathsAndFlags.h
-		settings/source_group/component/cxx/SourceGroupSettingsWithCxxPchOptions.cpp
-		settings/source_group/component/cxx/SourceGroupSettingsWithCxxPchOptions.h
-		settings/source_group/component/cxx/SourceGroupSettingsWithIndexedHeaderPaths.cpp
-		settings/source_group/component/cxx/SourceGroupSettingsWithIndexedHeaderPaths.h
-		settings/source_group/component/cxx/SourceGroupSettingsWithSourceExtensionsC.h
-		settings/source_group/component/cxx/SourceGroupSettingsWithSourceExtensionsCpp.h
-
-		settings/source_group/type/SourceGroupSettingsCEmpty.h
-		settings/source_group/type/SourceGroupSettingsCppEmpty.h
-		settings/source_group/type/SourceGroupSettingsCustomCommand.h
-		settings/source_group/type/SourceGroupSettingsCxxCdb.h
-		settings/source_group/type/SourceGroupSettingsCxxCodeblocks.h
+			settings/source_group/type/SourceGroupSettingsCEmpty.h
+			settings/source_group/type/SourceGroupSettingsCppEmpty.h
+			settings/source_group/type/SourceGroupSettingsCustomCommand.h
+			settings/source_group/type/SourceGroupSettingsCxxCdb.h
+			settings/source_group/type/SourceGroupSettingsCxxCodeblocks.h
+	)
+	target_include_directories(Sourcetrail_lib
+		PUBLIC
+			settings/source_group/component/cxx
+			settings/source_group/type
 	)
 endif()
 
 if (BUILD_JAVA_LANGUAGE_PACKAGE)
-	add_files(
-		LIB
+	target_sources(Sourcetrail_lib
+		PRIVATE
+			settings/source_group/component/java/SourceGroupSettingsWithClasspath.cpp
+			settings/source_group/component/java/SourceGroupSettingsWithClasspath.h
+			settings/source_group/component/java/SourceGroupSettingsWithJavaGradle.cpp
+			settings/source_group/component/java/SourceGroupSettingsWithJavaGradle.h
+			settings/source_group/component/java/SourceGroupSettingsWithJavaMaven.cpp
+			settings/source_group/component/java/SourceGroupSettingsWithJavaMaven.h
+			settings/source_group/component/java/SourceGroupSettingsWithJavaStandard.cpp
+			settings/source_group/component/java/SourceGroupSettingsWithJavaStandard.h
+			settings/source_group/component/java/SourceGroupSettingsWithSourceExtensionsJava.h
 
-		settings/source_group/component/java/SourceGroupSettingsWithClasspath.cpp
-		settings/source_group/component/java/SourceGroupSettingsWithClasspath.h
-		settings/source_group/component/java/SourceGroupSettingsWithJavaGradle.cpp
-		settings/source_group/component/java/SourceGroupSettingsWithJavaGradle.h
-		settings/source_group/component/java/SourceGroupSettingsWithJavaMaven.cpp
-		settings/source_group/component/java/SourceGroupSettingsWithJavaMaven.h
-		settings/source_group/component/java/SourceGroupSettingsWithJavaStandard.cpp
-		settings/source_group/component/java/SourceGroupSettingsWithJavaStandard.h
-		settings/source_group/component/java/SourceGroupSettingsWithSourceExtensionsJava.h
-
-		settings/source_group/type/SourceGroupSettingsJavaEmpty.h
-		settings/source_group/type/SourceGroupSettingsJavaGradle.h
-		settings/source_group/type/SourceGroupSettingsJavaMaven.h
+			settings/source_group/type/SourceGroupSettingsJavaEmpty.h
+			settings/source_group/type/SourceGroupSettingsJavaGradle.h
+			settings/source_group/type/SourceGroupSettingsJavaMaven.h
+	)
+	target_include_directories(Sourcetrail_lib
+		PUBLIC
+			settings/source_group/component/java
+			settings/source_group/type
 	)
 endif()
 
-if (BUILD_PYTHON_LANGUAGE_PACKAGE)
-	add_files(
-		LIB
+target_include_directories(Sourcetrail_lib
+	PUBLIC
+		.
+		"${CMAKE_CURRENT_BINARY_DIR}"
+)
 
-		settings/source_group/component/python/SourceGroupSettingsWithPythonEnvironmentPath.cpp
-		settings/source_group/component/python/SourceGroupSettingsWithPythonEnvironmentPath.h
-		settings/source_group/component/python/SourceGroupSettingsWithSourceExtensionsPython.h
+target_link_libraries(Sourcetrail_lib
+	PUBLIC
+		AidKit_lib
 
-		settings/source_group/type/SourceGroupSettingsPythonEmpty.h
+		Sourcetrail_lib_gui
+
+		$<$<BOOL:${BUILD_CXX_LANGUAGE_PACKAGE}>:Sourcetrail_lib_cxx>
+		$<$<BOOL:${BUILD_JAVA_LANGUAGE_PACKAGE}>:Sourcetrail_lib_java>
+
+		External_lib_tinyxml
+		External_lib_cppsqlite3
+		External_lib_boost
+)
+
+if (UNIX)
+	target_link_libraries(Sourcetrail_lib
+		PUBLIC
+			${CMAKE_DL_LIBS}
+			Threads::Threads
 	)
 endif()

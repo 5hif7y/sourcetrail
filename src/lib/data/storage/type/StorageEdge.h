@@ -1,13 +1,13 @@
 #ifndef STORAGE_EDGE_H
 #define STORAGE_EDGE_H
 
-#include "types.h"
+#include "Edge.h"
 
 struct StorageEdgeData
 {
-	StorageEdgeData(): type(0), sourceNodeId(0), targetNodeId(0) {}
+	StorageEdgeData(): type(Edge::EDGE_UNDEFINED), sourceNodeId(0), targetNodeId(0) {}
 
-	StorageEdgeData(int type, Id sourceNodeId, Id targetNodeId)
+	StorageEdgeData(Edge::EdgeType type, Id sourceNodeId, Id targetNodeId)
 		: type(type), sourceNodeId(sourceNodeId), targetNodeId(targetNodeId)
 	{
 	}
@@ -28,18 +28,18 @@ struct StorageEdgeData
 		}
 	}
 
-	int type;
+	Edge::EdgeType type;
 	Id sourceNodeId;
 	Id targetNodeId;
 };
 
 struct StorageEdge: public StorageEdgeData
 {
-	StorageEdge(): StorageEdgeData(), id(0) {}
+	StorageEdge():  id(0) {}
 
 	StorageEdge(Id id, const StorageEdgeData& data): StorageEdgeData(data), id(id) {}
 
-	StorageEdge(Id id, int type, Id sourceNodeId, Id targetNodeId)
+	StorageEdge(Id id, Edge::EdgeType type, Id sourceNodeId, Id targetNodeId)
 		: StorageEdgeData(type, sourceNodeId, targetNodeId), id(id)
 	{
 	}

@@ -1,40 +1,21 @@
 #ifndef LICENSES_H
 #define LICENSES_H
 
-// This File(licenses.h) is generated with CMake
+// This is a generated file, DO NOT EDIT!
 
 struct LicenseInfo {
-	const char* name;
-	const char* version;
-	const char* url;
-	const char* license;
-
-	LicenseInfo()
-		: name(0)
-		, version(0)
-		, url(0)
-		, license(0)
-	{}
-
-	LicenseInfo(const char* name, const char* version, const char* url, const char* license)
-	    : name(name)
-	    , version(version)
-	    , url(url)
-	    , license(license)
-	{}
-
-	bool isEmpty() const
-	{
-		return (name == 0 && version == 0 && url == 0 && license == 0);
-	}
+	const char* name = nullptr;
+	const char* version = nullptr;
+	const char* url = nullptr;
+	const char* license = nullptr;
 };
 
 // License Textfiles
 @LICENSES@
 
-static const LicenseInfo licenseApp = @LICENSE_APP@;
+static inline const LicenseInfo licenseApp = @LICENSE_APP@;
 
-static const LicenseInfo licenses3rdParties[] = {
+static inline const LicenseInfo licenses3rdParties[] = {
 @LICENSE_ARRAY@
 };
 

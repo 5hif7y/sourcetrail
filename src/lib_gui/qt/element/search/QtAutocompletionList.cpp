@@ -1,18 +1,17 @@
 #include "QtAutocompletionList.h"
 
-#include <QPainter>
-#include <QScrollBar>
-
 #include "ApplicationSettings.h"
 #include "ColorScheme.h"
 #include "GraphViewStyle.h"
 #include "QtDeviceScaledPixmap.h"
-#include "ResourcePaths.h"
-#include "utilityString.h"
+#include "QtResources.h"
+
+#include <QPainter>
+#include <QScrollBar>
 
 QtAutocompletionModel::QtAutocompletionModel(QObject* parent): QAbstractTableModel(parent) {}
 
-QtAutocompletionModel::~QtAutocompletionModel() {}
+QtAutocompletionModel::~QtAutocompletionModel() = default;
 
 void QtAutocompletionModel::setMatchList(const std::vector<SearchMatch>& matchList)
 {
@@ -46,13 +45,13 @@ QVariant QtAutocompletionModel::data(const QModelIndex& index, int role) const
 	switch (index.column())
 	{
 	case 0:
-		return QString::fromStdWString(match.name);
+		return QString::fromStdString(match.name);
 	case 1:
-		return QString::fromStdWString(match.text);
+		return QString::fromStdString(match.text);
 	case 2:
-		return QString::fromStdWString(match.subtext);
+		return QString::fromStdString(match.subtext);
 	case 3:
-		return QString::fromStdWString(match.typeName);
+		return QString::fromStdString(match.typeName);
 	case 4:
 	{
 		QList<QVariant> indices;
@@ -80,7 +79,7 @@ const SearchMatch* QtAutocompletionModel::getSearchMatchAt(int idx) const
 
 QString QtAutocompletionModel::longestText() const
 {
-	std::wstring str;
+	std::string str;
 	for (const SearchMatch& match: m_matchList)
 	{
 		if (match.text.size() > str.size())
@@ -88,12 +87,12 @@ QString QtAutocompletionModel::longestText() const
 			str = match.text;
 		}
 	}
-	return QString::fromStdWString(str);
+	return QString::fromStdString(str);
 }
 
 QString QtAutocompletionModel::longestSubText() const
 {
-	std::wstring str;
+	std::string str;
 	for (const SearchMatch& match: m_matchList)
 	{
 		if (match.subtext.size() > str.size())
@@ -101,12 +100,12 @@ QString QtAutocompletionModel::longestSubText() const
 			str = match.subtext;
 		}
 	}
-	return QString::fromStdWString(str);
+	return QString::fromStdString(str);
 }
 
 QString QtAutocompletionModel::longestType() const
 {
-	std::wstring str;
+	std::string str;
 	for (const SearchMatch& match: m_matchList)
 	{
 		if (match.typeName.size() > str.size())
@@ -114,7 +113,7 @@ QString QtAutocompletionModel::longestType() const
 			str = match.typeName;
 		}
 	}
-	return QString::fromStdWString(str);
+	return QString::fromStdString(str);
 }
 
 
@@ -124,7 +123,7 @@ QtAutocompletionDelegate::QtAutocompletionDelegate(QtAutocompletionModel* model,
 	resetCharSizes();
 }
 
-QtAutocompletionDelegate::~QtAutocompletionDelegate() {}
+QtAutocompletionDelegate::~QtAutocompletionDelegate() = default;
 
 void QtAutocompletionDelegate::paint(
 	QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
@@ -137,7 +136,7 @@ void QtAutocompletionDelegate::paint(
 	QString subtext = index.sibling(index.row(), index.column() + 2).data().toString();
 	QString type = index.sibling(index.row(), index.column() + 3).data().toString();
 	QList<QVariant> indices = index.sibling(index.row(), index.column() + 4).data().toList();
-	NodeType nodeType(intToNodeKind(index.sibling(index.row(), index.column() + 5).data().toInt()));
+	NodeType nodeType(intToEnum<NodeKind>(index.sibling(index.row(), index.column() + 5).data().toInt()));
 
 	// define highlight colors
 	ColorScheme* scheme = ColorScheme::getInstance().get();
@@ -146,25 +145,15 @@ void QtAutocompletionDelegate::paint(
 
 	if (type.size() && type != QLatin1String("command") && type != QLatin1String("filter"))
 	{
-		const GraphViewStyle::NodeColor& nodeColor = GraphViewStyle::getNodeColor(
+		const GraphViewStyle::NodeColor nodeColor = GraphViewStyle::getNodeColor(
 			nodeType.getUnderscoredTypeString(), false);
 		fillColor = QColor(nodeColor.fill.c_str());
 		textColor = QColor(nodeColor.text.c_str());
 	}
 	else
 	{
-		fillColor = QColor(scheme
-							   ->getSearchTypeColor(
-								   utility::encodeToUtf8(
-									   SearchMatch::getSearchTypeName(SearchMatch::SEARCH_COMMAND)),
-								   "fill")
-							   .c_str());
-		textColor = QColor(scheme
-							   ->getSearchTypeColor(
-								   utility::encodeToUtf8(
-									   SearchMatch::getSearchTypeName(SearchMatch::SEARCH_COMMAND)),
-								   "text")
-							   .c_str());
+		fillColor = QColor(scheme->getSearchTypeColor(SearchMatch::getSearchTypeName(SearchMatch::SEARCH_COMMAND), "fill").c_str());
+		textColor = QColor(scheme->getSearchTypeColor(SearchMatch::getSearchTypeName(SearchMatch::SEARCH_COMMAND), "text").c_str());
 	}
 
 	int top1 = 6;
@@ -312,7 +301,7 @@ void QtAutocompletionDelegate::paint(
 	painter->restore();
 }
 
-QSize QtAutocompletionDelegate::sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const
+QSize QtAutocompletionDelegate::sizeHint(const QStyleOptionViewItem& option, const QModelIndex&  /*index*/) const
 {
 	const_cast<QtAutocompletionDelegate*>(this)->calculateCharSizes(option.font);
 
@@ -370,8 +359,7 @@ void QtAutocompletionDelegate::calculateCharSizes(QFont font)
 		500.0f;
 	m_charHeight2 = static_cast<float>(metrics2.height());
 
-	m_arrow = QtDeviceScaledPixmap(
-		QString::fromStdString(ResourcePaths::getGuiDirectoryPath().str() + "search_view/images/arrow.png"));
+	m_arrow = QtDeviceScaledPixmap(QString::fromUtf8(QtResources::SEARCH_VIEW_ARROW));
 	m_arrow.scaleToWidth(static_cast<int>(m_charWidth2));
 	m_arrow.colorize(ColorScheme::getInstance()->getColor("search/popup/by_text").c_str());
 }
@@ -403,7 +391,7 @@ QtAutocompletionList::QtAutocompletionList(QWidget* parent): QCompleter(parent)
 	setMaxVisibleItems(8);
 }
 
-QtAutocompletionList::~QtAutocompletionList() {}
+QtAutocompletionList::~QtAutocompletionList() = default;
 
 void QtAutocompletionList::completeAt(QPoint pos, const std::vector<SearchMatch>& autocompletionList)
 {
@@ -431,8 +419,7 @@ void QtAutocompletionList::completeAt(QPoint pos, const std::vector<SearchMatch>
 					 // QtSmartSearchBox
 	connect(
 		this,
-		static_cast<void (QtAutocompletionList::*)(const QModelIndex&)>(
-			&QtAutocompletionList::highlighted),
+		qOverload<const QModelIndex&>(&QtAutocompletionList::highlighted),
 		this,
 		&QtAutocompletionList::onHighlighted,
 		Qt::DirectConnection);

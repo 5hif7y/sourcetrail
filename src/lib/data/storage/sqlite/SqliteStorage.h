@@ -1,13 +1,13 @@
 #ifndef SQLITE_STORAGE_H
 #define SQLITE_STORAGE_H
 
+#include "FilePath.h"
+
 #include "CppSQLite3.h"
 
-#include "FilePath.h"
-#include "SqliteDatabaseIndex.h"
-
-class SqliteStorageMigration;
 class TimeStamp;
+
+using SqliteInteger = CppSQLite3Integer;
 
 class SqliteStorage
 {
@@ -40,11 +40,11 @@ protected:
 	void clearMetaTable();
 
 	bool executeStatement(const std::string& statement) const;
-	bool executeStatement(CppSQLite3Statement& statement) const;
-	int executeStatementScalar(const std::string& statement, const int nullValue) const;
-	int executeStatementScalar(CppSQLite3Statement& statement, const int nullValue) const;
+	static bool executeStatement(CppSQLite3Statement& statement);
+	SqliteInteger executeStatementScalar(const std::string& statement, const int nullValue = 0) const;
+	static SqliteInteger executeStatementScalar(CppSQLite3Statement& statement, const int nullValue = 0);
 	CppSQLite3Query executeQuery(const std::string& statement) const;
-	CppSQLite3Query executeQuery(CppSQLite3Statement& statement) const;
+	static CppSQLite3Query executeQuery(CppSQLite3Statement& statement);
 
 	bool hasTable(const std::string& tableName) const;
 
@@ -60,11 +60,10 @@ private:
 	virtual void setupTables() = 0;
 	virtual void setupPrecompiledStatements() = 0;
 
-	std::vector<std::pair<int, SqliteDatabaseIndex>> m_indices;
+	void enablePragmas() const;
+	void disablePragmas() const;
 
 	bool m_precompiledStatementsInitialized = false;
-
-	friend SqliteStorageMigration;
 };
 
 #endif	  // SQLITE_STORAGE_H

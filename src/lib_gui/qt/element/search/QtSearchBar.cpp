@@ -1,14 +1,15 @@
 #include "QtSearchBar.h"
 
-#include <QHBoxLayout>
-
 #include "MessageActivateFullTextSearch.h"
 #include "MessageActivateOverview.h"
 #include "MessageSearch.h"
 #include "MessageSearchAutocomplete.h"
+#include "QtActions.h"
+#include "QtResources.h"
 #include "QtSearchBarButton.h"
 #include "QtSmartSearchBox.h"
-#include "ResourcePaths.h"
+
+#include <QHBoxLayout>
 
 QtSearchBar::QtSearchBar()
 {
@@ -20,10 +21,9 @@ QtSearchBar::QtSearchBar()
 	layout->setAlignment(Qt::AlignTop);
 	setLayout(layout);
 
-	m_homeButton = new QtSearchBarButton(
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"search_view/images/home.png"));
+	m_homeButton = new QtSearchBarButton(QtResources::SEARCH_VIEW_HOME);
 	m_homeButton->setObjectName(QStringLiteral("home_button"));
-	m_homeButton->setToolTip(QStringLiteral("to overview"));
+	m_homeButton->setToolTip(QtActions::toOverview().tooltip());
 	layout->addWidget(m_homeButton);
 	connect(m_homeButton, &QPushButton::clicked, this, &QtSearchBar::homeButtonClicked);
 
@@ -36,28 +36,29 @@ QtSearchBar::QtSearchBar()
 	innerLayout->setContentsMargins(12, 3, 5, 2);
 	m_searchBoxContainer->setLayout(innerLayout);
 
-	m_searchBox = new QtSmartSearchBox(QStringLiteral("Search"), true, m_searchBoxContainer);
+	// The documenation uses 'case-insensitive' and 'case-sensitive'.
+	// https://github.com/petermost/Sourcetrail/blob/master/DOCUMENTATION.md#user-content-full-text-search
+	m_searchBox = new QtSmartSearchBox(m_searchBoxContainer);
+	m_searchBox->setPlaceholderText(tr("Search (%1 = case-insensitive, %1%1 = case-sensitive)").arg(SearchMatch::FULLTEXT_SEARCH_CHARACTER));
+	m_searchBox->setFullTextSearchSupport(true);
+	m_searchBox->setToolTip(QtActions::findSymbol().tooltip());
 	m_searchBox->setMinimumWidth(100);
 	m_searchBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
 	innerLayout->addWidget(m_searchBox);
 
 	connect(m_searchBox, &QtSmartSearchBox::autocomplete, this, &QtSearchBar::requestAutocomplete);
 	connect(m_searchBox, &QtSmartSearchBox::search, this, &QtSearchBar::requestSearch);
-	connect(
-		m_searchBox, &QtSmartSearchBox::fullTextSearch, this, &QtSearchBar::requestFullTextSearch);
+	connect(m_searchBox, &QtSmartSearchBox::fullTextSearch, this, &QtSearchBar::requestFullTextSearch);
 
-	m_searchButton = new QtSearchBarButton(
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"search_view/images/search.png"));
+	m_searchButton = new QtSearchBarButton(QtResources::SEARCH_VIEW_SEARCH);
 	m_searchButton->setObjectName(QStringLiteral("search_button"));
-	m_searchButton->setToolTip(QStringLiteral("search"));
+	m_searchButton->setToolTip(QtActions::executeFindSymbol().tooltip());
 	layout->addWidget(m_searchButton);
 
 	connect(m_searchButton, &QPushButton::clicked, m_searchBox, &QtSmartSearchBox::startSearch);
 
 	refreshStyle();
 }
-
-QtSearchBar::~QtSearchBar() {}
 
 QSize QtSearchBar::sizeHint() const
 {
@@ -104,7 +105,7 @@ void QtSearchBar::homeButtonClicked()
 	MessageActivateOverview().dispatch();
 }
 
-void QtSearchBar::requestAutocomplete(const std::wstring& query, NodeTypeSet acceptedNodeTypes)
+void QtSearchBar::requestAutocomplete(const std::string& query, NodeTypeSet acceptedNodeTypes)
 {
 	MessageSearchAutocomplete(query, acceptedNodeTypes).dispatch();
 }
@@ -114,7 +115,7 @@ void QtSearchBar::requestSearch(const std::vector<SearchMatch>& matches, NodeTyp
 	MessageSearch(matches, acceptedNodeTypes).dispatch();
 }
 
-void QtSearchBar::requestFullTextSearch(const std::wstring& query, bool caseSensitive)
+void QtSearchBar::requestFullTextSearch(const std::string& query, bool caseSensitive)
 {
 	MessageActivateFullTextSearch(query, caseSensitive).dispatch();
 }

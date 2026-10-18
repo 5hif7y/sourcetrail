@@ -2,7 +2,7 @@
 #define MESSAGE_SHOW_REFERENCE_H
 
 #include "Message.h"
-#include "TabId.h"
+#include "TabIds.h"
 #include "types.h"
 
 class MessageShowReference: public Message<MessageShowReference>
@@ -11,7 +11,7 @@ public:
 	MessageShowReference(size_t refIndex, Id tokenId, Id locationId, bool fromUser)
 		: refIndex(refIndex), tokenId(tokenId), locationId(locationId), fromUser(fromUser)
 	{
-		setSchedulerId(TabId::currentTab());
+		setSchedulerId(TabIds::currentTab());
 	}
 
 	static const std::string getStaticType()
@@ -19,9 +19,9 @@ public:
 		return "MessageShowReference";
 	}
 
-	virtual void print(std::wostream& os) const
+	void print(std::ostream& os) const override
 	{
-		os << L"index: " << refIndex << L" token: " << tokenId << L" location: " << locationId;
+		os << "index: " << refIndex << " token: " << tokenId << " location: " << locationId;
 	}
 
 	const size_t refIndex;

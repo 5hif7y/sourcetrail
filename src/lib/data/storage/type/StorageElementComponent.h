@@ -1,15 +1,16 @@
 #ifndef STORAGE_ELEMENT_COMPONENT_H
 #define STORAGE_ELEMENT_COMPONENT_H
 
-#include <string>
+#include "ElementComponentKind.h"
+#include "Id.h"
 
-#include "types.h"
+#include <string>
 
 struct StorageElementComponent
 {
-	StorageElementComponent(): elementId(0), type(0), data(L"") {}
+	StorageElementComponent(): elementId(0), type(ELEMENT_COMPONENT_NONE) {}
 
-	StorageElementComponent(Id elementId, int type, std::wstring data)
+	StorageElementComponent(Id elementId, ElementComponentKind type, std::string data)
 		: elementId(elementId), type(type), data(std::move(data))
 	{
 	}
@@ -31,8 +32,8 @@ struct StorageElementComponent
 	}
 
 	Id elementId;
-	int type;
-	std::wstring data;
+	ElementComponentKind type;
+	std::string data;
 };
 
 #endif	  // STORAGE_ELEMENT_COMPONENT_H

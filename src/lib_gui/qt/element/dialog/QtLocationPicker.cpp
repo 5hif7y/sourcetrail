@@ -1,17 +1,17 @@
 #include "QtLocationPicker.h"
 
+#include "QtFileDialog.h"
+#include "QtIconButton.h"
+#include "utilityFile.h"
+#include "QtResources.h"
+
 #include <QEvent>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPainter>
 #include <QStyleOption>
 
-#include "QtFileDialog.h"
-#include "QtIconButton.h"
-#include "ResourcePaths.h"
-#include "utilityFile.h"
-
-QtLocationPicker::QtLocationPicker(QWidget* parent): QWidget(parent), m_pickDirectory(false)
+QtLocationPicker::QtLocationPicker(QWidget* parent): QWidget(parent)
 {
 	setObjectName(QStringLiteral("picker"));
 
@@ -21,14 +21,12 @@ QtLocationPicker::QtLocationPicker(QWidget* parent): QWidget(parent), m_pickDire
 	layout->setAlignment(Qt::AlignTop);
 
 	m_data = new QtLineEdit(this);
-	m_data->setAttribute(Qt::WA_MacShowFocusRect, 0);
+	m_data->setAttribute(Qt::WA_MacShowFocusRect, false);
 	m_data->setObjectName(QStringLiteral("locationField"));
 	connect(m_data, &QtLineEdit::textChanged, this, &QtLocationPicker::onDataTextChanged);
 	layout->addWidget(m_data);
 
-	m_button = new QtIconButton(
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"window/dots.png"),
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"window/dots_hover.png"));
+	m_button = new QtIconButton(QtResources::WINDOW_DOTS, QtResources::WINDOW_DOTS_HOVER);
 	m_button->setIconSize(QSize(16, 16));
 	m_button->setObjectName(QStringLiteral("dotsButton"));
 	m_button->setToolTip(QStringLiteral("pick file"));
@@ -42,7 +40,7 @@ QtLocationPicker::QtLocationPicker(QWidget* parent): QWidget(parent), m_pickDire
 void QtLocationPicker::paintEvent(QPaintEvent*)
 {
 	QStyleOption opt;
-	opt.init(this);
+	opt.initFrom(this);
 
 	QPainter p(this);
 	style()->drawPrimitive(QStyle::PE_Widget, &opt, &p, this);
@@ -98,7 +96,7 @@ void QtLocationPicker::changeEvent(QEvent* event)
 
 void QtLocationPicker::onHandleButtonPressed()
 {
-	FilePath path(m_data->text().toStdWString());
+	FilePath path(m_data->text().toStdString());
 	if (!path.empty() && !path.isAbsolute() && !m_relativeRootDirectory.empty())
 	{
 		path = m_relativeRootDirectory.getConcatenated(path);
@@ -116,9 +114,9 @@ void QtLocationPicker::onHandleButtonPressed()
 
 	if (!fileName.isEmpty())
 	{
-		m_data->setText(QString::fromStdWString(
-			utility::getAsRelativeIfShorter(FilePath(fileName.toStdWString()), m_relativeRootDirectory)
-				.wstr()));
+		m_data->setText(QString::fromStdString(
+			utility::getAsRelativeIfShorter(FilePath(fileName.toStdString()), m_relativeRootDirectory)
+				.str()));
 		emit locationPicked();
 	}
 }

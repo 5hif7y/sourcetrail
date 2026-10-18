@@ -10,17 +10,19 @@ class StatusBarView: public View
 {
 public:
 	StatusBarView(ViewLayout* viewLayout);
-	virtual ~StatusBarView() = default;
+	~StatusBarView() override = default;
 
-	virtual std::string getName() const;
-	virtual void showMessage(const std::wstring& message, bool isError, bool showLoader) = 0;
+	std::string getName() const override;
+	virtual void showMessage(const std::string& message, bool isError, bool showLoader) = 0;
 	virtual void setErrorCount(ErrorCountInfo errorCount) = 0;
 
-	virtual void showIdeStatus(const std::wstring& message) = 0;
+	virtual void showIdeStatus(const std::string& message) = 0;
 
 	virtual void showIndexingProgress(size_t progressPercent) = 0;
 	virtual void hideIndexingProgress() = 0;
 
+	virtual void showTextEncoding(const std::string &encoding) = 0;
+	
 protected:
 	StatusBarController* getController();
 };

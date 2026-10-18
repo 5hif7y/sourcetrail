@@ -5,9 +5,7 @@
 #include "NameHierarchy.h"
 
 #include "Message.h"
-#include "TabId.h"
-#include "types.h"
-#include "utilityString.h"
+#include "TabIds.h"
 
 class MessageActivateTrailEdge: public Message<MessageActivateTrailEdge>
 {
@@ -22,7 +20,7 @@ public:
 		, sourceNameHierarchy(sourceNameHierarchy)
 		, targetNameHierarchy(targetNameHierarchy)
 	{
-		setSchedulerId(TabId::currentTab());
+		setSchedulerId(TabIds::currentTab());
 	}
 
 	static const std::string getStaticType()
@@ -30,21 +28,21 @@ public:
 		return "MessageActivateTrailEdge";
 	}
 
-	std::wstring getFullName() const
+	std::string getFullName() const
 	{
-		std::wstring name = Edge::getReadableTypeString(type) + L":";
-		name += sourceNameHierarchy.getQualifiedNameWithSignature() + L"->";
+		std::string name = Edge::getReadableTypeString(type) + ":";
+		name += sourceNameHierarchy.getQualifiedNameWithSignature() + "->";
 		name += targetNameHierarchy.getQualifiedNameWithSignature();
 		return name;
 	}
 
-	virtual void print(std::wostream& os) const
+	void print(std::ostream& os) const override
 	{
 		for (Id edgeId: edgeIds)
 		{
-			os << edgeId << L",";
+			os << edgeId << ",";
 		}
-		os << L" - " << getFullName();
+		os << " - " << getFullName();
 	}
 
 	const std::vector<Id> edgeIds;

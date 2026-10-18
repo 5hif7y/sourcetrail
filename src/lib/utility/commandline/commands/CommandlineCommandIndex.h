@@ -9,12 +9,12 @@ class CommandlineCommandIndex: public CommandlineCommand
 {
 public:
 	CommandlineCommandIndex(CommandLineParser* parser);
-	virtual ~CommandlineCommandIndex();
+	~CommandlineCommandIndex() override;
 
-	virtual void setup();
-	virtual ReturnStatus parse(std::vector<std::string>& args);
+	void setup() override;
+	ReturnStatus parse(std::vector<std::string>& args) override;
 
-	virtual bool hasHelp() const
+	bool hasHelp() const override
 	{
 		return true;
 	}

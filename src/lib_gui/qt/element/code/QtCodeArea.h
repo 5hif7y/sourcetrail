@@ -24,7 +24,7 @@ public:
 	MouseWheelOverScrollbarFilter();
 
 protected:
-	bool eventFilter(QObject* obj, QEvent* event);
+	bool eventFilter(QObject* obj, QEvent* event) override;
 };
 
 class QtLineNumberArea: public QWidget
@@ -32,12 +32,12 @@ class QtLineNumberArea: public QWidget
 	Q_OBJECT
 public:
 	QtLineNumberArea(QtCodeArea* codeArea);
-	virtual ~QtLineNumberArea();
+	~QtLineNumberArea() override;
 
 	QSize sizeHint() const override;
 
 protected:
-	virtual void paintEvent(QPaintEvent* event) override;
+	void paintEvent(QPaintEvent* event) override;
 
 private:
 	QtCodeArea* m_codeArea;
@@ -56,9 +56,9 @@ public:
 		QtCodeNavigator* navigator,
 		bool showLineNumbers,
 		QWidget* parent = nullptr);
-	virtual ~QtCodeArea();
+	~QtCodeArea() override;
 
-	virtual QSize sizeHint() const override;
+	QSize sizeHint() const override;
 
 	void lineNumberAreaPaintEvent(QPaintEvent* event);
 	int lineNumberDigits() const;
@@ -72,7 +72,13 @@ public:
 	void setIsActiveFile(bool isActiveFile);
 
 	size_t getLineNumberForLocationId(Id locationId) const;
-	std::pair<size_t, size_t> getLineNumbersForLocationId(Id locationId) const;
+	struct LineNumbers
+	{
+		size_t startLine = 0;
+		size_t endLine = 0;
+	};
+	
+	LineNumbers getLineNumbersForLocationId(Id locationId) const;
 	size_t getColumnNumberForLocationId(Id locationId) const;
 
 	Id getLocationIdOfFirstActiveLocation(Id tokenId) const;
@@ -84,7 +90,7 @@ public:
 	QRectF getLineRectForLineNumber(size_t lineNumber) const;
 
 	void findScreenMatches(
-		const std::wstring& query, std::vector<std::pair<QtCodeArea*, Id>>* screenMatches);
+		const std::string& query, std::vector<std::pair<QtCodeArea*, Id>>* screenMatches);
 	void clearScreenMatches();
 
 	void ensureLocationIdVisible(Id locationId, int parentWidth, bool animated);
@@ -98,16 +104,16 @@ public:
 	void copySelection();
 
 protected:
-	virtual void resizeEvent(QResizeEvent* event) override;
-	virtual void mouseReleaseEvent(QMouseEvent* event) override;
-	virtual void mousePressEvent(QMouseEvent* event) override;
-	virtual void mouseMoveEvent(QMouseEvent* event) override;
-	virtual void wheelEvent(QWheelEvent* event) override;
+	void resizeEvent(QResizeEvent* event) override;
+	void mouseReleaseEvent(QMouseEvent* event) override;
+	void mousePressEvent(QMouseEvent* event) override;
+	void mouseMoveEvent(QMouseEvent* event) override;
+	void wheelEvent(QWheelEvent* event) override;
 
-	virtual void contextMenuEvent(QContextMenuEvent* event) override;
+	void contextMenuEvent(QContextMenuEvent* event) override;
 
-	virtual void focusTokenIds(const std::vector<Id>& tokenIds) override;
-	virtual void defocusTokenIds(const std::vector<Id>& tokenIds) override;
+	void focusTokenIds(const std::vector<Id>& tokenIds) override;
+	void defocusTokenIds(const std::vector<Id>& tokenIds) override;
 
 private slots:
 	void updateLineNumberAreaWidth(int newBlockCount = 0);
@@ -131,20 +137,20 @@ private:
 	QtCodeNavigator* m_navigator;
 	QWidget* m_lineNumberArea;
 
-	int m_digits;
+	int m_digits = 0;
 
-	bool m_isSelecting;
-	bool m_isPanning;
-	bool m_isDragging;
+	bool m_isSelecting = false;
+	bool m_isPanning = false;
+	bool m_isDragging = false;
 	QPoint m_oldMousePosition;
 	int m_panningDistance;
 
 	QAction* m_copyAction;
-	QAction* m_setIDECursorPositionAction;
+	QAction* m_setIDECursorPositionAction = nullptr;
 	QPoint m_eventPosition;	   // is needed for IDE cursor control via context menu
 							   // the position where the context menu is opened needs to be stored]
 
-	bool m_isActiveFile;
+	bool m_isActiveFile = false;
 	bool m_showLineNumbers;
 
 	QtScrollSpeedChangeListener m_scrollSpeedChangeListener;

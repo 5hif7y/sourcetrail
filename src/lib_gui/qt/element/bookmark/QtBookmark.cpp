@@ -1,20 +1,18 @@
 #include "QtBookmark.h"
 
+#include "QtActions.h"
+#include "QtMessageBox.h"
+#include "QtResources.h"
+#include "utilityQt.h"
+
 #include <QHBoxLayout>
-#include <QMessageBox>
 #include <QPixmap>
 #include <QTimer>
 #include <QVBoxLayout>
 
-#include "ResourcePaths.h"
-#include "utilityQt.h"
-
 QtBookmark::QtBookmark(ControllerProxy<BookmarkController>* controllerProxy)
 	: m_controllerProxy(controllerProxy)
-	, m_treeWidgetItem(nullptr)
-	, m_arrowImageName(L"arrow_line_down.png")
-	, m_hovered(false)
-	, m_ignoreNextResize(false)
+	, m_arrowImageName(QtResources::BOOKMARK_VIEW_ARROW_LINE_DOWN)
 {
 	setObjectName(QStringLiteral("bookmark"));
 
@@ -29,15 +27,15 @@ QtBookmark::QtBookmark(ControllerProxy<BookmarkController>* controllerProxy)
 	buttonsLayout->setContentsMargins(0, 0, 0, 0);
 	buttonsLayout->setAlignment(Qt::AlignTop);
 
-	m_activateButton = new QPushButton();
+	m_activateButton = new QtPushButton();
 	m_activateButton->setObjectName(QStringLiteral("activate_button"));
-	m_activateButton->setToolTip(QStringLiteral("Activate bookmark"));
+	m_activateButton->setToolTip(QtActions::activateBookmark().tooltip());
 	m_activateButton->setAttribute(Qt::WA_LayoutUsesWidgetRect);
 	buttonsLayout->addWidget(m_activateButton);
 
 	m_toggleCommentButton = new QPushButton();
 	m_toggleCommentButton->setObjectName(QStringLiteral("comment_button"));
-	m_toggleCommentButton->setToolTip(QStringLiteral("Show Comment"));
+	m_toggleCommentButton->setToolTip(tr("Show Comment"));
 	m_toggleCommentButton->setAttribute(Qt::WA_LayoutUsesWidgetRect);
 	m_toggleCommentButton->setIconSize(QSize(20, 20));
 	utility::setWidgetRetainsSpaceWhenHidden(m_toggleCommentButton);
@@ -52,24 +50,20 @@ QtBookmark::QtBookmark(ControllerProxy<BookmarkController>* controllerProxy)
 
 	m_editButton = new QPushButton();
 	m_editButton->setObjectName(QStringLiteral("edit_button"));
-	m_editButton->setToolTip(QStringLiteral("Edit bookmark"));
+	m_editButton->setToolTip(tr("Edit bookmark..."));
 	m_editButton->setAttribute(Qt::WA_LayoutUsesWidgetRect);
 	m_editButton->setIconSize(QSize(20, 20));
-	m_editButton->setIcon(QPixmap(QString::fromStdWString(
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"bookmark_view/images/bookmark_edit_icon.png").wstr())));
+	m_editButton->setIcon(QPixmap(QString::fromUtf8(QtResources::BOOKMARK_VIEW_BOOKMARK_EDIT_ICON)));
 	utility::setWidgetRetainsSpaceWhenHidden(m_editButton);
 	m_editButton->hide();
 	buttonsLayout->addWidget(m_editButton);
 
 	m_deleteButton = new QPushButton();
 	m_deleteButton->setObjectName(QStringLiteral("delete_button"));
-	m_deleteButton->setToolTip(QStringLiteral("Delete bookmark"));
+	m_deleteButton->setToolTip(tr("Delete bookmark..."));
 	m_deleteButton->setAttribute(Qt::WA_LayoutUsesWidgetRect);
 	m_deleteButton->setIconSize(QSize(20, 20));
-	m_deleteButton->setIcon(QPixmap(
-		QString::fromStdWString(ResourcePaths::getGuiDirectoryPath()
-									.concatenate(L"bookmark_view/images/bookmark_delete_icon.png")
-									.wstr())));
+	m_deleteButton->setIcon(QPixmap(QString::fromUtf8(QtResources::BOOKMARK_VIEW_BOOKMARK_DELETE_ICON)));
 	utility::setWidgetRetainsSpaceWhenHidden(m_deleteButton);
 	m_deleteButton->hide();
 	buttonsLayout->addWidget(m_deleteButton);
@@ -82,13 +76,14 @@ QtBookmark::QtBookmark(ControllerProxy<BookmarkController>* controllerProxy)
 	m_comment->hide();
 	layout->addWidget(m_comment);
 
-	connect(m_activateButton, &QPushButton::clicked, this, &QtBookmark::activateClicked);
+	connect(m_activateButton, &QtPushButton::clicked, this, &QtBookmark::activateClicked);
+	connect(m_activateButton, &QtPushButton::doubleClicked, this, &QtBookmark::activateDoubleClicked);
 	connect(m_editButton, &QPushButton::clicked, this, &QtBookmark::editClicked);
 	connect(m_deleteButton, &QPushButton::clicked, this, &QtBookmark::deleteClicked);
 	connect(m_toggleCommentButton, &QPushButton::clicked, this, &QtBookmark::commentToggled);
 }
 
-QtBookmark::~QtBookmark() {}
+QtBookmark::~QtBookmark() = default;
 
 void QtBookmark::setBookmark(const std::shared_ptr<Bookmark> bookmark)
 {
@@ -96,9 +91,9 @@ void QtBookmark::setBookmark(const std::shared_ptr<Bookmark> bookmark)
 	{
 		m_bookmark = bookmark;
 
-		m_activateButton->setText(QString::fromStdWString(m_bookmark->getName()));
+		m_activateButton->setText(QString::fromStdString(m_bookmark->getName()));
 
-		if (m_bookmark->isValid() == false)
+		if (!m_bookmark->isValid())
 		{
 			m_activateButton->setEnabled(false);
 			m_editButton->setEnabled(false);
@@ -106,7 +101,7 @@ void QtBookmark::setBookmark(const std::shared_ptr<Bookmark> bookmark)
 
 		if (m_bookmark->getComment().length() > 0)
 		{
-			m_comment->setText(QString::fromStdWString(m_bookmark->getComment()));
+			m_comment->setText(QString::fromStdString(m_bookmark->getComment()));
 			m_toggleCommentButton->show();
 		}
 		else
@@ -118,7 +113,7 @@ void QtBookmark::setBookmark(const std::shared_ptr<Bookmark> bookmark)
 	}
 }
 
-Id QtBookmark::getBookmarkId() const
+BookmarkId QtBookmark::getBookmarkId() const
 {
 	return m_bookmark->getId();
 }
@@ -142,29 +137,29 @@ void QtBookmark::commentToggled()
 
 	m_ignoreNextResize = true;
 
-	if (m_comment->isVisible() == false)
+	if (!m_comment->isVisible())
 	{
-		m_arrowImageName = L"arrow_line_up.png";
+		m_arrowImageName = QtResources::BOOKMARK_VIEW_ARROW_LINE_UP;
 		m_comment->show();
 		m_comment->setMinimumHeight(m_comment->heightForWidth(m_comment->width()));
 	}
 	else
 	{
-		m_arrowImageName = L"arrow_line_down.png";
+		m_arrowImageName = QtResources::BOOKMARK_VIEW_ARROW_LINE_DOWN;
 		m_comment->hide();
 	}
 
 	updateArrow();
 
 	// forces the parent tree view to rescale
-	if (m_treeWidgetItem)
+	if (m_treeWidgetItem != nullptr)
 	{
 		m_treeWidgetItem->setExpanded(false);
 		m_treeWidgetItem->setExpanded(true);
 	}
 }
 
-void QtBookmark::resizeEvent(QResizeEvent* event)
+void QtBookmark::resizeEvent(QResizeEvent*  /*event*/)
 {
 	if (m_ignoreNextResize)
 	{
@@ -172,16 +167,16 @@ void QtBookmark::resizeEvent(QResizeEvent* event)
 		return;
 	}
 
-	m_activateButton->setText(QString::fromStdWString(m_bookmark->getName()));
+	m_activateButton->setText(QString::fromStdString(m_bookmark->getName()));
 	QTimer::singleShot(10, this, &QtBookmark::elideButtonText);
 }
 
-void QtBookmark::showEvent(QShowEvent* event)
+void QtBookmark::showEvent(QShowEvent*  /*event*/)
 {
 	elideButtonText();
 }
 
-void QtBookmark::enterEvent(QEvent* event)
+void QtBookmark::enterEvent(QEnterEvent * /*event*/)
 {
 	m_editButton->show();
 	m_deleteButton->show();
@@ -190,7 +185,7 @@ void QtBookmark::enterEvent(QEvent* event)
 	updateArrow();
 }
 
-void QtBookmark::leaveEvent(QEvent* event)
+void QtBookmark::leaveEvent(QEvent*  /*event*/)
 {
 	m_editButton->hide();
 	m_deleteButton->hide();
@@ -204,6 +199,12 @@ void QtBookmark::activateClicked()
 	m_controllerProxy->executeAsTaskWithArgs(&BookmarkController::activateBookmark, m_bookmark);
 }
 
+void QtBookmark::activateDoubleClicked()
+{
+	m_controllerProxy->executeAsTaskWithArgs(&BookmarkController::activateBookmark, m_bookmark);
+	m_controllerProxy->executeAsTaskWithArgs(&BookmarkController::undisplayBookmarks);
+}
+
 void QtBookmark::editClicked()
 {
 	m_controllerProxy->executeAsTaskWithArgs(&BookmarkController::showBookmarkEditor, m_bookmark);
@@ -211,15 +212,13 @@ void QtBookmark::editClicked()
 
 void QtBookmark::deleteClicked()
 {
-	QMessageBox msgBox;
-	msgBox.setText(QStringLiteral("Delete Bookmark"));
-	msgBox.setInformativeText(QStringLiteral("Do you really want to delete this bookmark?"));
-	msgBox.addButton(QStringLiteral("Delete"), QMessageBox::ButtonRole::YesRole);
-	msgBox.addButton(QStringLiteral("Keep"), QMessageBox::ButtonRole::NoRole);
-	msgBox.setIcon(QMessageBox::Icon::Question);
-	int ret = msgBox.exec();
-
-	if (ret == 0)	 // QMessageBox::Yes)
+	QtMessageBox msgBox;
+	msgBox.setText(tr("Delete Bookmark"));
+	msgBox.setInformativeText(tr("Do you really want to delete this bookmark?"));
+	QPushButton *deleteButton = msgBox.addButton(tr("Delete"), QtMessageBox::ButtonRole::YesRole);
+	msgBox.addButton(tr("Keep"), QtMessageBox::ButtonRole::NoRole);
+	msgBox.setIcon(QtMessageBox::Icon::Question);
+	if (msgBox.execModal() == deleteButton)	 // QtMessageBox::Yes
 	{
 		m_controllerProxy->executeAsTaskWithArgs(
 			&BookmarkController::deleteBookmark, m_bookmark->getId());
@@ -229,17 +228,15 @@ void QtBookmark::deleteClicked()
 void QtBookmark::elideButtonText()
 {
 	m_activateButton->setText(m_activateButton->fontMetrics().elidedText(
-		QString::fromStdWString(m_bookmark->getName()),
+		QString::fromStdString(m_bookmark->getName()),
 		Qt::ElideMiddle,
 		m_activateButton->width() - 16));
 }
 
 void QtBookmark::updateArrow()
 {
-	QPixmap pixmap(QString::fromStdWString(
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"bookmark_view/images/" + m_arrowImageName).wstr()));
-	m_toggleCommentButton->setIcon(
-		QIcon(utility::colorizePixmap(pixmap, m_hovered ? "#707070" : "black")));
+	QPixmap pixmap(QString::fromStdString(m_arrowImageName));
+	m_toggleCommentButton->setIcon(QIcon(utility::colorizePixmap(pixmap, m_hovered ? "#707070" : "black")));
 }
 
 std::string QtBookmark::getDateString() const

@@ -1,12 +1,9 @@
 #include "QtHelpButton.h"
 
-#include "ResourcePaths.h"
+#include "QtResources.h"
 
 QtHelpButton::QtHelpButton(const QtHelpButtonInfo& info, QWidget* parent)
-	: QtIconButton(
-		  ResourcePaths::getGuiDirectoryPath().concatenate(L"window/help.png"),
-		  ResourcePaths::getGuiDirectoryPath().concatenate(L"window/help_hover.png"),
-		  parent)
+	: QtIconButton(QtResources::WINDOW_HELP, QtResources::WINDOW_HELP_HOVER, parent)
 	, m_info(info)
 {
 	setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);

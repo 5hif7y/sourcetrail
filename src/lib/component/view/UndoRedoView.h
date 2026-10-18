@@ -13,9 +13,9 @@ class UndoRedoView: public View
 {
 public:
 	UndoRedoView(ViewLayout* viewLayout);
-	~UndoRedoView(void);
+	~UndoRedoView(void) override;
 
-	virtual std::string getName() const;
+	std::string getName() const override;
 
 	virtual void setRedoButtonEnabled(bool enabled) = 0;
 	virtual void setUndoButtonEnabled(bool enabled) = 0;

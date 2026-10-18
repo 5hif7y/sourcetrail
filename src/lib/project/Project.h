@@ -37,8 +37,7 @@ public:
 
 	void load(std::shared_ptr<DialogView> dialogView);
 
-	void refresh(
-		std::shared_ptr<DialogView> dialogView, RefreshMode refreshMode, bool shallowIndexingRequested);
+	void refresh(std::shared_ptr<DialogView> dialogView, RefreshMode refreshMode);
 
 	RefreshInfo getRefreshInfo(RefreshMode mode) const;
 
@@ -52,7 +51,6 @@ private:
 		PROJECT_STATE_LOADED,
 		PROJECT_STATE_OUTDATED,
 		PROJECT_STATE_OUTVERSIONED,
-		PROJECT_STATE_NEEDS_MIGRATION,
 		PROJECT_STATE_DB_CORRUPTED
 	};
 
@@ -77,8 +75,8 @@ private:
 	std::shared_ptr<ProjectSettings> m_settings;
 	StorageCache* const m_storageCache;
 
-	ProjectStateType m_state;
-	RefreshStageType m_refreshStage;
+	ProjectStateType m_state = PROJECT_STATE_NOT_LOADED;
+	RefreshStageType m_refreshStage = RefreshStageType::NONE;
 
 	std::shared_ptr<PersistentStorage> m_storage;
 	std::vector<std::shared_ptr<SourceGroup>> m_sourceGroups;

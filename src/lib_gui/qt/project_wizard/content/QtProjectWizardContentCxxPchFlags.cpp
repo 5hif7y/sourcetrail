@@ -1,10 +1,14 @@
 #include "QtProjectWizardContentCxxPchFlags.h"
+#include "QtMessageBox.h"
 
 #include <QCheckBox>
-#include <QMessageBox>
 
 #include "QtStringListBox.h"
 #include "SourceGroupSettingsWithCxxPchOptions.h"
+#include "ToolChain.h"
+#include "utilityString.h"
+
+using namespace std;
 
 QtProjectWizardContentCxxPchFlags::QtProjectWizardContentCxxPchFlags(
 	std::shared_ptr<SourceGroupSettingsWithCxxPchOptions> settings,
@@ -72,23 +76,24 @@ void QtProjectWizardContentCxxPchFlags::save()
 
 bool QtProjectWizardContentCxxPchFlags::check()
 {
-	std::wstring error;
+	std::string error;
 
-	for (const std::wstring& flag: m_list->getStrings())
+	for (const std::string& flag: m_list->getStrings())
 	{
-		if (utility::isPrefix<std::wstring>(L"-include ", flag) ||
-			utility::isPrefix<std::wstring>(L"--include ", flag))
+		// Check whether the given 'force include option' contains a space at the end:
+
+		if (utility::isPrefix(ClangCompiler::forceIncludeOption() + " "s, flag) ||
+			utility::isPrefix(ClangCompiler::forceIncludeOption2() + " "s, flag))
 		{
-			error = L"The entered flag \"" + flag +
-				L"\" contains an error. Please remove the intermediate space character.\n";
+			error = "The entered flag \"" + flag + "\" contains an error. Please remove the intermediate space character.\n";
 		}
 	}
 
 	if (!error.empty())
 	{
-		QMessageBox msgBox(m_window);
-		msgBox.setText(QString::fromStdWString(error));
-		msgBox.exec();
+		QtMessageBox msgBox(m_window);
+		msgBox.setText(QString::fromStdString(error));
+		msgBox.execModal();
 		return false;
 	}
 

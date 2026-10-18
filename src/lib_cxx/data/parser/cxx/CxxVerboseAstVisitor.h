@@ -20,16 +20,14 @@ public:
 		std::shared_ptr<IndexerStateInfo> indexerStateInfo);
 
 private:
-	typedef CxxAstVisitor base;
-
-	virtual bool TraverseDecl(clang::Decl* d);
-	virtual bool TraverseStmt(clang::Stmt* stmt);
-	virtual bool TraverseTypeLoc(clang::TypeLoc tl);
+	bool TraverseDecl(clang::Decl* d) override;
+	bool TraverseStmt(clang::Stmt* stmt) override;
+	bool TraverseTypeLoc(clang::TypeLoc tl) override;
 
 	std::string getIndentString() const;
-	std::string obfuscateName(const std::string& name) const;
+	static std::string obfuscateName(const std::string& name);
 
-	std::string typeLocClassToString(clang::TypeLoc tl) const
+	static std::string typeLocClassToString(clang::TypeLoc tl) 
 	{
 		switch (tl.getTypeLocClass())
 		{
@@ -47,7 +45,7 @@ case clang::TypeLoc::Class:                                                     
 	}
 
 	FilePath m_currentFilePath;
-	unsigned int m_indentation;
+	unsigned int m_indentation = 0;
 };
 
 #endif	  // CXX_VERBOSE_AST_VISITOR_H

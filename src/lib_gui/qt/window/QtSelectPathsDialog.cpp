@@ -22,7 +22,7 @@ std::vector<FilePath> QtSelectPathsDialog::getPathsList() const
 	{
 		if (m_list->item(i)->checkState() == Qt::Checked)
 		{
-			checkedPaths.push_back(FilePath(m_list->item(i)->text().toStdWString()));
+			checkedPaths.push_back(FilePath(m_list->item(i)->text().toStdString()));
 		}
 	}
 
@@ -38,7 +38,7 @@ void QtSelectPathsDialog::setPathsList(
 
 	for (FilePath s: utility::unique(utility::concat(paths, checkedPaths)))
 	{
-		QListWidgetItem* item = new QListWidgetItem(QString::fromStdWString(s.wstr()), m_list);
+		QListWidgetItem* item = new QListWidgetItem(QString::fromStdString(s.str()), m_list);
 		item->setFlags(item->flags() | Qt::ItemIsUserCheckable);	// set checkable flag
 
 		if (checked.find(s) == checked.end())
@@ -91,7 +91,7 @@ void QtSelectPathsDialog::populateWindow(QWidget* widget)
 	m_list->setObjectName(QStringLiteral("pathList"));
 	m_list->setEditTriggers(QAbstractItemView::NoEditTriggers);
 	m_list->setSelectionMode(QAbstractItemView::ExtendedSelection);
-	m_list->setAttribute(Qt::WA_MacShowFocusRect, 0);
+	m_list->setAttribute(Qt::WA_MacShowFocusRect, false);
 	layout->addWidget(m_list);
 
 	QHBoxLayout* buttonLayout = new QHBoxLayout();
@@ -99,7 +99,7 @@ void QtSelectPathsDialog::populateWindow(QWidget* widget)
 
 	QPushButton* checkAllButton = new QPushButton(QStringLiteral("check all"));
 	checkAllButton->setObjectName(QStringLiteral("windowButton"));
-	connect(checkAllButton, &QPushButton::clicked, [=]() {
+	connect(checkAllButton, &QPushButton::clicked, [=, this]() {
 		m_list->selectAll();
 		checkSelected(true);
 		m_list->clearSelection();
@@ -108,7 +108,7 @@ void QtSelectPathsDialog::populateWindow(QWidget* widget)
 
 	QPushButton* unCheckAllButton = new QPushButton(QStringLiteral("uncheck all"));
 	unCheckAllButton->setObjectName(QStringLiteral("windowButton"));
-	connect(unCheckAllButton, &QPushButton::clicked, [=]() {
+	connect(unCheckAllButton, &QPushButton::clicked, [=, this]() {
 		m_list->selectAll();
 		checkSelected(false);
 		m_list->clearSelection();
@@ -117,12 +117,12 @@ void QtSelectPathsDialog::populateWindow(QWidget* widget)
 
 	QPushButton* checkSelectedButton = new QPushButton(QStringLiteral("check selected"));
 	checkSelectedButton->setObjectName(QStringLiteral("windowButton"));
-	connect(checkSelectedButton, &QPushButton::clicked, [=]() { checkSelected(true); });
+	connect(checkSelectedButton, &QPushButton::clicked, [=, this]() { checkSelected(true); });
 	buttonLayout->addWidget(checkSelectedButton);
 
 	QPushButton* unCheckSelectedButton = new QPushButton(QStringLiteral("uncheck selected"));
 	unCheckSelectedButton->setObjectName(QStringLiteral("windowButton"));
-	connect(unCheckSelectedButton, &QPushButton::clicked, [=]() { checkSelected(false); });
+	connect(unCheckSelectedButton, &QPushButton::clicked, [=, this]() { checkSelected(false); });
 	buttonLayout->addWidget(unCheckSelectedButton);
 
 	layout->addLayout(buttonLayout);

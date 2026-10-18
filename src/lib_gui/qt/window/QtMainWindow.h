@@ -1,15 +1,14 @@
 #ifndef QT_MAIN_WINDOW_H
 #define QT_MAIN_WINDOW_H
 
-#include <memory>
-#include <utility>
-#include <vector>
+#include "FilePath.h"
+#include "QtWindowStack.h"
+#include "QtWindowTitleProgress.h"
 
 #include <QMainWindow>
 
-#include "QtWindowStack.h"
-#include "QtWindowsTaskbarButton.h"
-#include "SearchMatch.h"
+#include <memory>
+#include <vector>
 
 class Bookmark;
 class MessageBase;
@@ -41,7 +40,7 @@ public:
 	MouseReleaseFilter(QObject* parent);
 
 protected:
-	bool eventFilter(QObject* obj, QEvent* event);
+	bool eventFilter(QObject* obj, QEvent* event) override;
 
 private:
 	size_t m_backButton;
@@ -55,7 +54,7 @@ class QtMainWindow: public QMainWindow
 
 public:
 	QtMainWindow();
-	~QtMainWindow();
+	~QtMainWindow() override;
 
 	void addView(View* view);
 	void overrideView(View* view);
@@ -80,40 +79,44 @@ public:
 	void setContentEnabled(bool enabled);
 	void refreshStyle();
 
-	void setWindowsTaskbarProgress(float progress);
-	void hideWindowsTaskbarProgress();
+	void setWindowTitleProgress(size_t fileCount, size_t totalFileCount);
+	void hideWindowTitleProgress();
 
+	void alert();
+	
 signals:
 	void showScreenSearch();
 	void hideScreenSearch();
 	void hideIndexingDialog();
 
 protected:
-	virtual void showEvent(QShowEvent* event) override;
-	virtual void keyPressEvent(QKeyEvent* event) override;
-	virtual void contextMenuEvent(QContextMenuEvent* event) override;
-	virtual void closeEvent(QCloseEvent* event) override;
-	virtual void resizeEvent(QResizeEvent* event) override;
+	void showEvent(QShowEvent* event) override;
+	void keyPressEvent(QKeyEvent* event) override;
+	void contextMenuEvent(QContextMenuEvent* event) override;
+	void closeEvent(QCloseEvent* event) override;
+	void resizeEvent(QResizeEvent* event) override;
 
-	virtual bool focusNextPrevChild(bool next) override;
+	bool focusNextPrevChild(bool next) override;
 
 public slots:
 	void about();
 	void openSettings();
-	void showChangelog();
-	void showBugtracker();
-	void showDocumentation();
+	static void showChangelog();
+	static void showBugtracker();
+	static void showDocumentation();
 	void showKeyboardShortcuts();
-	void showErrorHelpMessage();
+	static void showLegend();
+
+	static void showErrorHelpMessage();
 	void showLicenses();
 
-	void showDataFolder();
-	void showLogFolder();
+	static void showDataFolder();
+	static void showLogFolder();
 
-	void openTab();
-	void closeTab();
-	void nextTab();
-	void previousTab();
+	static void openTab();
+	static void closeTab();
+	static void nextTab();
+	static void previousTab();
 
 	void showStartScreen();
 	void hideStartScreen();
@@ -124,25 +127,25 @@ public slots:
 	void editProject();
 	void closeProject();
 
-	void find();
-	void findFulltext();
+	static void find();
+	static void findFulltext();
 	void findOnScreen();
-	void codeReferencePrevious();
-	void codeReferenceNext();
-	void codeLocalReferencePrevious();
-	void codeLocalReferenceNext();
-	void customTrail();
-	void overview();
+	static void codeReferencePrevious();
+	static void codeReferenceNext();
+	static void codeLocalReferencePrevious();
+	static void codeLocalReferenceNext();
+	static void customTrail();
+	static void overview();
 
-	void closeWindow();
-	void refresh();
-	void forceRefresh();
+	static void closeWindow();
+	static void refresh();
+	static void forceRefresh();
 
-	void undo();
-	void redo();
-	void zoomIn();
-	void zoomOut();
-	void resetZoom();
+	static void undo();
+	static void redo();
+	static void zoomIn();
+	static void zoomOut();
+	static void resetZoom();
 
 	void resetWindowLayout();
 
@@ -155,8 +158,8 @@ public slots:
 private slots:
 	void toggleShowDockWidgetTitleBars();
 
-	void showBookmarkCreator();
-	void showBookmarkBrowser();
+	static void showBookmarkCreator();
+	static void showBookmarkBrowser();
 
 	void openHistoryAction();
 	void activateBookmarkAction();
@@ -189,21 +192,21 @@ private:
 	QMenu* m_viewMenu;
 	QAction* m_viewSeparator;
 
-	QMenu* m_historyMenu;
+	QMenu* m_historyMenu = nullptr;
 	std::vector<std::shared_ptr<MessageBase>> m_history;
 
-	QMenu* m_bookmarksMenu;
+	QMenu* m_bookmarksMenu = nullptr;
 	std::vector<std::shared_ptr<Bookmark>> m_bookmarks;
 
 	QMenu* m_recentProjectsMenu;
 
 	QAction* m_showTitleBarsAction;
 
-	bool m_showDockWidgetTitleBars;
+	bool m_showDockWidgetTitleBars = true;
 
 	QtWindowStack m_windowStack;
 
-	QtWindowsTaskbarButton m_windowsTaskbarButton;
+	QtWindowTitleProgress m_windowTitleProgress;
 };
 
 #endif	  // QT_MAIN_WINDOW_H

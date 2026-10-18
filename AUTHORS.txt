@@ -1,11 +1,16 @@
 Authors
 =======
+The Coati Software Developer
 
-Andreas Stallinger
-Eberhard Gräther (@egraether) <egraether@coati.io>
-Malte Langkabel (@mlangkabel) <mlangkabel@coati.io>
-Manuel Dobusch
-Viktoria Pfausler
-Louis St-Amour (@LouisStAmour) <LouisStAmour@gmail.com>
+Maintainer
+==========
+Peter Most (@petermost) <pmost@pera-software.com>
 
 Note: (@user) means a github user name.
+
+Acknowledgements:
+=================
+Sourcetrail (aka Coati) 0.1 was created in the context of education at
+Salzburg University of Applied Sciences (http://www.fh-salzburg.ac.at/en/).
+Coati Software KG is member of Startup Salzburg (http://www.startup-salzburg.at/).
+The development of Sourcetrail was funded by aws (http://awsg.at).

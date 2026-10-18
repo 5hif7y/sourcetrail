@@ -7,13 +7,13 @@ class QtGraphNodeText: public QtGraphNode
 {
 	Q_OBJECT
 public:
-	QtGraphNodeText(const std::wstring& name, int fontSizeDiff);
-	virtual ~QtGraphNodeText();
+	QtGraphNodeText(const std::string& name, int fontSizeDiff);
+	~QtGraphNodeText() override;
 
 	// QtGraphNode implementation
-	virtual bool isTextNode() const;
+	bool isTextNode() const override;
 
-	virtual void updateStyle();
+	void updateStyle() override;
 
 private:
 	int m_fontSizeDiff;

@@ -3,9 +3,8 @@
 #include "ApplicationSettings.h"
 #include "ColorScheme.h"
 #include "GraphViewStyleImpl.h"
-#include "ResourcePaths.h"
+#include "QtResources.h"
 #include "logging.h"
-#include "utilityString.h"
 
 int GraphViewStyle::s_gridCellSize = 5;
 int GraphViewStyle::s_gridCellPadding = 10;
@@ -71,43 +70,11 @@ Vec2i GraphViewStyle::alignOnRaster(Vec2i position)
 	return position;
 }
 
-GraphViewStyle::NodeMargins::NodeMargins()
-	: left(0)
-	, right(0)
-	, top(0)
-	, bottom(0)
-	, spacingX(0)
-	, spacingY(0)
-	, spacingA(0)
-	, minWidth(0)
-	, charWidth(0.0f)
-	, charHeight(0.0f)
-	, iconWidth(0)
-{
-}
+GraphViewStyle::NodeMargins::NodeMargins() = default;
 
-GraphViewStyle::NodeStyle::NodeStyle()
-	: cornerRadius(0)
-	, borderWidth(0)
-	, borderDashed(false)
-	, fontSize(0)
-	, fontBold(false)
-	, iconSize(0)
-	, hasHatching(false)
-{
-}
+GraphViewStyle::NodeStyle::NodeStyle() = default;
 
-GraphViewStyle::EdgeStyle::EdgeStyle()
-	: width(0)
-	, zValue(0)
-	, arrowLength(0)
-	, arrowWidth(0)
-	, arrowClosed(false)
-	, cornerRadius(0)
-	, verticalOffset(0)
-	, dashed(false)
-{
-}
+GraphViewStyle::EdgeStyle::EdgeStyle() = default;
 
 std::shared_ptr<GraphViewStyleImpl> GraphViewStyle::getImpl()
 {
@@ -288,24 +255,24 @@ GraphViewStyle::NodeMargins GraphViewStyle::getMarginsOfAccessNode(AccessKind ac
 
 	switch (access)
 	{
-	case ACCESS_NONE:
+	case AccessKind::NONE:
 		margins.top = 10;
 		margins.minWidth = 30;
 		break;
-	case ACCESS_PUBLIC:
+	case AccessKind::PUBLIC:
 		margins.minWidth = 57;
 		break;
-	case ACCESS_PROTECTED:
+	case AccessKind::PROTECTED:
 		margins.minWidth = 78;
 		break;
-	case ACCESS_PRIVATE:
+	case AccessKind::PRIVATE:
 		margins.minWidth = 62;
 		break;
-	case ACCESS_DEFAULT:
+	case AccessKind::DEFAULT:
 		margins.minWidth = 62;
 		break;
-	case ACCESS_TEMPLATE_PARAMETER:
-	case ACCESS_TYPE_PARAMETER:
+	case AccessKind::TEMPLATE_PARAMETER:
+	case AccessKind::TYPE_PARAMETER:
 		margins.minWidth = 133;
 		break;
 	}
@@ -553,7 +520,7 @@ GraphViewStyle::NodeStyle GraphViewStyle::getStyleOfBundleNode(bool isFocused)
 	return getStyleForNodeType(
 		NodeType::STYLE_BIG_NODE,
 		"bundle",
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"graph_view/images/bundle.png"),
+		QtResources::GRAPH_VIEW_BUNDLE,
 		true,
 		false,
 		isFocused,
@@ -666,7 +633,7 @@ GraphViewStyle::EdgeStyle GraphViewStyle::getStyleForEdgeType(
 	}
 	else
 	{
-		style.color = getEdgeColor(utility::encodeToUtf8(Edge::getUnderscoredTypeString(type)));
+		style.color = getEdgeColor(Edge::getUnderscoredTypeString(type));
 	}
 
 	switch (type)

@@ -25,7 +25,7 @@ class QtCodeFileSingle
 
 public:
 	QtCodeFileSingle(QtCodeNavigator* navigator, QWidget* parent = nullptr);
-	virtual ~QtCodeFileSingle() = default;
+	~QtCodeFileSingle() override = default;
 
 	void clearFile();
 	void clearCache();
@@ -50,7 +50,7 @@ public:
 	void onWindowFocus() override;
 
 	void findScreenMatches(
-		const std::wstring& query, std::vector<std::pair<QtCodeArea*, Id>>* screenMatches) override;
+		const std::string& query, std::vector<std::pair<QtCodeArea*, Id>>* screenMatches) override;
 
 	void setFocus(Id locationId) override;
 	void setFocusOnTop() override;
@@ -73,7 +73,7 @@ private:
 		TimeStamp modificationTime;
 		bool isComplete = false;
 		bool isIndexed = false;
-		std::wstring title;
+		std::string title;
 
 		QtCodeArea* area = nullptr;
 	};
@@ -90,7 +90,7 @@ private:
 
 	QtCodeFileTitleBar* m_titleBar;
 
-	QtCodeArea* m_area;
+	QtCodeArea* m_area = nullptr;
 	std::map<FilePath, FileData> m_fileDatas;
 	std::deque<FilePath> m_filePaths;
 

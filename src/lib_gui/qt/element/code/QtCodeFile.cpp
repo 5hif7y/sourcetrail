@@ -11,7 +11,7 @@
 #include "SourceLocationFile.h"
 
 QtCodeFile::QtCodeFile(const FilePath& filePath, QtCodeNavigator* navigator, bool isFirst)
-	: QFrame(), m_navigator(navigator), m_filePath(filePath), m_isWholeFile(false)
+	:  m_navigator(navigator), m_filePath(filePath) 
 {
 	setObjectName(QStringLiteral("code_file"));
 	setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
@@ -47,7 +47,7 @@ QtCodeFile::QtCodeFile(const FilePath& filePath, QtCodeNavigator* navigator, boo
 	update();
 }
 
-QtCodeFile::~QtCodeFile() {}
+QtCodeFile::~QtCodeFile() = default;
 
 void QtCodeFile::setModificationTime(const TimeStamp modificationTime)
 {
@@ -300,7 +300,7 @@ void QtCodeFile::updateTitleBar()
 }
 
 void QtCodeFile::findScreenMatches(
-	const std::wstring& query, std::vector<std::pair<QtCodeArea*, Id>>* screenMatches)
+	const std::string& query, std::vector<std::pair<QtCodeArea*, Id>>* screenMatches)
 {
 	for (QtCodeSnippet* snippet: m_snippets)
 	{

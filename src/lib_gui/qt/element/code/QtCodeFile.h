@@ -26,7 +26,7 @@ class QtCodeFile: public QFrame
 
 public:
 	QtCodeFile(const FilePath& filePath, QtCodeNavigator* navigator, bool isFirst);
-	virtual ~QtCodeFile();
+	~QtCodeFile() override;
 
 	void setModificationTime(const TimeStamp modificationTime);
 
@@ -63,7 +63,7 @@ public:
 	void updateTitleBar();
 
 	void findScreenMatches(
-		const std::wstring& query, std::vector<std::pair<QtCodeArea*, Id>>* screenMatches);
+		const std::string& query, std::vector<std::pair<QtCodeArea*, Id>>* screenMatches);
 
 	bool hasFocus(const CodeFocusHandler::Focus& focus) const;
 	bool setFocus(Id locationId);
@@ -89,7 +89,7 @@ private:
 	std::vector<QtCodeSnippet*> m_snippets;
 
 	const FilePath m_filePath;
-	bool m_isWholeFile;
+	bool m_isWholeFile = false;
 };
 
 #endif	  // QT_CODE_FILE_H

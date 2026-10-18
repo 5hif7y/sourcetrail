@@ -17,33 +17,31 @@ class QtWindowBase: public QtWindowStackElement
 
 public:
 	QtWindowBase(bool isSubWindow, QWidget* parent);
-
-	QSize sizeHint() const override;
-
-	void setSizeGripStyle(bool isBlack);
-
-	bool isSubWindow() const;
-
+	
 	void moveToCenter();
-
-	// QtWindowStackElement implementation
-	virtual void showWindow() override;
-	virtual void hideWindow() override;
-
+	
+	void setVisible(bool visible) override;
+	
+	bool isSubWindow() const;
+	
+	QSize sizeHint() const override;
+	
 protected:
+	void setSizeGripStyle(bool isBlack);
+	
 	void mouseMoveEvent(QMouseEvent* event) override;
 	void mousePressEvent(QMouseEvent* event) override;
 	void mouseReleaseEvent(QMouseEvent* event) override;
-
-	bool m_isSubWindow;
-
-	QWidget* m_window;
-	QWidget* m_content;
-
+	
+	const bool m_isSubWindow;
+	
+	QWidget* m_window = nullptr;
+	QWidget* m_content = nullptr;
+	
 	QPoint m_dragPosition;
-	bool m_mousePressedInWindow;
-
-	QSizeGrip* m_sizeGrip;
+	bool m_mousePressedInWindow = false;
+	
+	QSizeGrip* m_sizeGrip = nullptr;
 };
 
 #endif	  // QT_WINDOW_BASE_H

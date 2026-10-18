@@ -21,13 +21,13 @@ public:
 		QtProjectWizardWindow* window,
 		const std::string& projectKindName);
 
-	virtual void populate(QGridLayout* layout, int& row) override;
+	void populate(QGridLayout* layout, int& row) override;
 
 	// QtProjectWizardContent implementation
-	virtual void load() override;
-	virtual void save() override;
+	void load() override;
+	void save() override;
 
-	virtual bool check() override;
+	bool check() override;
 
 private slots:
 	void buttonClicked();

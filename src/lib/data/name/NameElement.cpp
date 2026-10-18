@@ -1,28 +1,26 @@
 #include "NameElement.h"
 
-#include "logging.h"
 #include "utilityString.h"
 
-NameElement::Signature::Signature(): m_prefix(L""), m_postfix(L"") {}
-
-NameElement::Signature::Signature(std::wstring prefix, std::wstring postfix)
-	: m_prefix(std::move(prefix)), m_postfix(std::move(postfix))
+NameElement::Signature::Signature(std::string prefix, std::string postfix)
+	: m_prefix(std::move(prefix))
+	, m_postfix(std::move(postfix))
 {
 }
 
-std::wstring NameElement::Signature::qualifyName(const std::wstring& name) const
+std::string NameElement::Signature::qualifyName(const std::string &name) const
 {
 	if (!isValid())
 	{
 		return name;
 	}
 
-	std::wstring qualifiedName = m_prefix;
+	std::string qualifiedName = m_prefix;
 	if (!name.empty())
 	{
 		if (!m_prefix.empty())
 		{
-			qualifiedName += L" ";
+			qualifiedName += " ";
 		}
 		qualifiedName += name;
 	}
@@ -36,46 +34,48 @@ bool NameElement::Signature::isValid() const
 	return !m_prefix.empty() || !m_postfix.empty();
 }
 
-const std::wstring& NameElement::Signature::getPrefix() const
+const std::string &NameElement::Signature::getPrefix() const
 {
 	return m_prefix;
 }
 
-const std::wstring& NameElement::Signature::getPostfix() const
+const std::string &NameElement::Signature::getPostfix() const
 {
 	return m_postfix;
 }
 
-std::wstring NameElement::Signature::getParameterString() const
+std::string NameElement::Signature::getParameterString() const
 {
 	if (!m_postfix.empty())
 	{
-		return utility::substrBeforeLast(m_postfix, L')') + L')';
+		return utility::substrBeforeLast(m_postfix, ')') + ')';
 	}
 
 	return m_postfix;
 }
 
-NameElement::NameElement(std::wstring name): m_name(std::move(name)) {}
-
-NameElement::NameElement(std::wstring name, std::wstring prefix, std::wstring postfix)
-	: m_name(std::move(name)), m_signature(std::move(prefix), std::move(postfix))
+NameElement::NameElement(std::string name)
+	: m_name(std::move(name))
 {
 }
 
-NameElement::~NameElement() {}
+NameElement::NameElement(std::string name, std::string prefix, std::string postfix)
+	: m_name(std::move(name))
+	, m_signature(std::move(prefix), std::move(postfix))
+{
+}
 
-const std::wstring& NameElement::getName() const
+const std::string &NameElement::getName() const
 {
 	return m_name;
 }
 
-std::wstring NameElement::getNameWithSignature() const
+std::string NameElement::getNameWithSignature() const
 {
 	return m_signature.qualifyName(m_name);
 }
 
-std::wstring NameElement::getNameWithSignatureParameters() const
+std::string NameElement::getNameWithSignatureParameters() const
 {
 	return m_name + m_signature.getParameterString();
 }
@@ -85,12 +85,12 @@ bool NameElement::hasSignature() const
 	return m_signature.isValid();
 }
 
-const NameElement::Signature& NameElement::getSignature() const
+const NameElement::Signature &NameElement::getSignature() const
 {
 	return m_signature;
 }
 
-void NameElement::setSignature(std::wstring prefix, std::wstring postfix)
+void NameElement::setSignature(std::string prefix, std::string postfix)
 {
 	m_signature = Signature(std::move(prefix), std::move(postfix));
 }

@@ -1,6 +1,6 @@
 #include "Blackboard.h"
 
-Blackboard::Blackboard() {}
+Blackboard::Blackboard() = default;
 
 Blackboard::Blackboard(std::shared_ptr<Blackboard> parent): m_parent(parent) {}
 

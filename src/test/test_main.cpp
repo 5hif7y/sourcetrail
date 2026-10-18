@@ -1,63 +1,98 @@
-#define CATCH_CONFIG_MAIN	 // This tells Catch to provide a main() function
-
-#include "catch.hpp"
-// IMPORTANT NOTE: removed signal listener for "EXCEPTION_ACCESS_VIOLATION" from catch source code
-// because it interferes with the jni interface that emits such a signal on purpose
+#include "Catch2.hpp"
 
 #include "ApplicationSettings.h"
 #include "language_packages.h"
 #include "utilityPathDetection.h"
+#include "utilityString.h"
+#include <AppPath.h>
+#include <UserPaths.h>
+#include <setupApp.h>
 
-struct EventListener: Catch::TestEventListenerBase
+#include <boost/filesystem.hpp>
+
+#include <iostream>
+
+using namespace std;
+using namespace boost::filesystem;
+using namespace utility;
+
+struct EventListener : Catch2::EventListenerBase
 {
-	using TestEventListenerBase::TestEventListenerBase;	   // inherit constructor
+	static int s_argc;
+	static char **s_argv;
 
-	void testRunStarting(const Catch::TestRunInfo& testRunInfo) override
+	using Catch2::EventListenerBase::EventListenerBase;	   // inherit constructor
+
+	void testRunStarting(const Catch::TestRunInfo& ) override
 	{
-#ifdef __linux__
-		const std::string homedir = getenv("HOME");
+		// Must get the correct directory for:
+		// Windows: 'Sourcetrail_test' (doesn't exist, so canonical() would fail!)
+		// Windows: 'Sourcetrail_test.exe'
+		// Linux:   './Sourcetrail_test'
 
-		if (!homedir.empty())
-		{
-			if (!ApplicationSettings::getInstance()->load(
-					FilePath(homedir + "/.config/sourcetrail/ApplicationSettings.xml")))
-			{
-				std::cout << "no settings" << std::endl;
-				return;
-			}
-		}
-		else
-		{
-			std::cout << "no homedir" << std::endl;
-			return;
-		}
-#else
-		ApplicationSettings::getInstance()->load(FilePath(L"data/TestSettings.xml"));
-#endif
+		const path appDirectory = weakly_canonical(s_argv[0]).parent_path().parent_path().append("app");
+		cout << "Setting application directory to " << appDirectory.generic_string() << endl;
+		setupAppDirectories(appDirectory.generic_string());
+
+		FilePath settingsFilePath = UserPaths::getAppSettingsFilePath();
+		cout << "Loading settings from " << settingsFilePath.str() << endl;
+		ApplicationSettings::getInstance()->load(settingsFilePath, true);
 
 #if BUILD_JAVA_LANGUAGE_PACKAGE
 		if (ApplicationSettings::getInstance()->getJavaPath().empty())
 		{
-			std::shared_ptr<PathDetector> pathDetector = utility::getJavaRuntimePathDetector();
-			const std::vector<FilePath> paths = pathDetector->getPaths();
-			if (!paths.empty())
+			vector<FilePath> javaPaths = utility::getJavaRuntimePathDetector()->getPaths();
+			if (!javaPaths.empty())
 			{
-				ApplicationSettings::getInstance()->setJavaPath(paths.front());
-				std::cout << "Java path written to settings: "
-						  << ApplicationSettings::getInstance()->getJavaPath().str() << std::endl;
+				ApplicationSettings::getInstance()->setJavaPath(javaPaths.front());
+				cout << "Java path written to settings: " << ApplicationSettings::getInstance()->getJavaPath().str() << endl;
 			}
 			else
-			{
-				std::cout << "no Java" << std::endl;
-			}
+				cout << "Java path not found in settings or PATH/JAVA_HOME environment variable!" << endl;
 		}
 		else
-		{
-			std::cout << "Java path read form settings: "
-					  << ApplicationSettings::getInstance()->getJavaPath().str() << std::endl;
-		}
+			cout << "Java path read from settings: " << ApplicationSettings::getInstance()->getJavaPath().str() << endl;
 #endif
 	}
 };
 
+int EventListener::s_argc = 0;
+char **EventListener::s_argv = nullptr;
+
 CATCH_REGISTER_LISTENER(EventListener)
+
+// Adapted from: https://github.com/catchorg/Catch2/blob/devel/docs/own-main.md:
+static int catch2_main(int argc, char *argv[])
+{
+	EventListener::s_argc = argc;
+	EventListener::s_argv = argv;
+
+	Catch::Session session;
+
+	// Catch2 version 3.9.1 changed the default run order to random, which breaks a couple of tests.
+	// So restore the old behavior and run the tests in declaration order:
+	// See https://github.com/petermost/Sourcetrail/issues/62
+
+	session.configData().runOrder = Catch::TestRunOrder::Declared;
+
+	int returnCode = session.applyCommandLine(argc, argv);
+	if (returnCode != 0) // Indicates a command line error
+		return returnCode;
+
+	return session.run();
+}
+
+int main(int argc, char* argv[])
+{
+	setupDefaultLocale();
+
+	// Set the 'working directory' manually, as a workaround for "Unable to configure working directory
+	// in CMake/Catch" (https://github.com/catchorg/Catch2/issues/2249)
+	path workingDirectory = weakly_canonical(path(argv[0])).parent_path();
+
+	// If something is printed to the screen, then this will lead to a failure in 'catch_discover_tests()'!
+	// cout << "Set working directory to '" << workingDirectory << "'" << endl;
+	current_path(workingDirectory);
+
+	return catch2_main(argc, argv);
+}

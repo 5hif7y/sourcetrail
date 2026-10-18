@@ -1,7 +1,4 @@
-
-add_files(
-	LIB_JAVA
-
+add_library(Sourcetrail_lib_java
 	data/indexer/IndexerCommandJava.cpp
 	data/indexer/IndexerCommandJava.h
 	data/indexer/IndexerJava.cpp
@@ -31,7 +28,23 @@ add_files(
 	utility/utilityGradle.h
 	utility/utilityMaven.cpp
 	utility/utilityMaven.h
-	
+
 	LanguagePackageJava.cpp
 	LanguagePackageJava.h
+)
+setDefaultTargetOptions(Sourcetrail_lib_java)
+
+target_include_directories(Sourcetrail_lib_java
+	PUBLIC
+		data/indexer
+		data/parser/java
+		project
+		utility
+		.
+)
+
+target_link_libraries(Sourcetrail_lib_java
+	PUBLIC
+		Sourcetrail_lib
+		JNI::JNI
 )

@@ -3,13 +3,12 @@
 
 #include <string>
 
-namespace clang
-{
-namespace tooling
+
+namespace clang::tooling
 {
 class CompilationDatabase;
 }
-}	 // namespace clang
+
 
 struct ClangInvocationInfo
 {

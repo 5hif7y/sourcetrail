@@ -1,14 +1,13 @@
 #ifndef QT_GRAPHICS_VIEW_H
 #define QT_GRAPHICS_VIEW_H
 
-#include <memory>
+#include "MessageListener.h"
+#include "MessageSaveAsImage.h"
+#include "QtActions.h"
 
 #include <QGraphicsView>
 
-#include "types.h"
-#include "MessageListener.h"
-#include "MessageSaveAsImage.h"
-
+#include <memory>
 
 class GraphFocusHandler;
 class QPushButton;
@@ -36,27 +35,27 @@ public:
 
 	void updateZoom(float delta);
 
-	Id getSchedulerId() const override
+	TabId getSchedulerId() const override
 	{
 		return m_tabId;
 	}
 
 protected:
-	void resizeEvent(QResizeEvent* event);
+	void resizeEvent(QResizeEvent* event) override;
 
-	void mousePressEvent(QMouseEvent* event);
-	void mouseMoveEvent(QMouseEvent* event);
-	void mouseReleaseEvent(QMouseEvent* event);
+	void mousePressEvent(QMouseEvent* event) override;
+	void mouseMoveEvent(QMouseEvent* event) override;
+	void mouseReleaseEvent(QMouseEvent* event) override;
 
-	void keyPressEvent(QKeyEvent* event);
-	void keyReleaseEvent(QKeyEvent* event);
+	void keyPressEvent(QKeyEvent* event) override;
+	void keyReleaseEvent(QKeyEvent* event) override;
 
-	void wheelEvent(QWheelEvent* event);
+	void wheelEvent(QWheelEvent* event) override;
 
-	void contextMenuEvent(QContextMenuEvent* event);
+	void contextMenuEvent(QContextMenuEvent* event) override;
 
-	void focusInEvent(QFocusEvent* event);
-	void focusOutEvent(QFocusEvent* event);
+	void focusInEvent(QFocusEvent* event) override;
+	void focusOutEvent(QFocusEvent* event) override;
 
 signals:
 	void emptySpaceClicked();
@@ -90,11 +89,9 @@ private slots:
 
 	void hideZoomLabel();
 
-	void legendClicked();
+	static void legendClicked();
 
 private:
-	bool moves() const;
-
 	void setZoomFactor(float zoomFactor);
 	void updateTransform();
 
@@ -105,17 +102,11 @@ private:
 	QPoint m_last;
 
 	float m_zoomFactor;
-	float m_appZoomFactor;
+	float m_appZoomFactor = 1.0f;
 
-	bool m_up = false;
-	bool m_down = false;
-	bool m_left = false;
-	bool m_right = false;
+	Action m_lastAction = Action::Unknown;
 
-	bool m_shift = false;
-	bool m_ctrl = false;
-
-	std::wstring m_clipboardNodeName;
+	std::string m_clipboardNodeName;
 	Id m_openInTabNodeId;
 	Id m_hideNodeId;
 	Id m_hideEdgeId;
@@ -149,11 +140,8 @@ private:
 
 	QtSelfRefreshIconButton* m_legendButton;
 
-	float m_zoomInButtonSpeed;
-	float m_zoomOutButtonSpeed;
-
 	QImage m_imageCached;
-	Id m_tabId;
+	TabId m_tabId;
 };
 
 #endif	  // QT_GRAPHICS_VIEW_H

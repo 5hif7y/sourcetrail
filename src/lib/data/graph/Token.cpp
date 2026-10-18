@@ -4,7 +4,7 @@
 
 Token::Token(Id id): m_id(id) {}
 
-Token::~Token() {}
+Token::~Token() = default;
 
 Id Token::getId() const
 {

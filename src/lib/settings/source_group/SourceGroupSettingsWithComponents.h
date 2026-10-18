@@ -3,6 +3,51 @@
 
 #include "SourceGroupSettings.h"
 
+/*
+To see the effect of C++17 'Variadic template fold expressions',
+copy/paste this snippet into cppinsights.io:
+
+#include <stdio.h>
+
+template <typename... Args>
+struct Printer : Args...
+{
+	void print()
+	{
+		(..., printArg<Args>());
+	}
+
+	template <typename T>
+	void printArg()
+	{
+		T::print();
+	}
+};
+
+struct Car
+{
+	void print()
+	{
+		printf("Car ");
+	}
+};
+
+struct Plane
+{
+	void print()
+	{
+		printf("Plane ");
+	}
+};
+
+int main()
+{
+	Printer<Car, Plane> printer;
+
+	printer.print();
+}
+*/
+
 template <typename... ComponentTypes>
 class SourceGroupSettingsWithComponents
 	: public SourceGroupSettings
@@ -15,7 +60,7 @@ public:
 	{
 	}
 
-	virtual ~SourceGroupSettingsWithComponents() = default;
+	~SourceGroupSettingsWithComponents() override = default;
 
 	void loadSettings(const ConfigManager* config) override
 	{
@@ -23,8 +68,7 @@ public:
 
 		SourceGroupSettings::load(config, key);
 
-		using expand_type = bool[];
-		expand_type a {false, loadHelper<ComponentTypes>(config, key)...};
+		(... , loadHelper<ComponentTypes>(config, key));
 	}
 
 	void saveSettings(ConfigManager* config) override
@@ -33,8 +77,7 @@ public:
 
 		SourceGroupSettings::save(config, key);
 
-		using expand_type = bool[];
-		expand_type a {false, saveHelper<ComponentTypes>(config, key)...};
+		(... , saveHelper<ComponentTypes>(config, key));
 	}
 
 	bool equalsSettings(const SourceGroupSettingsBase* other) override
@@ -51,16 +94,7 @@ public:
 			return false;
 		}
 
-		using expand_type = bool[];
-		expand_type a {false, equalsHelper<ComponentTypes>(other)...};
-
-		bool r = true;
-		for (size_t i = 1; i <= getComponentCount(); ++i)
-		{
-			r &= a[i];
-		}
-
-		return r;
+		return (... && equalsHelper<ComponentTypes>(other));
 	}
 
 private:
@@ -70,17 +104,15 @@ private:
 	}
 
 	template <typename T>
-	bool loadHelper(const ConfigManager* config, const std::string& key)
+	void loadHelper(const ConfigManager* config, const std::string& key)
 	{
 		T::load(config, key);
-		return true;
 	}
 
 	template <typename T>
-	bool saveHelper(ConfigManager* config, const std::string& key)
+	void saveHelper(ConfigManager* config, const std::string& key)
 	{
 		T::save(config, key);
-		return true;
 	}
 
 	template <typename T>

@@ -3,6 +3,7 @@
 
 #include <vector>
 
+#include "TabIds.h"
 #include "View.h"
 
 struct SearchMatch;
@@ -11,17 +12,17 @@ class TabsView: public View
 {
 public:
 	TabsView(ViewLayout* viewLayout);
-	virtual ~TabsView() = default;
+	~TabsView() override = default;
 
-	virtual std::string getName() const;
+	std::string getName() const override;
 
 	virtual void clear() = 0;
 
 	virtual void openTab(bool showTab, const SearchMatch& match) = 0;
 	virtual void closeTab() = 0;
-	virtual void destroyTab(Id tabId) = 0;
+	virtual void destroyTab(TabId tabId) = 0;
 	virtual void selectTab(bool next) = 0;
-	virtual void updateTab(Id tabId, const std::vector<SearchMatch>& matches) = 0;
+	virtual void updateTab(TabId tabId, const std::vector<SearchMatch>& matches) = 0;
 };
 
 #endif	  // TABS_VIEW_H

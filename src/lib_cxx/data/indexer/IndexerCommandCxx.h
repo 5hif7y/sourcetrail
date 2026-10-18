@@ -7,25 +7,22 @@
 #include "IndexerCommand.h"
 
 class FilePath;
-namespace clang
+
+namespace clang::tooling
 {
-namespace tooling
-{
-class JSONCompilationDatabase;
+class CompilationDatabase;
 }
-}	 // namespace clang
 
 class IndexerCommandCxx: public IndexerCommand
 {
 public:
 	static std::vector<FilePath> getSourceFilesFromCDB(const FilePath& cdbPath);
-	static std::vector<FilePath> getSourceFilesFromCDB(
-		std::shared_ptr<clang::tooling::JSONCompilationDatabase> cdb, const FilePath& cdbPath);
+	static std::vector<FilePath> getSourceFilesFromCDB(std::shared_ptr<clang::tooling::CompilationDatabase> cdb, const FilePath& cdbPath);
 
-	static std::wstring getCompilerFlagLanguageStandard(const std::wstring& languageStandard);
-	static std::vector<std::wstring> getCompilerFlagsForSystemHeaderSearchPaths(
+	static std::string getCompilerFlagLanguageStandard(const std::string& languageStandard);
+	static std::vector<std::string> getCompilerFlagsForSystemHeaderSearchPaths(
 		const std::vector<FilePath>& systemHeaderSearchPaths);
-	static std::vector<std::wstring> getCompilerFlagsForFrameworkSearchPaths(
+	static std::vector<std::string> getCompilerFlagsForFrameworkSearchPaths(
 		const std::vector<FilePath>& frameworkSearchPaths);
 
 	static IndexerCommandType getStaticIndexerCommandType();
@@ -36,7 +33,7 @@ public:
 		const std::set<FilePathFilter>& excludeFilters,
 		const std::set<FilePathFilter>& includeFilters,
 		const FilePath& workingDirectory,
-		const std::vector<std::wstring>& compilerFlags);
+		const std::vector<std::string>& compilerFlags);
 
 	IndexerCommandType getIndexerCommandType() const override;
 	size_t getByteSize(size_t stringSize) const override;
@@ -44,7 +41,7 @@ public:
 	const std::set<FilePath>& getIndexedPaths() const;
 	const std::set<FilePathFilter>& getExcludeFilters() const;
 	const std::set<FilePathFilter>& getIncludeFilters() const;
-	const std::vector<std::wstring>& getCompilerFlags() const;
+	const std::vector<std::string>& getCompilerFlags() const;
 	const FilePath& getWorkingDirectory() const;
 
 protected:
@@ -55,7 +52,7 @@ private:
 	std::set<FilePathFilter> m_excludeFilters;
 	std::set<FilePathFilter> m_includeFilters;
 	FilePath m_workingDirectory;
-	std::vector<std::wstring> m_compilerFlags;
+	std::vector<std::string> m_compilerFlags;
 };
 
 #endif	  // INDEXER_COMMAND_CXXL_H

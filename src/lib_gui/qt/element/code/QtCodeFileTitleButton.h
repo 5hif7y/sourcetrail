@@ -5,19 +5,22 @@
 #include "QtSelfRefreshIconButton.h"
 #include "TimeStamp.h"
 
+#include <string>
+#include <map>
+
 class QtCodeFileTitleButton: public QtSelfRefreshIconButton
 {
 	Q_OBJECT
 
 public:
 	QtCodeFileTitleButton(QWidget* parent = nullptr);
-	virtual ~QtCodeFileTitleButton() = default;
+	~QtCodeFileTitleButton() override = default;
 
 	const FilePath& getFilePath() const;
 	void setFilePath(const FilePath& filePath);
 
 	void setModificationTime(const TimeStamp modificationTime);
-	void setProject(const std::wstring& name);
+	void setProject(const std::string& name);
 
 	bool isComplete() const;
 	void setIsComplete(bool isComplete);
@@ -29,10 +32,10 @@ public:
 	void updateFromOther(const QtCodeFileTitleButton* other);
 
 protected:
-	void mouseReleaseEvent(QMouseEvent* event);
-	void contextMenuEvent(QContextMenuEvent* event);
+	void mouseReleaseEvent(QMouseEvent* event) override;
+	void contextMenuEvent(QContextMenuEvent* event) override;
 
-	virtual void refresh();
+	void refresh() override;
 
 private slots:
 	void clickedTitle();
@@ -42,10 +45,12 @@ private:
 	void updateIcon();
 	void updateHatching();
 
+	std::map<std::string, QString> m_hatchingBackgroundImages;
+
 	FilePath m_filePath;
 	TimeStamp m_modificationTime;
-	bool m_isComplete;
-	bool m_isIndexed;
+	bool m_isComplete = true;
+	bool m_isIndexed = true;
 
 	QAction* m_openInTabAction;
 };

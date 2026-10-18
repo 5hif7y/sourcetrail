@@ -12,23 +12,23 @@ class TabbedView
 {
 public:
 	TabbedView(ViewLayout* viewLayout, const std::string& name);
-	virtual ~TabbedView() = default;
+	~TabbedView() override = default;
 
 	const std::vector<View*>& getViews() const;
 
 	virtual void addViewWidget(View* view) = 0;
 
 	// View implementation
-	virtual std::string getName() const;
+	std::string getName() const override;
 
 	// ViewLayout implementation
-	virtual void addView(View* view);
-	virtual void removeView(View* view);
+	void addView(View* view) override;
+	void removeView(View* view) override;
 
-	virtual void showView(View* view);
-	virtual void hideView(View* view);
+	void showView(View* view) override;
+	void hideView(View* view) override;
 
-	virtual void setViewEnabled(View* view, bool enabled);
+	void setViewEnabled(View* view, bool enabled) override;
 
 private:
 	std::vector<View*> m_views;

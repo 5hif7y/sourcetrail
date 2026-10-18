@@ -5,7 +5,7 @@
 
 SourceGroupSettingsUnloadable::SourceGroupSettingsUnloadable(
 	const std::string& id, const ProjectSettings* projectSettings)
-	: SourceGroupSettings(SOURCE_GROUP_UNKNOWN, id, projectSettings)
+	: SourceGroupSettings(SourceGroupType::UNKNOWN, id, projectSettings)
 {
 }
 
@@ -24,7 +24,7 @@ void SourceGroupSettingsUnloadable::loadSettings(const ConfigManager* config)
 	const std::string key = s_keyPrefix + getId();
 
 	SourceGroupSettings::load(config, key);
-	setStatus(SOURCE_GROUP_STATUS_DISABLED);
+	setStatus(SourceGroupStatusType::DISABLED);
 
 	m_typeString = config->getValueOrDefault<std::string>(key + "/type", "");
 
@@ -54,7 +54,7 @@ void SourceGroupSettingsUnloadable::loadSettings(const ConfigManager* config)
 
 void SourceGroupSettingsUnloadable::saveSettings(ConfigManager* config)
 {
-	for (auto it: m_content)
+	for (const auto &it: m_content)
 	{
 		config->setValues(it.first, it.second);
 	}
@@ -70,7 +70,7 @@ bool SourceGroupSettingsUnloadable::equalsSettings(const SourceGroupSettingsBase
 	if (const SourceGroupSettingsUnloadable* otherUnloadable =
 			dynamic_cast<const SourceGroupSettingsUnloadable*>(other))
 	{
-		for (auto it: m_content)
+		for (const auto &it: m_content)
 		{
 			auto otherIt = otherUnloadable->m_content.find(it.first);
 			if (otherIt == otherUnloadable->m_content.end() ||

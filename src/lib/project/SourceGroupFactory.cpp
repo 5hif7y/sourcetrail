@@ -52,4 +52,4 @@ std::shared_ptr<SourceGroup> SourceGroupFactory::createSourceGroup(
 
 std::shared_ptr<SourceGroupFactory> SourceGroupFactory::s_instance;
 
-SourceGroupFactory::SourceGroupFactory() {}
+SourceGroupFactory::SourceGroupFactory() = default;

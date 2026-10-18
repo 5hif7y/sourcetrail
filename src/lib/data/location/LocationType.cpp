@@ -1,34 +1,32 @@
 #include "LocationType.h"
 
-int locationTypeToInt(LocationType type)
+using namespace std;
+
+namespace
 {
-	return type;
+
+const LocationType LOCATION_TYPES[] = {
+	LocationType::TOKEN,
+	LocationType::SCOPE,
+	LocationType::QUALIFIER,
+	LocationType::LOCAL_SYMBOL,
+	LocationType::SIGNATURE,
+	LocationType::COMMENT,
+	LocationType::ERROR,
+	LocationType::FULLTEXT_SEARCH,
+	LocationType::SCREEN_SEARCH,
+	LocationType::UNSOLVED
+};
+
 }
 
-LocationType intToLocationType(int value)
+template <>
+LocationType intToEnum(int value)
 {
-	switch (value)
-	{
-	case LOCATION_TOKEN:
-		return LOCATION_TOKEN;
-	case LOCATION_SCOPE:
-		return LOCATION_SCOPE;
-	case LOCATION_QUALIFIER:
-		return LOCATION_QUALIFIER;
-	case LOCATION_LOCAL_SYMBOL:
-		return LOCATION_LOCAL_SYMBOL;
-	case LOCATION_SIGNATURE:
-		return LOCATION_SIGNATURE;
-	case LOCATION_COMMENT:
-		return LOCATION_COMMENT;
-	case LOCATION_ERROR:
-		return LOCATION_ERROR;
-	case LOCATION_FULLTEXT_SEARCH:
-		return LOCATION_FULLTEXT_SEARCH;
-	case LOCATION_SCREEN_SEARCH:
-		return LOCATION_SCREEN_SEARCH;
-	case LOCATION_UNSOLVED:
-		return LOCATION_UNSOLVED;
-	}
-	return LOCATION_TOKEN;
+	return lookupEnum(value, LOCATION_TYPES, LocationType::TOKEN);
+}
+
+size_t operator << (size_t bits, LocationType locationType)
+{
+	return bits << static_cast<int>(locationType);
 }

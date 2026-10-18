@@ -15,7 +15,7 @@ class QtUndoRedo: public QFrame
 
 public:
 	QtUndoRedo();
-	~QtUndoRedo();
+	~QtUndoRedo() override;
 
 	void setRedoButtonEnabled(bool enabled);
 	void setUndoButtonEnabled(bool enabled);
@@ -39,9 +39,9 @@ private:
 	std::vector<SearchMatch> m_history;
 	size_t m_currentIndex;
 
-	bool m_pressed;
+	bool m_pressed = false;
 
-	QtHistoryList* m_historyList;
+	QtHistoryList* m_historyList = nullptr;
 	TimeStamp m_historyHiddenAt;
 };
 
