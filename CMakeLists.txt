@@ -47,12 +47,15 @@ endif()
 # Set default build type to 'Release':
 
 set(defaultBuildType "Release")
-set(defaultBuildConfigurations ${defaultBuildType} "Debug" "RelWithDebInfo" "MinSizeRel")
-if (isMultiConfigGenerator)
-		if(NOT CMAKE_CONFIGURATION_TYPES)
-		set(CMAKE_CONFIGURATION_TYPES ${defaultBuildConfigurations} CACHE STRING "Multi-config available build types" FORCE)
-	endif()
-else()
+set(defaultBuildConfigurations "Release" "Debug")
+
+# Multi-config generators (Visual Studio) default to 4 configurations (including RelWithDebInfo and MinSizeRel).
+# Restrict to Release and Debug to match libraries provided by vcpkg and avoid missing target location errors:
+set(CMAKE_CONFIGURATION_TYPES "Release;Debug" CACHE STRING "Multi-config available build types" FORCE)
+set(CMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release)
+set(CMAKE_MAP_IMPORTED_CONFIG_MINSIZEREL Release)
+
+if (NOT isMultiConfigGenerator)
 	# Adapted from https://www.kitware.com//cmake-and-the-default-build-type/
 	if (NOT CMAKE_BUILD_TYPE)
 		message(STATUS "Set single-config default build type to 'Release'")
@@ -107,8 +110,8 @@ if (isGccCompiler OR isClangCompiler)
 elseif (isMsvcCompiler)
 	# https://learn.microsoft.com/en-us/cpp/build/optimization-best-practices
 	# CMakeCache.txt entry: "/O2 /Ob2 /DNDEBUG"
-	add_compile_options("$<$<CONFIG:Release>:/O2;/Gy;/GL;/fp:precise;/GS->")
-	add_link_options("$<$<CONFIG:Release>:/LTCG;/OPT:REF,ICF>")
+	add_compile_options("$<$<CONFIG:Release>:/O2;/Gy;/fp:precise;/GS->")
+	add_link_options("$<$<CONFIG:Release>:/OPT:REF,ICF>")
 
 	# For profiling:
 	#add_compile_options("$<$<CONFIG:RELEASE>:/Zi>")
@@ -122,6 +125,8 @@ endif()
 option(BUILD_CXX_LANGUAGE_PACKAGE "Build the C/C++ language package" OFF)
 option(BUILD_JAVA_LANGUAGE_PACKAGE "Build the Java language package" ON)
 option(BUILD_PYTHON_LANGUAGE_PACKAGE "Build the Python language package" OFF)
+
+option(SOURCETRAIL_SHARED_CORE "Build core as shared library for plugin architecture" OFF)
 
 configureFile(cmake/language_packages.h.in src/lib/language_packages.h)
 
@@ -416,12 +421,20 @@ add_subdirectory(src/lib_api)
 
 if (BUILD_CXX_LANGUAGE_PACKAGE)
 
+	# Map non-standard build configurations to Release for LLVM/Clang imported targets.
 	# With the LLVM-overlay-port in place, we can use the exact same LLVM version 
 	# for system- and vcpkg-build, so we don't accept a range anymore, but only a
 	# single version.
 	
 	set(CLANG_MIN_VERSION 21)
 	set(CLANG_MAX_VERSION 22)
+
+	if (isVcpkgBuild)
+		# Force Clang_DIR to the Release configuration directory to prevent CMake
+		# from picking up debug/lib/cmake/clang (which imports Debug LLVM libraries):
+		set(Clang_DIR "${CMAKE_CURRENT_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib/cmake/clang" CACHE PATH "Path to ClangConfig.cmake" FORCE)
+	endif()
+
 	find_package(Clang CONFIG REQUIRED) # Minimum version and/or version range xx...<yy doesn't work.
 	message(STATUS "Found LLVM: ${LLVM_VERSION}") # ${LLVM_INSTALL_PREFIX} ${CLANG_INSTALL_PREFIX}")
 	checkVersionRange("Clang" ${LLVM_VERSION} ${CLANG_MIN_VERSION} ${CLANG_MAX_VERSION})
@@ -511,12 +524,19 @@ if (BUILD_JAVA_LANGUAGE_PACKAGE)
 	find_package(JNI REQUIRED)
 	message(STATUS "Found JNI ${JNI_VERSION}: ${JNI_INCLUDE_DIRS}")
 
-	# Maven:
-	find_program(MVN_COMMAND NAMES "mvn" REQUIRED)
-	message(STATUS "Found Maven: ${MVN_COMMAND}")
+	# Maven is needed to build the Java indexer JAR.
+	# If not found, only lib_java (JNI bridge) will be built.
+	find_program(MVN_COMMAND NAMES "mvn")
+	if (MVN_COMMAND)
+		message(STATUS "Found Maven: ${MVN_COMMAND}")
+		add_subdirectory(java_indexer)
+	else()
+		message(WARNING "Maven not found - java-indexer.jar will NOT be built. "
+			"Install Maven and add it to PATH to enable the Java indexer. "
+			"The JNI bridge plugin (sourcetrail_java_plugin) will still be compiled.")
+	endif()
 
 	add_subdirectory(src/lib_java)
-	add_subdirectory(java_indexer)
 endif()
 
 ###############################################################################

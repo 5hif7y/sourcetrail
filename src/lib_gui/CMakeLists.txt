@@ -376,6 +376,12 @@ if (BUILD_CXX_LANGUAGE_PACKAGE)
 		PUBLIC
 			qt/project_wizard/content/path
 			qt/project_wizard/content/paths
+			${CMAKE_CURRENT_SOURCE_DIR}/../lib_cxx/project
+			${CMAKE_CURRENT_SOURCE_DIR}/../lib_cxx/data/indexer
+			${CMAKE_CURRENT_SOURCE_DIR}/../lib_cxx/utility
+			${CMAKE_CURRENT_SOURCE_DIR}/../lib_cxx/utility/codeblocks
+			${CMAKE_CURRENT_SOURCE_DIR}/../lib_cxx
+			${CMAKE_CURRENT_SOURCE_DIR}/../lib_cxx/utility/codeblocks
 	)
 endif()
 
@@ -401,6 +407,9 @@ if (BUILD_JAVA_LANGUAGE_PACKAGE)
 			qt/project_wizard/content/path
 			qt/project_wizard/content/paths
 			qt/project_wizard/content
+			${CMAKE_CURRENT_SOURCE_DIR}/../lib_java/project
+			${CMAKE_CURRENT_SOURCE_DIR}/../lib_java/utility
+			${CMAKE_CURRENT_SOURCE_DIR}/../lib_java
 	)
 endif()
 
@@ -422,4 +431,44 @@ target_link_libraries(Sourcetrail_lib_gui
 		AidKit_qt
 		External_lib_qt
 		Sourcetrail_res_gui
+)
+
+# Precompiled header. lib_gui is 161 translation units that all pull in Qt; without
+# a PCH every one of them re-parses the same headers (measured baseline: 343 s to
+# rebuild the target). Keep this list restricted to headers that are broadly used
+# and safe to force-include everywhere.
+target_precompile_headers(Sourcetrail_lib_gui
+	PRIVATE
+		<QtCore/QObject>
+		<QtCore/QString>
+		<QtCore/QStringList>
+		<QtCore/QVector>
+		<QtCore/QList>
+		<QtCore/QMap>
+		<QtCore/QHash>
+		<QtCore/QSet>
+		<QtCore/QVariant>
+		<QtCore/QTimer>
+		<QtWidgets/QApplication>
+		<QtWidgets/QWidget>
+		<QtWidgets/QFrame>
+		<QtWidgets/QLabel>
+		<QtWidgets/QPushButton>
+		<QtWidgets/QCheckBox>
+		<QtWidgets/QComboBox>
+		<QtWidgets/QLineEdit>
+		<QtWidgets/QVBoxLayout>
+		<QtWidgets/QHBoxLayout>
+		<QtWidgets/QGridLayout>
+		<QtWidgets/QScrollArea>
+		<QtWidgets/QDialog>
+		<QtWidgets/QMessageBox>
+		<QtWidgets/QMenu>
+		<QtGui/QAction>
+		<vector>
+		<string>
+		<map>
+		<set>
+		<memory>
+		<algorithm>
 )

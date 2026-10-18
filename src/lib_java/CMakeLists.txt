@@ -52,7 +52,14 @@ target_link_libraries(Sourcetrail_lib_java
 
 set_target_properties(Sourcetrail_lib_java PROPERTIES 
 	OUTPUT_NAME "sourcetrail_java_plugin"
-	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Debug/app/plugins"
-	RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/Debug/app/plugins"
-	RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/Release/app/plugins"
+	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Debug/app"
+	RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/Debug/app"
+	RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/Release/app"
+	WINDOWS_EXPORT_ALL_SYMBOLS ON
+)
+
+add_custom_command(TARGET Sourcetrail_lib_java POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+	$<TARGET_FILE:Sourcetrail_lib_java>
+	$<TARGET_FILE_DIR:Sourcetrail_lib_java>/plugins/$<TARGET_FILE_NAME:Sourcetrail_lib_java>
 )

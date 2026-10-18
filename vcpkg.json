@@ -1,33 +1,33 @@
 {
-	"$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
-	"name": "sourcetrail",
-	"version": "1.0.0",
-	"dependencies": [
-		"boost-system",
-		"boost-date-time",
-		"boost-filesystem",
-		"boost-program-options",
-		"boost-dll",
-		"boost-interprocess",
-		"boost-uuid",
-		"boost-asio",
-		"boost-process",
-		"boost-multi-index",
-		{
-			"name": "boost-locale",
-			"features": [ "icu" ]
-		},
-		"icu",
-
-		"qtsvg",
-		"qtbase",
-		"qtimageformats",
-
-		"nlohmann-json",
-		"sqlite3",
-		"tinyxml",
-
-		"catch2",
-		"gtest"
-	]
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "sourcetrail",
+  "version": "1.0.0",
+  "dependencies": [
+    "llvm",
+    "boost-system",
+    "boost-date-time",
+    "boost-filesystem",
+    "boost-program-options",
+    "boost-dll",
+    "boost-interprocess",
+    "boost-uuid",
+    "boost-asio",
+    "boost-process",
+    "boost-multi-index",
+    {
+      "name": "boost-locale",
+      "features": [
+        "icu"
+      ]
+    },
+    "icu",
+    "qtsvg",
+    "qtbase",
+    "qtimageformats",
+    "nlohmann-json",
+    "sqlite3",
+    "tinyxml",
+    "catch2",
+    "gtest"
+  ]
 }

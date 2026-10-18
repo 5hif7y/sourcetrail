@@ -20,3 +20,5 @@ target_link_libraries(sourcetrail_cli
 		$<$<BOOL:${BUILD_JAVA_LANGUAGE_PACKAGE}>:Sourcetrail_lib_java>
 		External_lib_boost
 )
+
+deploySourcetrailCore(sourcetrail_cli)

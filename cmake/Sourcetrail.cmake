@@ -63,6 +63,21 @@ function(setAppOutputDirectory targetName)
 	setTargetOutputDirectory(${targetName} "/app/")
 endfunction()
 
+# Copy the shared core next to an executable. Windows' PE loader only looks in
+# the executable's own directory (and System32/PATH), so every target that links
+# Sourcetrail_lib needs the DLL beside it. Doing this for sourcetrail_cli as well
+# means `--target sourcetrail_cli` produces a usable build without having to
+# build the GUI target (the copy used to hang off Sourcetrail only).
+function(deploySourcetrailCore targetName)
+	if (WIN32 AND SOURCETRAIL_SHARED_CORE AND TARGET Sourcetrail_lib)
+		add_custom_command(TARGET ${targetName} POST_BUILD
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different
+				$<TARGET_FILE:Sourcetrail_lib>
+				$<TARGET_FILE_DIR:${targetName}>
+		)
+	endif()
+endfunction()
+
 function(setTestOutputDirectory targetName)
 	setTargetOutputDirectory(${targetName} "/test/")
 endfunction()
