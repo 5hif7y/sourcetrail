@@ -19,6 +19,7 @@
 #include "QtProjectWizardContentUnloadable.h"
 #include "QtResources.h"
 #include "SourceGroupSettingsCustomCommand.h"
+#include "SourceGroupSettingsPythonEmpty.h"
 #include "SourceGroupSettingsUnloadable.h"
 #include "ToolChain.h"
 #include "language_packages.h"
@@ -957,6 +958,10 @@ void QtProjectWizard::selectedProjectType(SourceGroupType sourceGroupType)
 		break;
 #endif	  // BUILD_JAVA_LANGUAGE_PACKAGE
 
+	case SourceGroupType::PYTHON_EMPTY:
+		settings = std::make_shared<SourceGroupSettingsPythonEmpty>(
+			sourceGroupId, m_projectSettings.get());
+		break;
 	case SourceGroupType::CUSTOM_COMMAND:
 		settings = std::make_shared<SourceGroupSettingsCustomCommand>(
 			sourceGroupId, m_projectSettings.get());

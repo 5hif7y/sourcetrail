@@ -53,6 +53,7 @@ void QtProjectWizardContentSelect::populate(QGridLayout* layout, int&  /*row*/)
 	sourceGroupInfos[LanguageType::JAVA].push_back(SourceGroupInfo(SourceGroupType::JAVA_GRADLE));
 	sourceGroupInfos[LanguageType::JAVA].push_back(SourceGroupInfo(SourceGroupType::JAVA_EMPTY));
 #endif	  // BUILD_JAVA_LANGUAGE_PACKAGE
+	sourceGroupInfos[LanguageType::PYTHON].push_back(SourceGroupInfo(SourceGroupType::PYTHON_EMPTY, true));
 	sourceGroupInfos[LanguageType::CUSTOM].push_back(SourceGroupInfo(SourceGroupType::CUSTOM_COMMAND));
 
 	// define which icons should be used for which kind of source group
@@ -68,6 +69,7 @@ void QtProjectWizardContentSelect::populate(QGridLayout* layout, int&  /*row*/)
 	m_sourceGroupTypeIconName[SourceGroupType::JAVA_MAVEN]  = QtResources::ICON_MVN_ICON;
 	m_sourceGroupTypeIconName[SourceGroupType::JAVA_GRADLE] = QtResources::ICON_GRADLE_ICON;
 #endif // BUILD_JAVA_LANGUAGE_PACKAGE
+	m_sourceGroupTypeIconName[SourceGroupType::PYTHON_EMPTY] = QtResources::ICON_EMPTY_ICON;
 	m_sourceGroupTypeIconName[SourceGroupType::CUSTOM_COMMAND] = QtResources::ICON_EMPTY_ICON;
 
 	// define descriptions for each kind of Source Group
@@ -102,6 +104,8 @@ void QtProjectWizardContentSelect::populate(QGridLayout* layout, int&  /*row*/)
 	m_sourceGroupTypeDescriptions[SourceGroupType::JAVA_GRADLE] =
 		"Create a new Source Group from an existing Gradle project.";
 #endif	  // BUILD_JAVA_LANGUAGE_PACKAGE
+	m_sourceGroupTypeDescriptions[SourceGroupType::PYTHON_EMPTY] =
+		"Create a new Source Group by defining which Python files will be indexed.";
 	m_sourceGroupTypeDescriptions[SourceGroupType::CUSTOM_COMMAND] =
 		"Create a new Source Group executing a custom command on each source file. "
 		"This Source Group type can be used on <a "
