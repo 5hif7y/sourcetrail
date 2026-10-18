@@ -1,5 +1,7 @@
 #include "Project.h"
 
+#include "CppSQLite3.h"
+
 #include "ApplicationSettings.h"
 #include "CombinedIndexerCommandProvider.h"
 #include "DialogView.h"
@@ -520,7 +522,8 @@ void Project::buildIndex(RefreshInfo info, std::shared_ptr<DialogView> dialogVie
 	{
 		if (sourceGroup->getStatus() == SourceGroupStatusType::ENABLED)
 		{
-			if (sourceGroup->getType() == SourceGroupType::CUSTOM_COMMAND)
+			if (sourceGroup->getType() == SourceGroupType::CUSTOM_COMMAND ||
+				sourceGroup->getType() == SourceGroupType::PYTHON_EMPTY)
 			{
 				customIndexerCommandProvider->addProvider(
 					sourceGroup->getIndexerCommandProvider(info));
@@ -745,6 +748,16 @@ bool Project::swapToTempStorageFile(
 {
 	try
 	{
+		// Force WAL checkpoint on the temp DB before renaming.
+		// In WAL mode, data may reside in the -wal file rather than the main DB file.
+		// Renaming only the main file would orphan the WAL data, resulting in an empty database.
+		{
+			CppSQLite3DB checkpointDb;
+			checkpointDb.open(tempIndexDbFilePath.str().c_str());
+			checkpointDb.execDML("PRAGMA wal_checkpoint(TRUNCATE);");
+			checkpointDb.close();
+		}
+
 		FileSystem::remove(indexDbFilePath);
 		FileSystem::rename(tempIndexDbFilePath, indexDbFilePath);
 	}
