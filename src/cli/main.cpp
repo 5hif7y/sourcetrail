@@ -79,7 +79,13 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	std::string projectFile = argv[1];
+	// Resolve the project path against the current directory. Otherwise the
+	// temporary database path derived from it stays relative and the indexer
+	// process (which runs with the project directory as its working directory)
+	// resolves it to the wrong location.
+	FilePath projectFilePath{std::string(argv[1])};
+	projectFilePath.makeAbsolute();
+	const std::string projectFile = projectFilePath.str();
 
 	// No GUI environment setup needed for CLI
 
