@@ -13,4 +13,5 @@ set_target_properties(Sourcetrail_indexer
 target_link_libraries(Sourcetrail_indexer
 	PRIVATE
 		Sourcetrail_lib
+		Sourcetrail_lib_gui
 )

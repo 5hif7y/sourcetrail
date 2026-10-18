@@ -9,4 +9,5 @@ setAppOutputDirectory(Sourcetrail)
 target_link_libraries(Sourcetrail
 	PRIVATE
 		Sourcetrail_lib
+		Sourcetrail_lib_gui
 )

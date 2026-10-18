@@ -579,6 +579,12 @@ add_library(Sourcetrail_lib
 
 	utility/ConfigManager.cpp
 	utility/ConfigManager.h
+	utility/ErrorHelpCallback.cpp
+	utility/ErrorHelpCallback.h
+	utility/ResourceProvider.cpp
+	utility/ResourceProvider.h
+	utility/ThreadFunctor.cpp
+	utility/ThreadFunctor.h
 	utility/Id.cpp
 	utility/Id.h
 	utility/LoopThread.h 
@@ -739,8 +745,6 @@ target_include_directories(Sourcetrail_lib
 target_link_libraries(Sourcetrail_lib
 	PUBLIC
 		AidKit_lib
-
-		Sourcetrail_lib_gui
 
 		$<$<BOOL:${BUILD_CXX_LANGUAGE_PACKAGE}>:Sourcetrail_lib_cxx>
 		$<$<BOOL:${BUILD_JAVA_LANGUAGE_PACKAGE}>:Sourcetrail_lib_java>

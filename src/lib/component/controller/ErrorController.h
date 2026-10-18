@@ -11,7 +11,7 @@
 #include "MessageIndexingStarted.h"
 #include "MessageListener.h"
 #include "MessageShowError.h"
-#include "QtThreadedFunctor.h"
+#include "ThreadFunctor.h"
 
 #include "Controller.h"
 #include "ErrorView.h"
@@ -63,7 +63,7 @@ private:
 	std::map<TabId, bool> m_tabShowsErrors;
 	std::map<TabId, FilePath> m_tabActiveFilePath;
 
-	QtThreadedLambdaFunctor m_onQtThread;
+	std::unique_ptr<ThreadFunctor> m_onQtThread;
 	bool m_newErrorsAdded = false;
 };
 

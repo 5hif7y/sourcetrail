@@ -1,6 +1,6 @@
 #include "NodeType.h"
 
-#include "QtResources.h"
+#include "ResourceProvider.h"
 #include "utilityString.h"
 
 std::vector<NodeType> NodeType::getOverviewBundleNodes()
@@ -201,21 +201,21 @@ FilePath NodeType::getIconPath() const
 	if (isPackage())
 	{
 		// this icon cannot be changed
-		return QtResources::GRAPH_VIEW_NAMESPACE;
+		return ResourceProvider::getInstance().getResource("GRAPH_VIEW_NAMESPACE");
 	}
 
 	switch (m_kind)
 	{
 	case NODE_ANNOTATION:
-		return QtResources::GRAPH_VIEW_ANNOTATION;
+		return ResourceProvider::getInstance().getResource("GRAPH_VIEW_ANNOTATION");
 	case NODE_ENUM:
-		return QtResources::GRAPH_VIEW_ENUM;
+		return ResourceProvider::getInstance().getResource("GRAPH_VIEW_ENUM");
 	case NODE_TYPEDEF:
-		return QtResources::GRAPH_VIEW_TYPEDEF;
+		return ResourceProvider::getInstance().getResource("GRAPH_VIEW_TYPEDEF");
 	case NODE_MACRO:
-		return QtResources::GRAPH_VIEW_MACRO;
+		return ResourceProvider::getInstance().getResource("GRAPH_VIEW_MACRO");
 	case NODE_FILE:
-		return QtResources::GRAPH_VIEW_FILE;
+		return ResourceProvider::getInstance().getResource("GRAPH_VIEW_FILE");
 	default:
 		return FilePath();
 	}

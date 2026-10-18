@@ -3,12 +3,16 @@
 #include "Application.h"
 #include "ApplicationSettings.h"
 #include "DialogView.h"
+#include "ErrorHelpCallback.h"
 #include "Project.h"
-#include "QtHelpButtonInfo.h"
 #include "StorageAccess.h"
 #include "TabIds.h"
 
-ErrorController::ErrorController(StorageAccess* storageAccess): m_storageAccess(storageAccess) {}
+ErrorController::ErrorController(StorageAccess* storageAccess)
+	: m_storageAccess(storageAccess)
+	, m_onQtThread(ThreadFunctorFactory::getInstance().create())
+{
+}
 
 ErrorController::~ErrorController() = default;
 
@@ -141,7 +145,7 @@ void ErrorController::handleMessage(MessageErrorsHelpMessage* message)
 	appSettings->setSeenErrorHelpMessage(true);
 	appSettings->save();
 
-	m_onQtThread([=]() { createErrorHelpButtonInfo().displayMessage(nullptr); });
+	(*m_onQtThread)([]() { ErrorHelpCallback::show(); });
 }
 
 void ErrorController::handleMessage(MessageIndexingFinished*  /*message*/)

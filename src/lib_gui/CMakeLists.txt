@@ -456,6 +456,7 @@ target_include_directories(Sourcetrail_lib_gui
 target_link_libraries(Sourcetrail_lib_gui
 	PUBLIC
 		Sourcetrail_lib
+		AidKit_qt
 		External_lib_qt
 		Sourcetrail_res_gui
 )

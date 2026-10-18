@@ -12,6 +12,13 @@
 #include <utilityQt.h>
 #include <utilityString.h>
 
+#include "ErrorHelpCallback.h"
+#include "QtHelpButtonInfo.h"
+#include "QtResources.h"
+#include "QtThreadedFunctor.h"
+#include "ResourceProvider.h"
+#include "ThreadFunctor.h"
+
 #include <QCoreApplication>
 #include <QDir>
 #include <QDirIterator>
@@ -64,6 +71,22 @@ void setupAppDirectories(const FilePath &appPath)
 	AppPath::setCxxIndexerDirectoryPath(appPath);
 
 	setupUserDirectory(appPath);
+
+	ResourceProvider::getInstance().registerResource("GRAPH_VIEW_NAMESPACE", QtResources::GRAPH_VIEW_NAMESPACE);
+	ResourceProvider::getInstance().registerResource("GRAPH_VIEW_ANNOTATION", QtResources::GRAPH_VIEW_ANNOTATION);
+	ResourceProvider::getInstance().registerResource("GRAPH_VIEW_ENUM", QtResources::GRAPH_VIEW_ENUM);
+	ResourceProvider::getInstance().registerResource("GRAPH_VIEW_TYPEDEF", QtResources::GRAPH_VIEW_TYPEDEF);
+	ResourceProvider::getInstance().registerResource("GRAPH_VIEW_MACRO", QtResources::GRAPH_VIEW_MACRO);
+	ResourceProvider::getInstance().registerResource("GRAPH_VIEW_FILE", QtResources::GRAPH_VIEW_FILE);
+	ResourceProvider::getInstance().registerResource("GRAPH_VIEW_BUNDLE", QtResources::GRAPH_VIEW_BUNDLE);
+
+	ThreadFunctorFactory::getInstance().setFactory([]() {
+		return std::make_unique<QtThreadedFunctor>();
+	});
+
+	ErrorHelpCallback::setCallback([]() {
+		createErrorHelpButtonInfo().displayMessage(nullptr);
+	});
 }
 
 void setupAppEnvironment(int  /*argc*/, char*  /*argv*/[])
