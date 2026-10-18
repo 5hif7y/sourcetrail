@@ -12,7 +12,9 @@
 class ConfigManager;
 class FilePath;
 
-class SourceGroupSettings: virtual public SourceGroupSettingsBase
+#include "SourcetrailLibExport.h"
+
+class SOURCETRAIL_LIB_EXPORT SourceGroupSettings: virtual public SourceGroupSettingsBase
 {
 public:
 	static const size_t s_version;

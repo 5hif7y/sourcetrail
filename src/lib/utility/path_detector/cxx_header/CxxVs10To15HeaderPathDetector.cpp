@@ -5,8 +5,9 @@
 #include "utility.h"
 #include "utilityCxxHeaderDetection.h"
 
-#include <QSettings>
-#include <QSysInfo>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 #include <string>
 
@@ -18,25 +19,39 @@ using Architecture = Platform::Architecture;
 
 static FilePath getVsInstallPathUsingRegistry(const LegacyVisualStudio::Version &version, bool isExpress, Architecture architecture)
 {
-	QString key = "HKEY_LOCAL_MACHINE\\SOFTWARE\\";
+#ifdef _WIN32
+	std::string keyStr = "SOFTWARE\\";
 	if (architecture == Architecture::BITS_32)
 	{
-		key += "Wow6432Node\\";
+		keyStr += "Wow6432Node\\";
 	}
-	key += "Microsoft\\";
-	key += (isExpress ? QStringLiteral("VCExpress") : QStringLiteral("VisualStudio"));
-	key += "\\" + version.number;
+	keyStr += "Microsoft\\";
+	keyStr += (isExpress ? "VCExpress" : "VisualStudio");
+	keyStr += "\\" + version.number;
 
-	QSettings expressKey(key, QSettings::NativeFormat);	  // NativeFormat means from Registry on Windows.
-	QString value = expressKey.value("InstallDir").toString() + "../../";
-
-	FilePath path(value.toStdString());
-	if (path.exists())
+	HKEY hKey;
+	if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, keyStr.c_str(), 0, KEY_READ, &hKey) == ERROR_SUCCESS)
 	{
-		LOG_INFO("Found working registry key for VS install path: " + key.toStdString());
-		return path;
+		char buffer[512];
+		DWORD bufferSize = sizeof(buffer);
+		if (RegQueryValueExA(hKey, "InstallDir", nullptr, nullptr, (LPBYTE)buffer, &bufferSize) == ERROR_SUCCESS)
+		{
+			RegCloseKey(hKey);
+			if (bufferSize > 0 && buffer[bufferSize - 1] == '\0') {
+				bufferSize--;
+			}
+			std::string value = std::string(buffer, bufferSize) + "../../";
+			FilePath path(value);
+			if (path.exists())
+			{
+				LOG_INFO("Found working registry key for VS install path: HKEY_LOCAL_MACHINE\\" + keyStr);
+				return path;
+			}
+			return FilePath();
+		}
+		RegCloseKey(hKey);
 	}
-
+#endif
 	return FilePath();
 }
 

@@ -9,7 +9,9 @@
 
 class SourceGroupSettings;
 
-class ProjectSettings: public Settings
+#include "SourcetrailLibExport.h"
+
+class SOURCETRAIL_LIB_EXPORT ProjectSettings: public Settings
 {
 public:
 	static const std::string PROJECT_FILE_EXTENSION;

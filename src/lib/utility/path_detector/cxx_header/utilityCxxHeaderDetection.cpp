@@ -5,8 +5,9 @@
 #include "utilityApp.h"
 #include "utilityString.h"
 
-#include <QSettings>
-#include <QSysInfo>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 #include <array>
 
@@ -46,17 +47,31 @@ std::vector<std::string> getCxxHeaderPaths(const std::string& compilerName)
 
 static std::string getWindowsSdkRegistryValue(const std::string &valueKey, Platform::Architecture architecture, const std::string &sdkVersion)
 {
-	QString key = QStringLiteral("HKEY_LOCAL_MACHINE\\SOFTWARE\\");
+#ifdef _WIN32
+	std::string key = "SOFTWARE\\";
 	if (architecture == Platform::Architecture::BITS_32)
 	{
-		key += QStringLiteral("Wow6432Node\\");
+		key += "Wow6432Node\\";
 	}
-	key += QStringLiteral("Microsoft\\Microsoft SDKs\\Windows\\") + QString::fromStdString(sdkVersion);
+	key += "Microsoft\\Microsoft SDKs\\Windows\\" + sdkVersion;
 
-	QSettings registrySettings(key, QSettings::NativeFormat); // NativeFormat means from Registry on Windows.
-	QString value = registrySettings.value(QString::fromStdString(valueKey)).toString();
-
-	return value.toStdString();
+	HKEY hKey;
+	if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, key.c_str(), 0, KEY_READ, &hKey) == ERROR_SUCCESS)
+	{
+		char buffer[512];
+		DWORD bufferSize = sizeof(buffer);
+		if (RegQueryValueExA(hKey, valueKey.c_str(), nullptr, nullptr, (LPBYTE)buffer, &bufferSize) == ERROR_SUCCESS)
+		{
+			RegCloseKey(hKey);
+			if (bufferSize > 0 && buffer[bufferSize - 1] == '\0') {
+				bufferSize--;
+			}
+			return std::string(buffer, bufferSize);
+		}
+		RegCloseKey(hKey);
+	}
+#endif
+	return "";
 }
 
 static FilePath getWindowsSdkInstallationFolder(Platform::Architecture architecture, const std::string &sdkVersion)

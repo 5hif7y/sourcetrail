@@ -7,7 +7,9 @@
 #include "Id.h"
 #include "TabIds.h"
 
-class MessageBase
+#include "SourcetrailLibExport.h"
+
+class SOURCETRAIL_LIB_EXPORT MessageBase
 {
 public:
 	MessageBase() = default;

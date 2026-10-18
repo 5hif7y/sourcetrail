@@ -175,8 +175,21 @@ void TaskExecuteCustomCommands::executeParallelIndexerCommands(
 		else
 		{
 			FilePath databaseFilePath = indexerCommand->getDatabaseFilePath();
-			databaseFilePath = databaseFilePath.getParentDirectory().concatenate(
-				databaseFilePath.fileName() + "_thread" + std::to_string(threadId));
+			{
+				// The suffix MUST go before the extension: numbat (the writer used by
+				// the Python indexer) truncates the path at the last dot and appends
+				// ".srctrldb". With "foo_tmp.srctrldb_thread1" every worker resolved
+				// to the same "foo_tmp.srctrldb" and failed with "database is locked".
+				const std::string fileName = databaseFilePath.fileName();
+				const std::string stemName = databaseFilePath.withoutExtension().fileName();
+				const std::string extension = fileName.substr(stemName.size());
+
+				// Build the whole file name and join it to the parent directory:
+				// FilePath::concatenate() inserts a separator, so concatenating onto
+				// the stem would create a subdirectory instead of a sibling file.
+				databaseFilePath = databaseFilePath.getParentDirectory().concatenate(
+					stemName + "_thread" + std::to_string(threadId) + extension);
+			}
 
 			bool databaseFilePathKnown = true;
 			{

@@ -2,6 +2,7 @@
 
 #include "CppSQLite3.h"
 
+#include "Application.h"
 #include "ApplicationSettings.h"
 #include "CombinedIndexerCommandProvider.h"
 #include "DialogView.h"
@@ -552,7 +553,11 @@ void Project::buildIndex(RefreshInfo info, std::shared_ptr<DialogView> dialogVie
 	int indexerThreadCount = ApplicationSettings::getInstance()->getIndexerThreadCount();
 	if (indexerThreadCount <= 0)
 	{
-		indexerThreadCount = utility::getIdealThreadCount();
+		// The GUI keeps one core free for itself; headless runs (sourcetrail_cli)
+		// can use every core, which matters on small machines (4 cores -> 3 vs 4).
+		const bool forGui =
+			Application::getInstance() == nullptr || Application::getInstance()->hasGUI();
+		indexerThreadCount = utility::getIdealThreadCount(forGui);
 		if (indexerThreadCount <= 0)
 		{
 			indexerThreadCount = 4;	   // setting to some fallback value
