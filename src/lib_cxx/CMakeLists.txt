@@ -117,6 +117,35 @@ add_library(Sourcetrail_lib_cxx SHARED
 )
 setDefaultTargetOptions(Sourcetrail_lib_cxx)
 
+# Precompile the Clang/LLVM headers that most translation units pull in. These
+# headers dominate the per-file cost of this plugin, so a PCH pays off even
+# though it is large. Template-heavy headers used by only a few files (e.g.
+# RecursiveASTVisitor.h) are intentionally left out.
+target_precompile_headers(Sourcetrail_lib_cxx
+	PRIVATE
+		<clang/AST/ASTContext.h>
+		<clang/AST/Decl.h>
+		<clang/AST/DeclCXX.h>
+		<clang/AST/DeclTemplate.h>
+		<clang/Basic/SourceManager.h>
+		<clang/Frontend/CompilerInstance.h>
+		<clang/Lex/Preprocessor.h>
+		<clang/Tooling/CompilationDatabase.h>
+		<clang/Tooling/Tooling.h>
+		<llvm/Support/raw_ostream.h>
+		<string>
+		<vector>
+		<map>
+		<set>
+		<memory>
+		<sstream>
+		<unordered_map>
+)
+
+# DebugStubs.cpp defines the debug CRT symbols it stubs itself and conflicts
+# with the standard headers pulled in by the PCH, so it is compiled without it.
+set_source_files_properties(DebugStubs.cpp PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+
 target_include_directories(Sourcetrail_lib_cxx
 	PUBLIC
 		data/indexer

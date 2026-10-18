@@ -1358,6 +1358,31 @@ endif()
 
 setDefaultTargetOptions(Sourcetrail_lib)
 
+# Precompile the standard headers shared by most translation units. This is
+# deliberately limited to the standard library: own headers change often and
+# would invalidate the PCH on nearly every edit.
+target_precompile_headers(Sourcetrail_lib
+	PRIVATE
+		<algorithm>
+		<atomic>
+		<chrono>
+		<cstdint>
+		<cstdlib>
+		<cstring>
+		<functional>
+		<map>
+		<memory>
+		<mutex>
+		<set>
+		<sstream>
+		<string>
+		<thread>
+		<unordered_map>
+		<unordered_set>
+		<utility>
+		<vector>
+)
+
 target_include_directories(Sourcetrail_lib
 	PUBLIC
 		app/paths
