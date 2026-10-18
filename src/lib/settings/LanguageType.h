@@ -10,13 +10,11 @@
 enum class LanguageType
 {
 	UNKNOWN,
-#if BUILD_CXX_LANGUAGE_PACKAGE
 	CXX,
 	C,
-#endif
-#if BUILD_JAVA_LANGUAGE_PACKAGE
+
 	JAVA,
-#endif
+	PYTHON,
 	CUSTOM
 };
 

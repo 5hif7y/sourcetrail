@@ -3,10 +3,6 @@
 	"name": "sourcetrail",
 	"version": "1.0.0",
 	"dependencies": [
-		{
-			"name": "llvm",
-			"$comment": "LLVM features are not supported with our overlay-port"
-		},
 		"boost-system",
 		"boost-date-time",
 		"boost-filesystem",

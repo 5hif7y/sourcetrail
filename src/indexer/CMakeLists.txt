@@ -15,3 +15,7 @@ target_link_libraries(Sourcetrail_indexer
 		Sourcetrail_lib
 		Sourcetrail_lib_gui
 )
+
+if(BUILD_CXX_LANGUAGE_PACKAGE)
+	target_link_libraries(Sourcetrail_indexer PRIVATE Sourcetrail_lib_cxx)
+endif()

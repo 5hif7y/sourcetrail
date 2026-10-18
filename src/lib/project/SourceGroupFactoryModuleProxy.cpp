@@ -7,18 +7,14 @@ bool SourceGroupFactoryModuleProxy::supports(SourceGroupType type) const
 {
 	switch (type)
 	{
-#if BUILD_CXX_LANGUAGE_PACKAGE
 	case SourceGroupType::C_EMPTY:
 	case SourceGroupType::CXX_EMPTY:
 	case SourceGroupType::CXX_CDB:
 	case SourceGroupType::CXX_CODEBLOCKS:
 	case SourceGroupType::CXX_VS:
-#endif
-#if BUILD_JAVA_LANGUAGE_PACKAGE
 	case SourceGroupType::JAVA_EMPTY:
 	case SourceGroupType::JAVA_GRADLE:
 	case SourceGroupType::JAVA_MAVEN:
-#endif
 		return true;
 	default:
 		break;

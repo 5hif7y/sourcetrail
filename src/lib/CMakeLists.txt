@@ -357,6 +357,45 @@ add_library(Sourcetrail_lib
 	settings/source_group/SourceGroupType.cpp
 	settings/source_group/SourceGroupType.h
 
+	settings/source_group/component/cxx/SourceGroupSettingsWithCppStandard.cpp
+	settings/source_group/component/cxx/SourceGroupSettingsWithCppStandard.h
+	settings/source_group/component/cxx/SourceGroupSettingsWithCStandard.cpp
+	settings/source_group/component/cxx/SourceGroupSettingsWithCStandard.h
+	settings/source_group/component/cxx/SourceGroupSettingsWithCxxCdbPath.cpp
+	settings/source_group/component/cxx/SourceGroupSettingsWithCxxCdbPath.h
+	settings/source_group/component/cxx/SourceGroupSettingsWithCxxCodeblocksPath.cpp
+	settings/source_group/component/cxx/SourceGroupSettingsWithCxxCodeblocksPath.h
+	settings/source_group/component/cxx/SourceGroupSettingsWithCxxCrossCompilationOptions.cpp
+	settings/source_group/component/cxx/SourceGroupSettingsWithCxxCrossCompilationOptions.h
+	settings/source_group/component/cxx/SourceGroupSettingsWithCxxPathsAndFlags.cpp
+	settings/source_group/component/cxx/SourceGroupSettingsWithCxxPathsAndFlags.h
+	settings/source_group/component/cxx/SourceGroupSettingsWithCxxPchOptions.cpp
+	settings/source_group/component/cxx/SourceGroupSettingsWithCxxPchOptions.h
+	settings/source_group/component/cxx/SourceGroupSettingsWithIndexedHeaderPaths.cpp
+	settings/source_group/component/cxx/SourceGroupSettingsWithIndexedHeaderPaths.h
+	settings/source_group/component/cxx/SourceGroupSettingsWithSourceExtensionsC.h
+	settings/source_group/component/cxx/SourceGroupSettingsWithSourceExtensionsCpp.h
+
+	settings/source_group/type/SourceGroupSettingsCEmpty.h
+	settings/source_group/type/SourceGroupSettingsCppEmpty.h
+	settings/source_group/type/SourceGroupSettingsCustomCommand.h
+	settings/source_group/type/SourceGroupSettingsCxxCdb.h
+	settings/source_group/type/SourceGroupSettingsCxxCodeblocks.h
+
+	settings/source_group/component/java/SourceGroupSettingsWithClasspath.cpp
+	settings/source_group/component/java/SourceGroupSettingsWithClasspath.h
+	settings/source_group/component/java/SourceGroupSettingsWithJavaGradle.cpp
+	settings/source_group/component/java/SourceGroupSettingsWithJavaGradle.h
+	settings/source_group/component/java/SourceGroupSettingsWithJavaMaven.cpp
+	settings/source_group/component/java/SourceGroupSettingsWithJavaMaven.h
+	settings/source_group/component/java/SourceGroupSettingsWithJavaStandard.cpp
+	settings/source_group/component/java/SourceGroupSettingsWithJavaStandard.h
+	settings/source_group/component/java/SourceGroupSettingsWithSourceExtensionsJava.h
+
+	settings/source_group/type/SourceGroupSettingsJavaEmpty.h
+	settings/source_group/type/SourceGroupSettingsJavaGradle.h
+	settings/source_group/type/SourceGroupSettingsJavaMaven.h
+
 	settings/ToolChain.cpp
 	settings/ToolChain.h
 	settings/ApplicationSettings.cpp
@@ -615,6 +654,8 @@ add_library(Sourcetrail_lib
 	utility/path_detector/CombinedPathDetector.h
 	utility/path_detector/PathDetector.cpp
 	utility/path_detector/PathDetector.h
+	utility/PluginManager.cpp
+	utility/PluginManager.h
 	utility/utilityApp.cpp
 	utility/utilityApp.h
 	utility/utilityPathDetection.cpp
@@ -631,6 +672,8 @@ add_library(Sourcetrail_lib
 	utility/utilityXml.cpp
 	utility/utilityXml.h
 )
+
+
 setDefaultTargetOptions(Sourcetrail_lib)
 
 target_include_directories(Sourcetrail_lib
@@ -660,6 +703,8 @@ target_include_directories(Sourcetrail_lib
 		data
 		project
 		settings/source_group/component
+		settings/source_group/component/cxx
+		settings/source_group/component/java
 		settings/source_group/type
 		settings/source_group
 		settings
@@ -702,31 +747,6 @@ endif()
 if (BUILD_CXX_LANGUAGE_PACKAGE)
 	target_sources(Sourcetrail_lib
 		PRIVATE
-			settings/source_group/component/cxx/SourceGroupSettingsWithCppStandard.cpp
-			settings/source_group/component/cxx/SourceGroupSettingsWithCppStandard.h
-			settings/source_group/component/cxx/SourceGroupSettingsWithCStandard.cpp
-			settings/source_group/component/cxx/SourceGroupSettingsWithCStandard.h
-			settings/source_group/component/cxx/SourceGroupSettingsWithCxxCdbPath.cpp
-			settings/source_group/component/cxx/SourceGroupSettingsWithCxxCdbPath.h
-			settings/source_group/component/cxx/SourceGroupSettingsWithCxxCodeblocksPath.cpp
-			settings/source_group/component/cxx/SourceGroupSettingsWithCxxCodeblocksPath.h
-			settings/source_group/component/cxx/SourceGroupSettingsWithCxxCrossCompilationOptions.cpp
-			settings/source_group/component/cxx/SourceGroupSettingsWithCxxCrossCompilationOptions.h
-			settings/source_group/component/cxx/SourceGroupSettingsWithCxxPathsAndFlags.cpp
-			settings/source_group/component/cxx/SourceGroupSettingsWithCxxPathsAndFlags.h
-			settings/source_group/component/cxx/SourceGroupSettingsWithCxxPchOptions.cpp
-			settings/source_group/component/cxx/SourceGroupSettingsWithCxxPchOptions.h
-			settings/source_group/component/cxx/SourceGroupSettingsWithIndexedHeaderPaths.cpp
-			settings/source_group/component/cxx/SourceGroupSettingsWithIndexedHeaderPaths.h
-			settings/source_group/component/cxx/SourceGroupSettingsWithSourceExtensionsC.h
-			settings/source_group/component/cxx/SourceGroupSettingsWithSourceExtensionsCpp.h
-
-			settings/source_group/type/SourceGroupSettingsCEmpty.h
-			settings/source_group/type/SourceGroupSettingsCppEmpty.h
-			settings/source_group/type/SourceGroupSettingsCustomCommand.h
-			settings/source_group/type/SourceGroupSettingsCxxCdb.h
-			settings/source_group/type/SourceGroupSettingsCxxCodeblocks.h
-
 			utility/path_detector/cxx_header/CxxFrameworkPathDetector.cpp
 			utility/path_detector/cxx_header/CxxFrameworkPathDetector.h
 			utility/path_detector/cxx_header/CxxHeaderPathDetector.cpp
@@ -749,20 +769,6 @@ endif()
 if (BUILD_JAVA_LANGUAGE_PACKAGE)
 	target_sources(Sourcetrail_lib
 		PRIVATE
-			settings/source_group/component/java/SourceGroupSettingsWithClasspath.cpp
-			settings/source_group/component/java/SourceGroupSettingsWithClasspath.h
-			settings/source_group/component/java/SourceGroupSettingsWithJavaGradle.cpp
-			settings/source_group/component/java/SourceGroupSettingsWithJavaGradle.h
-			settings/source_group/component/java/SourceGroupSettingsWithJavaMaven.cpp
-			settings/source_group/component/java/SourceGroupSettingsWithJavaMaven.h
-			settings/source_group/component/java/SourceGroupSettingsWithJavaStandard.cpp
-			settings/source_group/component/java/SourceGroupSettingsWithJavaStandard.h
-			settings/source_group/component/java/SourceGroupSettingsWithSourceExtensionsJava.h
-
-			settings/source_group/type/SourceGroupSettingsJavaEmpty.h
-			settings/source_group/type/SourceGroupSettingsJavaGradle.h
-			settings/source_group/type/SourceGroupSettingsJavaMaven.h
-
 			utility/path_detector/java_runtime/JavaPathDetector.cpp
 			utility/path_detector/java_runtime/JavaPathDetector.h
 			utility/path_detector/java_runtime/JavaPathDetectorLinuxWindowsMac.h
@@ -804,3 +810,5 @@ if (UNIX)
 			Threads::Threads
 	)
 endif()
+
+

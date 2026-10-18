@@ -38,6 +38,7 @@ FilePath::FilePath(const std::string& filePath)
 	, m_checkedIsDirectory(false)
 	, m_canonicalized(false)
 {
+	*m_path = m_path->lexically_normal();
 }
 
 FilePath::FilePath(const FilePath& other)
@@ -68,6 +69,7 @@ FilePath::FilePath(const std::string& filePath, const std::string& base)
 	, m_checkedIsDirectory(false)
 	, m_canonicalized(false)
 {
+	*m_path = m_path->lexically_normal();
 }
 
 FilePath::~FilePath() = default;
@@ -290,6 +292,7 @@ FilePath FilePath::getRelativeTo(const FilePath& other) const
 FilePath& FilePath::concatenate(const FilePath& other)
 {
 	m_path->operator/=(other.getPath());
+	*m_path = m_path->lexically_normal();
 	m_exists = false;
 	m_checkedExists = false;
 	m_isDirectory = false;
@@ -309,6 +312,7 @@ FilePath FilePath::getConcatenated(const FilePath& other) const
 FilePath& FilePath::concatenate(const char other[])
 {
 	m_path->operator/=(other);
+	*m_path = m_path->lexically_normal();
 	m_exists = false;
 	m_checkedExists = false;
 	m_isDirectory = false;

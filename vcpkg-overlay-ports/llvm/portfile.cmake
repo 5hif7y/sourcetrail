@@ -30,6 +30,7 @@ set(VCPKG_POLICY_ALLOW_EXES_IN_BIN enabled)
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}/llvm"
     OPTIONS
+        -DLLVM_ENABLE_DIA_SDK=OFF
 		-DLLVM_TARGETS_TO_BUILD="host"
 		-DLLVM_ENABLE_PROJECTS="clang"
 		-DLLVM_ENABLE_RTTI=ON

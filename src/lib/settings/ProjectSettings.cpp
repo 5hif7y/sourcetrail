@@ -7,22 +7,21 @@
 #include "utilityString.h"
 #include "utilityUuid.h"
 
-#if BUILD_CXX_LANGUAGE_PACKAGE
 #	include "SourceGroupSettingsCEmpty.h"
 #	include "SourceGroupSettingsCppEmpty.h"
 #	include "SourceGroupSettingsCxxCdb.h"
 #	include "SourceGroupSettingsCxxCodeblocks.h"
-#endif	  // BUILD_CXX_LANGUAGE_PACKAGE
 
-#if BUILD_JAVA_LANGUAGE_PACKAGE
+
 #	include "SourceGroupSettingsJavaEmpty.h"
 #	include "SourceGroupSettingsJavaGradle.h"
 #	include "SourceGroupSettingsJavaMaven.h"
-#endif	  // BUILD_JAVA_LANGUAGE_PACKAGE
+
 
 #if BUILD_PYTHON_LANGUAGE_PACKAGE
 #	include "SourceGroupSettingsPythonEmpty.h"
-#endif	  // BUILD_PYTHON_LANGUAGE_PACKAGE
+#endif
+
 
 const std::string ProjectSettings::PROJECT_FILE_EXTENSION = ".srctrlprj";
 const std::string ProjectSettings::BOOKMARK_DB_FILE_EXTENSION = ".srctrlbm";
@@ -162,7 +161,6 @@ std::vector<std::shared_ptr<SourceGroupSettings>> ProjectSettings::getAllSourceG
 
 		switch (type)
 		{
-#if BUILD_CXX_LANGUAGE_PACKAGE
 		case SourceGroupType::C_EMPTY:
 			settings = std::make_shared<SourceGroupSettingsCEmpty>(id, this);
 			break;
@@ -175,8 +173,7 @@ std::vector<std::shared_ptr<SourceGroupSettings>> ProjectSettings::getAllSourceG
 		case SourceGroupType::CXX_CODEBLOCKS:
 			settings = std::make_shared<SourceGroupSettingsCxxCodeblocks>(id, this);
 			break;
-#endif	  // BUILD_CXX_LANGUAGE_PACKAGE
-#if BUILD_JAVA_LANGUAGE_PACKAGE
+
 		case SourceGroupType::JAVA_EMPTY:
 			settings = std::make_shared<SourceGroupSettingsJavaEmpty>(id, this);
 			break;
@@ -186,12 +183,13 @@ std::vector<std::shared_ptr<SourceGroupSettings>> ProjectSettings::getAllSourceG
 		case SourceGroupType::JAVA_GRADLE:
 			settings = std::make_shared<SourceGroupSettingsJavaGradle>(id, this);
 			break;
-#endif	  // BUILD_JAVA_LANGUAGE_PACKAGE
+
 #if BUILD_PYTHON_LANGUAGE_PACKAGE
 		case SourceGroupType::PYTHON_EMPTY:
 			settings = std::make_shared<SourceGroupSettingsPythonEmpty>(id, this);
 			break;
 #endif
+
 		case SourceGroupType::CUSTOM_COMMAND:
 			settings = std::make_shared<SourceGroupSettingsCustomCommand>(id, this);
 			break;

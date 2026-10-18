@@ -13,19 +13,8 @@
 #include "ScopedFunctor.h"
 #include "SourceGroupFactory.h"
 #include "SourceGroupFactoryModuleCustom.h"
-#if BUILD_PYTHON_LANGUAGE_PACKAGE
-#include "SourceGroupFactoryModulePython.h"
-#endif
-
-#if BUILD_CXX_LANGUAGE_PACKAGE
-#include "LanguagePackageCxx.h"
-#include "SourceGroupFactoryModuleCxx.h"
-#endif
-
-#if BUILD_JAVA_LANGUAGE_PACKAGE
-#include "LanguagePackageJava.h"
-#include "SourceGroupFactoryModuleJava.h"
-#endif
+#include "PluginManager.h"
+#include <boost/dll.hpp>
 #include "AppPath.h"
 #include "UserPaths.h"
 #include "FileSystem.h"
@@ -109,25 +98,8 @@ int main(int argc, char* argv[])
 	
 	// Add default custom source group (others were CXX/Java, can add them later)
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleCustom>());
-#if BUILD_PYTHON_LANGUAGE_PACKAGE
-	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModulePython>());
-#endif
-
-#if BUILD_CXX_LANGUAGE_PACKAGE
-	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleCxx>());
-#endif
-
-#if BUILD_JAVA_LANGUAGE_PACKAGE
-	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleJava>());
-#endif
-
-#if BUILD_CXX_LANGUAGE_PACKAGE
-	LanguagePackageManager::getInstance()->addPackage(std::make_shared<LanguagePackageCxx>());
-#endif
-
-#if BUILD_JAVA_LANGUAGE_PACKAGE
-	LanguagePackageManager::getInstance()->addPackage(std::make_shared<LanguagePackageJava>());
-#endif
+	
+	PluginManager::getInstance()->loadPlugins(FilePath(boost::dll::program_location().parent_path().string()).concatenate("plugins").str());
 
 	signal(SIGINT, signalHandler);
 	signal(SIGTERM, signalHandler);

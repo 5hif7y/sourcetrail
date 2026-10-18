@@ -418,6 +418,13 @@ void Project::buildIndex(RefreshInfo info, std::shared_ptr<DialogView> dialogVie
 			if (m_hasGUI)
 			{
 				dialogView->clearDialogs();
+				if (m_sourceGroups.empty())
+				{
+					dialogView->confirm(
+						"No Source Groups could be loaded for this project.\n"
+						"If this is a C++ or Java project, ensure the corresponding language indexer plugin is available and registered.",
+						{"OK"});
+				}
 			}
 			else
 			{

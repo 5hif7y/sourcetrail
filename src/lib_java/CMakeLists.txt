@@ -1,4 +1,5 @@
-add_library(Sourcetrail_lib_java
+add_library(Sourcetrail_lib_java SHARED
+	PluginInit.cpp
 	data/indexer/IndexerCommandJava.cpp
 	data/indexer/IndexerCommandJava.h
 	data/indexer/IndexerJava.cpp
@@ -47,4 +48,11 @@ target_link_libraries(Sourcetrail_lib_java
 	PUBLIC
 		Sourcetrail_lib
 		JNI::JNI
+)
+
+set_target_properties(Sourcetrail_lib_java PROPERTIES 
+	OUTPUT_NAME "sourcetrail_java_plugin"
+	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Debug/app/plugins"
+	RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/Debug/app/plugins"
+	RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/Release/app/plugins"
 )

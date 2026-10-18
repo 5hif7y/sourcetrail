@@ -219,7 +219,7 @@ std::set<FilePath> RefreshInfoGenerator::getAllSourceFilePaths(
 		{
 			for (const FilePath& sourceFilePath: sourceGroup->getAllSourceFilePaths())
 			{
-				if (sourceFilePath.exists())
+				if (sourceFilePath.exists() || sourceFilePath.fileName() == "proxy_dummy_file")
 				{
 					allSourceFilePaths.insert(sourceFilePath);
 				}

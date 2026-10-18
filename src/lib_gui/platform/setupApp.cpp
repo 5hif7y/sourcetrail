@@ -80,8 +80,8 @@ void setupAppDirectories(const FilePath &appPath)
 	ResourceProvider::getInstance().registerResource("GRAPH_VIEW_FILE", QtResources::GRAPH_VIEW_FILE);
 	ResourceProvider::getInstance().registerResource("GRAPH_VIEW_BUNDLE", QtResources::GRAPH_VIEW_BUNDLE);
 
-	ThreadFunctorFactory::getInstance().setFactory([]() {
-		return std::make_unique<QtThreadedFunctor>();
+	ThreadFunctorFactory::getInstance().setFactory([]() -> std::unique_ptr<ThreadFunctor> {
+		return std::make_unique<QtThreadedLambdaFunctor>();
 	});
 
 	ErrorHelpCallback::setCallback([]() {

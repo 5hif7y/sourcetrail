@@ -9,6 +9,7 @@
 
 #include "MessageListener.h"
 #include "MessageWindowClosed.h"
+#include "ThreadFunctor.h"
 
 class QtThreadedFunctorHelper : public QObject, public MessageListener<MessageWindowClosed>
 {
@@ -51,10 +52,10 @@ private:
 	std::function<void(Args...)> m_callback;
 };
 
-class QtThreadedLambdaFunctor
+class QtThreadedLambdaFunctor : public ThreadFunctor
 {
 public:
-	void operator()(std::function<void()> callback);
+	void operator()(std::function<void()> callback) override;
 
 private:
 	QtThreadedFunctorHelper m_helper;

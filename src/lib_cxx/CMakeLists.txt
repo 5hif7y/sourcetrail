@@ -1,4 +1,5 @@
-add_library(Sourcetrail_lib_cxx
+add_library(Sourcetrail_lib_cxx SHARED
+	PluginInit.cpp
 	data/indexer/CxxIndexerCommandProvider.cpp
 	data/indexer/CxxIndexerCommandProvider.h
 	data/indexer/IndexerCommandCxx.cpp
@@ -131,4 +132,11 @@ target_link_libraries(Sourcetrail_lib_cxx
 	PUBLIC
 		Sourcetrail_lib
 		External_lib_clang
+)
+
+set_target_properties(Sourcetrail_lib_cxx PROPERTIES 
+	OUTPUT_NAME "sourcetrail_cxx_plugin"
+	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Debug/app/plugins"
+	RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/Debug/app/plugins"
+	RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/Release/app/plugins"
 )

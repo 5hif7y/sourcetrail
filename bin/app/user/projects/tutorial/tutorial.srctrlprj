@@ -40,7 +40,7 @@
                 <source_path>./src</source_path>
             </source_paths>
             <status>enabled</status>
-            <type>C++ Source Group</type>
+            <type>Empty C++ Source Group</type>
         </source_group_75041cb3-37c8-45c6-bb8a-1b8b79040f59>
     </source_groups>
     <version>8</version>

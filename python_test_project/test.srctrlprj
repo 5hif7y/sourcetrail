@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+  <source_groups>
+    <source_group_1>
+      <id>1</id>
+      <type>Python Source Group</type>
+      <name>Python Source</name>
+      <source_extensions>
+        <source_extension>.py</source_extension>
+      </source_extensions>
+      <source_paths>
+        <source_path>.</source_path>
+      </source_paths>
+      <exclude_filters />
+      <status>enabled</status>
+    </source_group_1>
+  </source_groups>
+</config>

@@ -308,15 +308,6 @@ add_library(Sourcetrail_lib_gui
 	qt/QtCoreApplication.cpp
 	qt/QtCoreApplication.h
 
-	utility/path_detector/CombinedPathDetector.cpp
-	utility/path_detector/CombinedPathDetector.h
-	utility/path_detector/PathDetector.cpp
-	utility/path_detector/PathDetector.h
-
-	utility/utilityApp.cpp
-	utility/utilityApp.h
-	utility/utilityPathDetection.cpp
-	utility/utilityPathDetection.h
 )
 
 target_include_directories(Sourcetrail_lib_gui
@@ -343,7 +334,6 @@ target_include_directories(Sourcetrail_lib_gui
 		qt/view
 		qt/window
 		qt
-		utility/path_detector
 		utility
 )
 
@@ -380,25 +370,12 @@ if (BUILD_CXX_LANGUAGE_PACKAGE)
 			qt/project_wizard/content/QtProjectWizardContentFlags.h
 			qt/project_wizard/content/QtProjectWizardContentVS.cpp
 			qt/project_wizard/content/QtProjectWizardContentVS.h
-
-			utility/path_detector/cxx_header/CxxFrameworkPathDetector.cpp
-			utility/path_detector/cxx_header/CxxFrameworkPathDetector.h
-			utility/path_detector/cxx_header/CxxHeaderPathDetector.cpp
-			utility/path_detector/cxx_header/CxxHeaderPathDetector.h
-			utility/path_detector/cxx_header/CxxVs10To15HeaderPathDetector.cpp
-			utility/path_detector/cxx_header/CxxVs10To15HeaderPathDetector.h
-			utility/path_detector/cxx_header/CxxVs17ToLatestHeaderPathDetector.cpp
-			utility/path_detector/cxx_header/CxxVs17ToLatestHeaderPathDetector.h
-			utility/path_detector/cxx_header/utilityCxxHeaderDetection.cpp
-			utility/path_detector/cxx_header/utilityCxxHeaderDetection.h
 	)
 
 	target_include_directories(Sourcetrail_lib_gui
 		PUBLIC
 			qt/project_wizard/content/path
 			qt/project_wizard/content/paths
-			qt/project_wizard/content
-			utility/path_detector/cxx_header
 	)
 endif()
 
@@ -417,17 +394,6 @@ if (BUILD_JAVA_LANGUAGE_PACKAGE)
 
 			qt/project_wizard/content/QtProjectWizardContentJavaStandard.cpp
 			qt/project_wizard/content/QtProjectWizardContentJavaStandard.h
-
-			utility/path_detector/java_runtime/JavaPathDetector.cpp
-			utility/path_detector/java_runtime/JavaPathDetector.h
-			utility/path_detector/java_runtime/JavaPathDetectorLinuxWindowsMac.h
-			utility/path_detector/java_runtime/JavaPathDetectorLinuxWindowsMac.cpp
-
-			utility/path_detector/jre_system_library/JreSystemLibraryPathDetector.cpp
-			utility/path_detector/jre_system_library/JreSystemLibraryPathDetector.h
-
-			utility/path_detector/maven_executable/MavenPathDetectorUnixWindows.cpp
-			utility/path_detector/maven_executable/MavenPathDetectorUnixWindows.h
 	)
 
 	target_include_directories(Sourcetrail_lib_gui
@@ -435,9 +401,6 @@ if (BUILD_JAVA_LANGUAGE_PACKAGE)
 			qt/project_wizard/content/path
 			qt/project_wizard/content/paths
 			qt/project_wizard/content
-			utility/path_detector/java_runtime
-			utility/path_detector/jre_system_library
-			utility/path_detector/maven_executable
 	)
 endif()
 

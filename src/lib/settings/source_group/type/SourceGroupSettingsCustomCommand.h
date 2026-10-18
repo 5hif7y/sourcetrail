@@ -15,8 +15,13 @@ class SourceGroupSettingsCustomCommand
 		  SourceGroupSettingsWithSourcePaths>
 {
 public:
+	SourceGroupSettingsCustomCommand(SourceGroupType type, const std::string& id, const ProjectSettings* projectSettings)
+		: SourceGroupSettingsWithComponents(type, id, projectSettings)
+	{
+	}
+
 	SourceGroupSettingsCustomCommand(const std::string& id, const ProjectSettings* projectSettings)
-		: SourceGroupSettingsWithComponents(SourceGroupType::CUSTOM_COMMAND, id, projectSettings)
+		: SourceGroupSettingsCustomCommand(SourceGroupType::CUSTOM_COMMAND, id, projectSettings)
 	{
 	}
 

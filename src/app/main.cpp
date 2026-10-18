@@ -21,10 +21,17 @@
 #include "SourceGroupFactory.h"
 #include "SourceGroupFactoryModuleCustom.h"
 #include "SourceGroupFactoryModuleProxy.h"
+#include "PluginManager.h"
+#include <boost/dll.hpp>
 #include "language_packages.h"
 #include "utilityQt.h"
 #include "Version.h"
 #include "utilityString.h"
+
+#if BUILD_CXX_LANGUAGE_PACKAGE
+#  include "LanguagePackageCxx.h"
+#  include "SourceGroupFactoryModuleCxx.h"
+#endif
 
 
 
@@ -128,8 +135,13 @@ static void setupLogging(const ApplicationSettings *settings)
 
 void addLanguagePackages()
 {
+#if BUILD_CXX_LANGUAGE_PACKAGE
+	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleCxx>());
+	LanguagePackageManager::getInstance()->addPackage(std::make_shared<LanguagePackageCxx>());
+#endif
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleCustom>());
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleProxy>());
+	PluginManager::getInstance()->loadPlugins(FilePath(boost::dll::program_location().parent_path().string()).concatenate("plugins").str());
 
 
 }

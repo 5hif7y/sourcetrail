@@ -49,14 +49,7 @@ endif()
 set(defaultBuildType "Release")
 set(defaultBuildConfigurations ${defaultBuildType} "Debug" "RelWithDebInfo" "MinSizeRel")
 if (isMultiConfigGenerator)
-	if (NOT CMAKE_DEFAULT_BUILD_TYPE)
-		message(STATUS "Set multi-config default build type to 'Release'")
-		set(CMAKE_DEFAULT_BUILD_TYPE ${defaultBuildType} CACHE STRING "Multi-config default build type" FORCE)
-
-		# Present a combobox in the cmake-gui:
-		set_property(CACHE CMAKE_DEFAULT_BUILD_TYPE PROPERTY STRINGS ${defaultBuildConfigurations})
-	endif()
-	if(NOT CMAKE_CONFIGURATION_TYPES)
+		if(NOT CMAKE_CONFIGURATION_TYPES)
 		set(CMAKE_CONFIGURATION_TYPES ${defaultBuildConfigurations} CACHE STRING "Multi-config available build types" FORCE)
 	endif()
 else()
@@ -126,9 +119,9 @@ endif()
 # Configure which language(s)/package(s) should be build
 ###############################################################################
 
-option(BUILD_CXX_LANGUAGE_PACKAGE  "Add C/C++ support to the Sourcetrail indexer." OFF)
-option(BUILD_JAVA_LANGUAGE_PACKAGE "Add Java support to the Sourcetrail indexer." OFF)
-option(BUILD_UNIT_TESTS_PACKAGE    "Build the corresponding language unit tests." OFF)
+option(BUILD_CXX_LANGUAGE_PACKAGE "Build the C/C++ language package" OFF)
+option(BUILD_JAVA_LANGUAGE_PACKAGE "Build the Java language package" ON)
+option(BUILD_PYTHON_LANGUAGE_PACKAGE "Build the Python language package" OFF)
 
 configureFile(cmake/language_packages.h.in src/lib/language_packages.h)
 
@@ -413,6 +406,7 @@ if (UNIX)
 endif()
 
 add_subdirectory(src/lib)
+add_subdirectory(src/lib_api)
 
 #
 
@@ -545,6 +539,7 @@ function(copyAppFiles configDir)
 endfunction()
 forEachBuildConfiguration(copyAppFiles)
 
+add_subdirectory(src/cli)
 add_subdirectory(src/app)
 
 ###############################################################################
