@@ -9,6 +9,8 @@
 #include "UserPaths.h"
 #include "logging.h"
 #include "utilityString.h"
+#include "PluginManager.h"
+#include <boost/dll.hpp>
 
 #if BUILD_CXX_LANGUAGE_PACKAGE
 #	include "LanguagePackageCxx.h"
@@ -99,13 +101,7 @@ int main(int argc, char* argv[])
 	LOG_INFO("sharedDataPath: " + AppPath::getSharedDataDirectoryPath().str());
 	LOG_INFO("userDataPath: " + UserPaths::getUserDataDirectoryPath().str());
 
-#if BUILD_CXX_LANGUAGE_PACKAGE
-	LanguagePackageManager::getInstance()->addPackage(std::make_shared<LanguagePackageCxx>());
-#endif	  // BUILD_CXX_LANGUAGE_PACKAGE
-
-#if BUILD_JAVA_LANGUAGE_PACKAGE
-	LanguagePackageManager::getInstance()->addPackage(std::make_shared<LanguagePackageJava>());
-#endif	  // BUILD_JAVA_LANGUAGE_PACKAGE
+	PluginManager::getInstance()->loadPlugins(FilePath(boost::dll::program_location().parent_path().string()).concatenate("plugins").str());
 
 	InterprocessIndexer indexer(instanceUuid, processId);
 	indexer.work();

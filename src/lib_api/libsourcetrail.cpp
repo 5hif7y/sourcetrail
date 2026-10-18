@@ -14,10 +14,10 @@
 #include "StorageStats.h"
 #include "SourceGroupFactory.h"
 #include "SourceGroupFactoryModuleCustom.h"
-#if BUILD_PYTHON_LANGUAGE_PACKAGE
 #include "SourceGroupFactoryModulePython.h"
-#endif
 #include "SourceGroupFactoryModuleProxy.h"
+#include "PluginManager.h"
+#include <boost/dll.hpp>
 
 #include <iostream>
 #include <string>
@@ -73,10 +73,9 @@ void srctrl_init(void)
 
 	ApplicationSettingsPrefiller::prefillPaths(appSettings.get());
 	
+	PluginManager::getInstance()->loadPlugins(FilePath(boost::dll::program_location().parent_path().string()).concatenate("plugins").str());
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleCustom>());
-#if BUILD_PYTHON_LANGUAGE_PACKAGE
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModulePython>());
-#endif
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleProxy>());
 }
 

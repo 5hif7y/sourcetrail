@@ -21,6 +21,7 @@
 #include "SourceGroupFactory.h"
 #include "SourceGroupFactoryModuleCustom.h"
 #include "SourceGroupFactoryModuleProxy.h"
+#include "SourceGroupFactoryModulePython.h"
 #include "PluginManager.h"
 #include <boost/dll.hpp>
 #include "language_packages.h"
@@ -31,6 +32,11 @@
 #if BUILD_CXX_LANGUAGE_PACKAGE
 #  include "LanguagePackageCxx.h"
 #  include "SourceGroupFactoryModuleCxx.h"
+#endif
+
+#if BUILD_JAVA_LANGUAGE_PACKAGE
+#  include "LanguagePackageJava.h"
+#  include "SourceGroupFactoryModuleJava.h"
 #endif
 
 
@@ -135,15 +141,22 @@ static void setupLogging(const ApplicationSettings *settings)
 
 void addLanguagePackages()
 {
+#if !SOURCETRAIL_SHARED
 #if BUILD_CXX_LANGUAGE_PACKAGE
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleCxx>());
 	LanguagePackageManager::getInstance()->addPackage(std::make_shared<LanguagePackageCxx>());
 #endif
-	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleCustom>());
-	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleProxy>());
+#if BUILD_JAVA_LANGUAGE_PACKAGE
+	// Note: You must #include "LanguagePackageJava.h" and "SourceGroupFactoryModuleJava.h" at the top if BUILD_JAVA_LANGUAGE_PACKAGE is true
+	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleJava>());
+	LanguagePackageManager::getInstance()->addPackage(std::make_shared<LanguagePackageJava>());
+#endif
+#endif
+
 	PluginManager::getInstance()->loadPlugins(FilePath(boost::dll::program_location().parent_path().string()).concatenate("plugins").str());
-
-
+	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleCustom>());
+	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModulePython>());
+	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleProxy>());
 }
 
 int main(int argc, char* argv[])

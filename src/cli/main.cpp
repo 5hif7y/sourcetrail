@@ -13,6 +13,7 @@
 #include "ScopedFunctor.h"
 #include "SourceGroupFactory.h"
 #include "SourceGroupFactoryModuleCustom.h"
+#include "SourceGroupFactoryModulePython.h"
 #include "PluginManager.h"
 #include <boost/dll.hpp>
 #include "AppPath.h"
@@ -96,10 +97,11 @@ int main(int argc, char* argv[])
 
 	ApplicationSettingsPrefiller::prefillPaths(appSettings.get());
 	
+	PluginManager::getInstance()->loadPlugins(FilePath(boost::dll::program_location().parent_path().string()).concatenate("plugins").str());
+	
 	// Add default custom source group (others were CXX/Java, can add them later)
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleCustom>());
-	
-	PluginManager::getInstance()->loadPlugins(FilePath(boost::dll::program_location().parent_path().string()).concatenate("plugins").str());
+	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModulePython>());
 
 	signal(SIGINT, signalHandler);
 	signal(SIGTERM, signalHandler);
