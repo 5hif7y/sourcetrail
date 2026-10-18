@@ -418,6 +418,8 @@ setDefaultTargetOptions(Sourcetrail_lib_gui)
 set_target_properties(Sourcetrail_lib_gui
 	PROPERTIES
 		AUTOMOC ON
+		UNITY_BUILD ON
+		UNITY_BUILD_BATCH_SIZE 8
 )
 
 target_include_directories(Sourcetrail_lib_gui

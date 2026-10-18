@@ -555,9 +555,9 @@ std::string convertWhiteSpacesToSingleSpaces(const std::string& str)
 
 void setupDefaultLocale()
 {
-	locale defaultLocale = getDefaultLocale();
+	std::locale defaultLocale = getDefaultLocale();
 
-	locale::global(defaultLocale);
+	std::locale::global(defaultLocale);
 	std::cout.imbue(defaultLocale);
 	cerr.imbue(defaultLocale);
 }

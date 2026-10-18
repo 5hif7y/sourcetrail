@@ -117,6 +117,11 @@ add_library(Sourcetrail_lib_cxx SHARED
 )
 setDefaultTargetOptions(Sourcetrail_lib_cxx)
 
+# Unity build is NOT enabled here: our CommentHandler, ASTConsumer and
+# GeneratePCHAction collide with the clang:: symbols of the same name, and
+# DebugStubs.cpp cannot be combined with the PCH. Tested at batch size 8; the
+# potential gain (~15 s) does not justify qualifying every symbol.
+
 # Precompile the Clang/LLVM headers that most translation units pull in. These
 # headers dominate the per-file cost of this plugin, so a PCH pays off even
 # though it is large. Template-heavy headers used by only a few files (e.g.

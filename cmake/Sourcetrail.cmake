@@ -301,6 +301,7 @@ function(setMsvcTargetOptions targetName)
 	target_compile_definitions(${targetName}
 		PUBLIC
 			WIN32_LEAN_AND_MEAN
+			NOMINMAX # keep <windows.h> from defining min/max macros (breaks std::max)
 
 			UNICODE  # For Windows header
 			_UNICODE # For CRT header

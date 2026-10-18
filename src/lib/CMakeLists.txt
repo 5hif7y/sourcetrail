@@ -1358,6 +1358,14 @@ endif()
 
 setDefaultTargetOptions(Sourcetrail_lib)
 
+# Compile several translation units per compiler invocation to amortize header
+# parsing and compiler startup. Batch size 8 keeps the risk of anonymous
+# namespace collisions across unrelated files low.
+set_target_properties(Sourcetrail_lib PROPERTIES
+	UNITY_BUILD ON
+	UNITY_BUILD_BATCH_SIZE 8
+)
+
 # Precompile the standard headers shared by most translation units. This is
 # deliberately limited to the standard library: own headers change often and
 # would invalidate the PCH on nearly every edit.
