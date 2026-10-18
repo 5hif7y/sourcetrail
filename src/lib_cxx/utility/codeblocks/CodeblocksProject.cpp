@@ -76,7 +76,7 @@ std::shared_ptr<Project> Project::load(std::shared_ptr<TextAccess> xmlAccess)
 	}
 
 	const TiXmlElement* projectElement = codeBlocksProjectFileElement->FirstChildElement("Project");
-	if (codeBlocksProjectFileElement == nullptr)
+	if (projectElement == nullptr)
 	{
 		LOG_ERROR("Unable to find \"Project\" node in Code::Blocks project.");
 		return project;
@@ -90,7 +90,7 @@ std::shared_ptr<Project> Project::load(std::shared_ptr<TextAccess> xmlAccess)
 				const char* value = optionElement->Attribute("title");
 				if (value)
 				{
-					project->m_title = stringToCompilerVarType(value);
+					project->m_title = value;
 				}
 			}
 
