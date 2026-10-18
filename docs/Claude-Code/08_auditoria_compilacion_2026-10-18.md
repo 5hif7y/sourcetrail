@@ -5,6 +5,11 @@
 **Árbol:** `<WORKSPACE>\Sourcetrail-profundo\neo-sourcetrail`
 **Pregunta:** ¿alivianamos la compilación? ¿Queda algo pendiente?
 
+> **Actualización (ver `09_pendientes_2026-10-18.md`):** B3 se aplicó con
+> `UNITY_BUILD` en `lib` y `lib_gui`. El build limpio completo baja de 535,1 s a
+> **274,7 s (4,6 min)**, 0 errores. `lib_cxx` queda sin unity por colisiones con
+> símbolos de Clang.
+
 ---
 
 ## 0. Resumen
@@ -262,7 +267,7 @@ ruta relativa: **103 nodos, 177 edges distintos, 20 archivos**.
 |---|---|---|---|
 | B1 | Triplet/overlay de vcpkg en los presets | Medio / bajo | **✅ Hecho** (submódulo: `git submodule update --init`) |
 | B2 | Empaquetar `SourcetrailPythonIndexer` y ajustar el resolver | Alto para distribución / bajo | **✅ Hecho** |
-| B3 | Unity build (`C4`) en `lib`/`lib_gui` | −20 a −40 % adicional, riesgo de colisiones | No hecho, opcional |
+| B3 | Unity build (`C4`) en `lib`/`lib_gui` | −20 a −40 % adicional, riesgo de colisiones | **✅ Hecho** (`lib` y `lib_gui`; `lib_cxx` descartado, ver `09_...`) |
 | B4 | Portar estas correcciones al fork `5hif7y/sourcetrail` (rama `modernized`) | Necesario para que el fork compile igual | **✅ Hecho** (commits en `modernized`) |
 | I1/I2 | Batch/daemon del indexador Python (elimina ~0,94 s de arranque por archivo) | **~6 %** con paralelismo activo | No hecho, bajo retorno |
 | I6 | `ASTParser.createASTs` batch para Java | Medio | Requiere cambiar el contrato JNI |
