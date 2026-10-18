@@ -20,20 +20,13 @@
 #include "ScopedFunctor.h"
 #include "SourceGroupFactory.h"
 #include "SourceGroupFactoryModuleCustom.h"
+#include "SourceGroupFactoryModuleProxy.h"
 #include "language_packages.h"
 #include "utilityQt.h"
 #include "Version.h"
 #include "utilityString.h"
 
-#if BUILD_CXX_LANGUAGE_PACKAGE
-	#include "LanguagePackageCxx.h"
-	#include "SourceGroupFactoryModuleCxx.h"
-#endif	  // BUILD_CXX_LANGUAGE_PACKAGE
 
-#if BUILD_JAVA_LANGUAGE_PACKAGE
-	#include "LanguagePackageJava.h"
-	#include "SourceGroupFactoryModuleJava.h"
-#endif	  // BUILD_JAVA_LANGUAGE_PACKAGE
 
 #if BOOST_OS_WINDOWS
 	#include <windows.h>
@@ -136,22 +129,9 @@ static void setupLogging(const ApplicationSettings *settings)
 void addLanguagePackages()
 {
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleCustom>());
+	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleProxy>());
 
-#if BUILD_CXX_LANGUAGE_PACKAGE
-	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleCxx>());
-#endif
 
-#if BUILD_JAVA_LANGUAGE_PACKAGE
-	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleJava>());
-#endif
-
-#if BUILD_CXX_LANGUAGE_PACKAGE
-	LanguagePackageManager::getInstance()->addPackage(std::make_shared<LanguagePackageCxx>());
-#endif
-
-#if BUILD_JAVA_LANGUAGE_PACKAGE
-	LanguagePackageManager::getInstance()->addPackage(std::make_shared<LanguagePackageJava>());
-#endif
 }
 
 int main(int argc, char* argv[])

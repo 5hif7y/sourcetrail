@@ -330,6 +330,10 @@ add_library(Sourcetrail_lib
 	project/SourceGroupFactoryModule.h
 	project/SourceGroupFactoryModuleCustom.cpp
 	project/SourceGroupFactoryModuleCustom.h
+	project/SourceGroupFactoryModuleProxy.cpp
+	project/SourceGroupFactoryModuleProxy.h
+	project/SourceGroupProxy.cpp
+	project/SourceGroupProxy.h
 
 	settings/source_group/component/SourceGroupSettingsWithCustomCommand.cpp
 	settings/source_group/component/SourceGroupSettingsWithCustomCommand.h
@@ -607,6 +611,14 @@ add_library(Sourcetrail_lib
 	utility/tracing.cpp
 	utility/tracing.h
 	utility/types.h
+	utility/path_detector/CombinedPathDetector.cpp
+	utility/path_detector/CombinedPathDetector.h
+	utility/path_detector/PathDetector.cpp
+	utility/path_detector/PathDetector.h
+	utility/utilityApp.cpp
+	utility/utilityApp.h
+	utility/utilityPathDetection.cpp
+	utility/utilityPathDetection.h
 	utility/utility.cpp
 	utility/utility.h
 	utility/utilityEnum.h
@@ -674,8 +686,18 @@ target_include_directories(Sourcetrail_lib
 		utility/messaging
 		utility/scheduling
 		utility/text
+		utility/path_detector
 		utility
 )
+
+if (BUILD_PYTHON_LANGUAGE_PACKAGE)
+	target_sources(Sourcetrail_lib PRIVATE
+		project/SourceGroupFactoryModulePython.cpp
+		project/SourceGroupFactoryModulePython.h
+		settings/source_group/type/SourceGroupSettingsPythonEmpty.cpp
+		settings/source_group/type/SourceGroupSettingsPythonEmpty.h
+	)
+endif()
 
 if (BUILD_CXX_LANGUAGE_PACKAGE)
 	target_sources(Sourcetrail_lib
@@ -704,11 +726,23 @@ if (BUILD_CXX_LANGUAGE_PACKAGE)
 			settings/source_group/type/SourceGroupSettingsCustomCommand.h
 			settings/source_group/type/SourceGroupSettingsCxxCdb.h
 			settings/source_group/type/SourceGroupSettingsCxxCodeblocks.h
+
+			utility/path_detector/cxx_header/CxxFrameworkPathDetector.cpp
+			utility/path_detector/cxx_header/CxxFrameworkPathDetector.h
+			utility/path_detector/cxx_header/CxxHeaderPathDetector.cpp
+			utility/path_detector/cxx_header/CxxHeaderPathDetector.h
+			utility/path_detector/cxx_header/CxxVs10To15HeaderPathDetector.cpp
+			utility/path_detector/cxx_header/CxxVs10To15HeaderPathDetector.h
+			utility/path_detector/cxx_header/CxxVs17ToLatestHeaderPathDetector.cpp
+			utility/path_detector/cxx_header/CxxVs17ToLatestHeaderPathDetector.h
+			utility/path_detector/cxx_header/utilityCxxHeaderDetection.cpp
+			utility/path_detector/cxx_header/utilityCxxHeaderDetection.h
 	)
 	target_include_directories(Sourcetrail_lib
 		PUBLIC
 			settings/source_group/component/cxx
 			settings/source_group/type
+			utility/path_detector/cxx_header
 	)
 endif()
 
@@ -728,11 +762,23 @@ if (BUILD_JAVA_LANGUAGE_PACKAGE)
 			settings/source_group/type/SourceGroupSettingsJavaEmpty.h
 			settings/source_group/type/SourceGroupSettingsJavaGradle.h
 			settings/source_group/type/SourceGroupSettingsJavaMaven.h
+
+			utility/path_detector/java_runtime/JavaPathDetector.cpp
+			utility/path_detector/java_runtime/JavaPathDetector.h
+			utility/path_detector/java_runtime/JavaPathDetectorLinuxWindowsMac.h
+			utility/path_detector/java_runtime/JavaPathDetectorLinuxWindowsMac.cpp
+			utility/path_detector/jre_system_library/JreSystemLibraryPathDetector.cpp
+			utility/path_detector/jre_system_library/JreSystemLibraryPathDetector.h
+			utility/path_detector/maven_executable/MavenPathDetectorUnixWindows.cpp
+			utility/path_detector/maven_executable/MavenPathDetectorUnixWindows.h
 	)
 	target_include_directories(Sourcetrail_lib
 		PUBLIC
 			settings/source_group/component/java
 			settings/source_group/type
+			utility/path_detector/java_runtime
+			utility/path_detector/jre_system_library
+			utility/path_detector/maven_executable
 	)
 endif()
 
@@ -745,9 +791,6 @@ target_include_directories(Sourcetrail_lib
 target_link_libraries(Sourcetrail_lib
 	PUBLIC
 		AidKit_lib
-
-		$<$<BOOL:${BUILD_CXX_LANGUAGE_PACKAGE}>:Sourcetrail_lib_cxx>
-		$<$<BOOL:${BUILD_JAVA_LANGUAGE_PACKAGE}>:Sourcetrail_lib_java>
 
 		External_lib_tinyxml
 		External_lib_cppsqlite3
