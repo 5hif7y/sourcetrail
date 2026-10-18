@@ -13,7 +13,9 @@ namespace clang::tooling
 class CompilationDatabase;
 }
 
-class IndexerCommandCxx: public IndexerCommand
+#include "SourcetrailCxxExport.h"
+
+class SOURCETRAIL_CXX_EXPORT IndexerCommandCxx: public IndexerCommand
 {
 public:
 	static std::vector<FilePath> getSourceFilesFromCDB(const FilePath& cdbPath);
@@ -44,8 +46,9 @@ public:
 	const std::vector<std::string>& getCompilerFlags() const;
 	const FilePath& getWorkingDirectory() const;
 
+	void populateSharedCommand(SharedIndexerCommand* sharedCmd) const override;
 protected:
-	QJsonObject doSerialize() const override;
+	std::string doSerialize() const override;
 
 private:
 	std::set<FilePath> m_indexedPaths;

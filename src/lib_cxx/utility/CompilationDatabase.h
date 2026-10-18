@@ -8,7 +8,9 @@
 
 namespace utility
 {
-class CompilationDatabase
+#include "SourcetrailCxxExport.h"
+
+class SOURCETRAIL_CXX_EXPORT CompilationDatabase
 {
 public:
 	CompilationDatabase(const FilePath& filePath);

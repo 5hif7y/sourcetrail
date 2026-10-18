@@ -20,7 +20,9 @@ namespace Codeblocks
 class Target;
 class Unit;
 
-class Project
+#include "SourcetrailCxxExport.h"
+
+class SOURCETRAIL_CXX_EXPORT Project
 {
 public:
 	static std::shared_ptr<Project> load(const FilePath& projectFilePath);

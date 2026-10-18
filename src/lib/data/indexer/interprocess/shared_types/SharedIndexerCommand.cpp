@@ -1,75 +1,50 @@
 #include "SharedIndexerCommand.h"
-
-#if BUILD_CXX_LANGUAGE_PACKAGE
-	#include "IndexerCommandCxx.h"
-#endif
-#if BUILD_JAVA_LANGUAGE_PACKAGE
-	#include "IndexerCommandJava.h"
-#endif
 #include "IndexerCommand.h"
 #include "logging.h"
+#include <map>
+#include <mutex>
+
+static std::map<int, SharedIndexerCommand::FactoryFunc>& getFactories() {
+	static std::map<int, SharedIndexerCommand::FactoryFunc> factories;
+	return factories;
+}
+
+static std::mutex& getFactoriesMutex() {
+	static std::mutex mutex;
+	return mutex;
+}
+
+void SharedIndexerCommand::registerFactory(int type, FactoryFunc func) {
+	std::lock_guard<std::mutex> lock(getFactoriesMutex());
+	getFactories()[type] = func;
+}
 
 void SharedIndexerCommand::fromLocal(IndexerCommand* indexerCommand)
 {
 	setSourceFilePath(indexerCommand->getSourceFilePath());
-
-#if BUILD_CXX_LANGUAGE_PACKAGE
-	if (IndexerCommandCxx *cmd = dynamic_cast<IndexerCommandCxx*>(indexerCommand))
+	indexerCommand->populateSharedCommand(this);
+	
+	if (getType() == UNKNOWN)
 	{
-		setType(CXX);
-		setIndexedPaths(cmd->getIndexedPaths());
-		setExcludeFilters(cmd->getExcludeFilters());
-		setIncludeFilters(cmd->getIncludeFilters());
-		setWorkingDirectory(cmd->getWorkingDirectory());
-		setCompilerFlags(cmd->getCompilerFlags());
-		return;
+		LOG_ERROR(
+			"Trying to push unhandled type of IndexerCommand for file: " +
+			indexerCommand->getSourceFilePath().str() + ". Type string is: " +
+			indexerCommandTypeToString(indexerCommand->getIndexerCommandType()) +
+			". It will be ignored.");
 	}
-#endif	  // BUILD_CXX_LANGUAGE_PACKAGE
-#if BUILD_JAVA_LANGUAGE_PACKAGE
-	if (IndexerCommandJava *cmd = dynamic_cast<IndexerCommandJava*>(indexerCommand))
-	{
-		setType(JAVA);
-		setLanguageStandard(cmd->getLanguageStandard());
-		setClassPaths(cmd->getClassPath());
-		return;
-	}
-#endif	  // BUILD_JAVA_LANGUAGE_PACKAGE
-
-	LOG_ERROR(
-		"Trying to push unhandled type of IndexerCommand for file: " +
-		indexerCommand->getSourceFilePath().str() + ". Type string is: " +
-		indexerCommandTypeToString(indexerCommand->getIndexerCommandType()) +
-		". It will be ignored.");
 }
 
 std::shared_ptr<IndexerCommand> SharedIndexerCommand::fromShared(const SharedIndexerCommand& indexerCommand)
 {
-	switch (indexerCommand.getType())
-	{
-#if BUILD_CXX_LANGUAGE_PACKAGE
-	case CXX:
-		return std::make_shared<IndexerCommandCxx>(
-			indexerCommand.getSourceFilePath(),
-			indexerCommand.getIndexedPaths(),
-			indexerCommand.getExcludeFilters(),
-			indexerCommand.getIncludeFilters(),
-			indexerCommand.getWorkingDirectory(),
-			indexerCommand.getCompilerFlags());
-#endif	  // BUILD_CXX_LANGUAGE_PACKAGE
-#if BUILD_JAVA_LANGUAGE_PACKAGE
-	case JAVA:
-		return std::make_shared<IndexerCommandJava>(
-			indexerCommand.getSourceFilePath(),
-			indexerCommand.getLanguageStandard(),
-			indexerCommand.getClassPaths());
-#endif	  // BUILD_JAVA_LANGUAGE_PACKAGE
-	case UNKNOWN:
-	default:
-		LOG_ERROR(
-			"Cannot convert shared IndexerCommand for file: " +
-			indexerCommand.getSourceFilePath().str() + ". The type is unknown.");
+	std::lock_guard<std::mutex> lock(getFactoriesMutex());
+	auto it = getFactories().find(indexerCommand.getType());
+	if (it != getFactories().end()) {
+		return it->second(indexerCommand);
 	}
-
+	
+	LOG_ERROR(
+		"Cannot convert shared IndexerCommand for file: " +
+		indexerCommand.getSourceFilePath().str() + ". The type is unknown or no factory is registered.");
 	return nullptr;
 }
 

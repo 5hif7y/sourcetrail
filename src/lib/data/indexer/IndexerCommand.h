@@ -9,6 +9,7 @@
 #include "IndexerCommandType.h"
 
 
+class SharedIndexerCommand;
 
 class IndexerCommand
 {
@@ -22,6 +23,8 @@ public:
 	virtual IndexerCommandType getIndexerCommandType() const = 0;
 
 	virtual size_t getByteSize(size_t stringSize) const;
+
+	virtual void populateSharedCommand(SharedIndexerCommand* /*sharedCmd*/) const {}
 
 	const FilePath& getSourceFilePath() const;
 

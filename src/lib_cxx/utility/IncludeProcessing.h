@@ -8,12 +8,13 @@
 #include <vector>
 
 #include "OrderedCache.h"
+#include "SourcetrailCxxExport.h"
 
 class FilePath;
 class IncludeDirective;
 class TextAccess;
 
-class IncludeProcessing
+class SOURCETRAIL_CXX_EXPORT IncludeProcessing
 {
 public:
 	static std::vector<IncludeDirective> getUnresolvedIncludeDirectives(

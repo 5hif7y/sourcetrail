@@ -2,8 +2,9 @@
 #define INCLUDE_DIRECTIVE_H
 
 #include "FilePath.h"
+#include "SourcetrailCxxExport.h"
 
-class IncludeDirective
+class SOURCETRAIL_CXX_EXPORT IncludeDirective
 {
 public:
 	IncludeDirective(

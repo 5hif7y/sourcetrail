@@ -51,7 +51,9 @@ public:
 
 #endif	  // BUILD_JAVA_LANGUAGE_PACKAGE
 
-private:
+	using FactoryFunc = std::shared_ptr<IndexerCommand> (*)(const SharedIndexerCommand&);
+	static void registerFactory(int type, FactoryFunc func);
+
 	enum Type
 	{
 		UNKNOWN = 0,
@@ -65,6 +67,8 @@ private:
 
 	Type getType() const;
 	void setType(const Type type);
+
+private:
 
 	Type m_type = Type::UNKNOWN;
 

@@ -8,7 +8,9 @@
 
 class SourceGroupSettingsCxx;
 
-class SourceGroupCxxEmpty: public SourceGroup
+#include "SourcetrailCxxExport.h"
+
+class SOURCETRAIL_CXX_EXPORT SourceGroupCxxEmpty: public SourceGroup
 {
 public:
 	SourceGroupCxxEmpty(std::shared_ptr<SourceGroupSettings> settings);

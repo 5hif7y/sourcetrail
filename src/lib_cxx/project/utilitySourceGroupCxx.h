@@ -15,19 +15,21 @@ class Task;
 
 namespace utility
 {
-std::shared_ptr<Task> createBuildPchTask(
+#include "SourcetrailCxxExport.h"
+
+SOURCETRAIL_CXX_EXPORT std::shared_ptr<Task> createBuildPchTask(
 	const SourceGroupSettingsWithCxxPchOptions* settings,
 	std::vector<std::string> compilerFlags,
 	std::shared_ptr<StorageProvider> storageProvider,
 	std::shared_ptr<DialogView> dialogView);
 
-std::shared_ptr<clang::tooling::CompilationDatabase> loadCDB(const FilePath& cdbPath, std::string* error = nullptr);
+SOURCETRAIL_CXX_EXPORT std::shared_ptr<clang::tooling::CompilationDatabase> loadCDB(const FilePath& cdbPath, std::string* error = nullptr);
 	
-std::shared_ptr<clang::tooling::CompilationDatabase> loadCDB(std::string_view cdbContent, clang::tooling::JSONCommandLineSyntax syntax,
+SOURCETRAIL_CXX_EXPORT std::shared_ptr<clang::tooling::CompilationDatabase> loadCDB(std::string_view cdbContent, clang::tooling::JSONCommandLineSyntax syntax,
 	std::string *error);
 
-bool containsIncludePchFlags(std::shared_ptr<clang::tooling::CompilationDatabase> cdb);
-bool containsIncludePchFlag(const std::vector<std::string>& args);
+SOURCETRAIL_CXX_EXPORT bool containsIncludePchFlags(std::shared_ptr<clang::tooling::CompilationDatabase> cdb);
+SOURCETRAIL_CXX_EXPORT bool containsIncludePchFlag(const std::vector<std::string>& args);
 std::vector<std::string> getWithRemoveIncludePchFlag(const std::vector<std::string>& args);
 void removeIncludePchFlag(std::vector<std::string>& args);
 std::vector<std::string> getIncludePchFlags(const SourceGroupSettingsWithCxxPchOptions* settings);

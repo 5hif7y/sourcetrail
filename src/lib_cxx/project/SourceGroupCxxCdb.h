@@ -17,7 +17,9 @@ class CompilationDatabase;
 
 class SourceGroupSettingsCxxCdb;
 
-class SourceGroupCxxCdb: public SourceGroup
+#include "SourcetrailCxxExport.h"
+
+class SOURCETRAIL_CXX_EXPORT SourceGroupCxxCdb: public SourceGroup
 {
 public:
 	SourceGroupCxxCdb(std::shared_ptr<SourceGroupSettingsCxxCdb> settings);

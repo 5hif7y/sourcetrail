@@ -11,8 +11,6 @@
 #include <clang/Tooling/CompilationDatabase.h>
 #include <clang/Tooling/JSONCompilationDatabase.h>
 
-#include <QJsonArray>
-#include <QJsonObject>
 
 std::vector<FilePath> IndexerCommandCxx::getSourceFilesFromCDB(const FilePath& cdbPath)
 {
@@ -183,45 +181,76 @@ const FilePath& IndexerCommandCxx::getWorkingDirectory() const
 	return m_workingDirectory;
 }
 
-QJsonObject IndexerCommandCxx::doSerialize() const
+#include "SharedIndexerCommand.h"
+
+void IndexerCommandCxx::populateSharedCommand(SharedIndexerCommand* sharedCmd) const
 {
-	QJsonObject jsonObject = IndexerCommand::doSerialize();
+	sharedCmd->setType(SharedIndexerCommand::CXX);
+	sharedCmd->setIndexedPaths(m_indexedPaths);
+	sharedCmd->setExcludeFilters(m_excludeFilters);
+	sharedCmd->setIncludeFilters(m_includeFilters);
+	sharedCmd->setWorkingDirectory(m_workingDirectory);
+	sharedCmd->setCompilerFlags(m_compilerFlags);
+}
 
-	{
-		QJsonArray indexedPathsArray;
-		for (const FilePath& indexedPath: m_indexedPaths)
-		{
-			indexedPathsArray.append(QString::fromStdString(indexedPath.str()));
-		}
-		jsonObject["indexed_paths"] = indexedPathsArray;
-	}
-	{
-		QJsonArray excludeFiltersArray;
-		for (const FilePathFilter& excludeFilter: m_excludeFilters)
-		{
-			excludeFiltersArray.append(QString::fromStdString(excludeFilter.str()));
-		}
-		jsonObject["exclude_filters"] = excludeFiltersArray;
-	}
-	{
-		QJsonArray includeFiltersArray;
-		for (const FilePathFilter& includeFilter: m_includeFilters)
-		{
-			includeFiltersArray.append(QString::fromStdString(includeFilter.str()));
-		}
-		jsonObject["include_filters"] = includeFiltersArray;
-	}
-	{
-		jsonObject["working_directory"] = QString::fromStdString(getWorkingDirectory().str());
-	}
-	{
-		QJsonArray compilerFlagsArray;
-		for (const std::string& compilerFlag: m_compilerFlags)
-		{
-			compilerFlagsArray.append(QString::fromStdString(compilerFlag));
-		}
-		jsonObject["compiler_flags"] = compilerFlagsArray;
+namespace {
+	std::shared_ptr<IndexerCommand> createCxxCommandFromShared(const SharedIndexerCommand& cmd) {
+		return std::make_shared<IndexerCommandCxx>(
+			cmd.getSourceFilePath(),
+			cmd.getIndexedPaths(),
+			cmd.getExcludeFilters(),
+			cmd.getIncludeFilters(),
+			cmd.getWorkingDirectory(),
+			cmd.getCompilerFlags());
 	}
 
-	return jsonObject;
+	struct CxxCommandFactoryRegistrar {
+		CxxCommandFactoryRegistrar() {
+			SharedIndexerCommand::registerFactory(SharedIndexerCommand::CXX, createCxxCommandFromShared);
+		}
+	} registrar;
+}
+
+std::string IndexerCommandCxx::doSerialize() const
+{
+	std::string json = IndexerCommand::doSerialize();
+
+	// Remove the trailing '}' to append more fields
+	if (!json.empty() && json.back() == '}') {
+		json.pop_back();
+	}
+
+	json += ", \"indexed_paths\": [";
+	bool first = true;
+	for (const FilePath& indexedPath: m_indexedPaths) {
+		if (!first) json += ", ";
+		json += "\"" + indexedPath.str() + "\"";
+		first = false;
+	}
+	json += "], \"exclude_filters\": [";
+	first = true;
+	for (const FilePathFilter& excludeFilter: m_excludeFilters) {
+		if (!first) json += ", ";
+		json += "\"" + excludeFilter.str() + "\"";
+		first = false;
+	}
+	json += "], \"include_filters\": [";
+	first = true;
+	for (const FilePathFilter& includeFilter: m_includeFilters) {
+		if (!first) json += ", ";
+		json += "\"" + includeFilter.str() + "\"";
+		first = false;
+	}
+	json += "], \"working_directory\": \"" + getWorkingDirectory().str() + "\"";
+	
+	json += ", \"compiler_flags\": [";
+	first = true;
+	for (const std::string& compilerFlag: m_compilerFlags) {
+		if (!first) json += ", ";
+		json += "\"" + compilerFlag + "\"";
+		first = false;
+	}
+	json += "]}";
+
+	return json;
 }

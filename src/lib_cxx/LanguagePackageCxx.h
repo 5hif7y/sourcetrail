@@ -3,7 +3,9 @@
 
 #include "LanguagePackage.h"
 
-class LanguagePackageCxx: public LanguagePackage
+#include "SourcetrailCxxExport.h"
+
+class SOURCETRAIL_CXX_EXPORT LanguagePackageCxx: public LanguagePackage
 {
 public:
 	std::vector<std::shared_ptr<IndexerBase>> instantiateSupportedIndexers() const override;
