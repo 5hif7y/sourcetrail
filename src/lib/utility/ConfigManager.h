@@ -3,6 +3,7 @@
 
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -70,6 +71,9 @@ private:
 
 	std::multimap<std::string, std::string> m_values;
 	mutable bool m_warnOnEmptyKey = true;
+	// Keys already reported as missing. getValue() is called for every indexed file,
+	// so without this the same warning is logged thousands of times (kafka: 12.357).
+	mutable std::set<std::string> m_warnedKeys;
 };
 
 template <typename T>

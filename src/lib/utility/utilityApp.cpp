@@ -262,10 +262,10 @@ std::string searchPath(const std::string& bin)
 	return searchPath(bin, ok);
 }
 
-int getIdealThreadCount()
+int getIdealThreadCount(bool forGui)
 {
 	int threadCount = static_cast<int>(thread::hardware_concurrency());
-	if constexpr (Platform::isWindows())
+	if (forGui && Platform::isWindows())
 	{
 		threadCount -= 1; // Most likely to keep the GUI thread responsive
 	}

@@ -37,7 +37,7 @@ ProcessOutput executeProcess(
 
 void killRunningProcesses();
 
-int getIdealThreadCount();
+int getIdealThreadCount(bool forGui = true);
 
 }
 
