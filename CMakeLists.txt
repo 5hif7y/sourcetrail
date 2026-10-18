@@ -29,6 +29,31 @@ if (isVcpkgBuild)
 endif()
 
 ###############################################################################
+# Build options
+###############################################################################
+
+# These options are declared before project() because the vcpkg toolchain runs
+# inside project() and needs VCPKG_MANIFEST_FEATURES to know which optional
+# dependencies to install (see vcpkg.json). In particular, the C++ indexer
+# requires LLVM, which takes hours to build from source, so it is only
+# installed when BUILD_CXX_LANGUAGE_PACKAGE is enabled.
+
+option(BUILD_CXX_LANGUAGE_PACKAGE "Build the C/C++ language package" OFF)
+option(BUILD_JAVA_LANGUAGE_PACKAGE "Build the Java language package" ON)
+option(BUILD_PYTHON_LANGUAGE_PACKAGE "Build the Python language package" OFF)
+option(BUILD_UNIT_TESTS_PACKAGE "Build unit tests" OFF)
+
+option(SOURCETRAIL_SHARED_CORE "Build core as shared library for plugin architecture" OFF)
+
+set(VCPKG_MANIFEST_FEATURES "")
+if (BUILD_CXX_LANGUAGE_PACKAGE)
+	list(APPEND VCPKG_MANIFEST_FEATURES "cxx")
+endif()
+if (BUILD_UNIT_TESTS_PACKAGE)
+	list(APPEND VCPKG_MANIFEST_FEATURES "tests")
+endif()
+
+###############################################################################
 # Project
 ###############################################################################
 
@@ -122,11 +147,8 @@ endif()
 # Configure which language(s)/package(s) should be build
 ###############################################################################
 
-option(BUILD_CXX_LANGUAGE_PACKAGE "Build the C/C++ language package" OFF)
-option(BUILD_JAVA_LANGUAGE_PACKAGE "Build the Java language package" ON)
-option(BUILD_PYTHON_LANGUAGE_PACKAGE "Build the Python language package" OFF)
-
-option(SOURCETRAIL_SHARED_CORE "Build core as shared library for plugin architecture" OFF)
+# The options themselves are declared at the top of this file so that the vcpkg
+# manifest features can select the matching dependencies before project().
 
 configureFile(cmake/language_packages.h.in src/lib/language_packages.h)
 
@@ -431,8 +453,10 @@ if (BUILD_CXX_LANGUAGE_PACKAGE)
 
 	if (isVcpkgBuild)
 		# Force Clang_DIR to the Release configuration directory to prevent CMake
-		# from picking up debug/lib/cmake/clang (which imports Debug LLVM libraries):
-		set(Clang_DIR "${CMAKE_CURRENT_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib/cmake/clang" CACHE PATH "Path to ClangConfig.cmake" FORCE)
+		# from picking up debug/lib/cmake/clang (which imports Debug LLVM libraries).
+		# Use VCPKG_INSTALLED_DIR instead of assuming <binary-dir>/vcpkg_installed:
+		# the installed tree may be shared between build directories.
+		set(Clang_DIR "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib/cmake/clang" CACHE PATH "Path to ClangConfig.cmake" FORCE)
 	endif()
 
 	find_package(Clang CONFIG REQUIRED) # Minimum version and/or version range xx...<yy doesn't work.

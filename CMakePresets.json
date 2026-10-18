@@ -67,7 +67,9 @@
 			"name": "vcpkg-presets",
 			"cacheVariables": {
 				"CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
-				"VCPKG_TARGET_TRIPLET": "x64-arm64-linux-windows-osx-static-md"
+				"VCPKG_TARGET_TRIPLET": "x64-arm64-linux-windows-osx-static-md",
+				"VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/vcpkg-triplets",
+				"VCPKG_OVERLAY_PORTS": "${sourceDir}/vcpkg-overlay-ports"
 			}
 		},
 		{

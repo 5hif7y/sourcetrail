@@ -3,7 +3,6 @@
   "name": "sourcetrail",
   "version": "1.0.0",
   "dependencies": [
-    "llvm",
     "boost-system",
     "boost-date-time",
     "boost-filesystem",
@@ -26,8 +25,21 @@
     "qtimageformats",
     "nlohmann-json",
     "sqlite3",
-    "tinyxml",
-    "catch2",
-    "gtest"
-  ]
+    "tinyxml"
+  ],
+  "features": {
+    "cxx": {
+      "description": "C/C++ language package (LLVM/Clang)",
+      "dependencies": [
+        "llvm"
+      ]
+    },
+    "tests": {
+      "description": "Unit tests",
+      "dependencies": [
+        "catch2",
+        "gtest"
+      ]
+    }
+  }
 }

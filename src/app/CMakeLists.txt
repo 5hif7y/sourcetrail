@@ -30,11 +30,11 @@ if(WIN32 AND TARGET sourcetrail_api)
 	)
 endif()
 
-# Copy Qt platforms plugin directory for Windows
-if(WIN32)
+# Copy Qt platforms plugin directory for Windows (vcpkg builds only)
+if(WIN32 AND isVcpkgBuild)
 	add_custom_command(TARGET Sourcetrail POST_BUILD
 		COMMAND ${CMAKE_COMMAND} -E copy_directory
-		"${CMAKE_CURRENT_BINARY_DIR}/../../vcpkg_installed/x64-windows/$<IF:$<CONFIG:Debug>,debug/,>Qt6/plugins/platforms"
+		"${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/$<IF:$<CONFIG:Debug>,debug/,>Qt6/plugins/platforms"
 		"$<TARGET_FILE_DIR:Sourcetrail>/platforms"
 	)
 endif()
