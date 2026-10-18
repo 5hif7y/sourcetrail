@@ -20,6 +20,7 @@ public:
 
 	IndexerCommandType getIndexerCommandType() const override;
 	size_t getByteSize(size_t stringSize) const override;
+	void populateSharedCommand(SharedIndexerCommand* sharedCmd) const override;
 
 	std::string getLanguageStandard() const;
 
@@ -27,7 +28,7 @@ public:
 	std::vector<FilePath> getClassPath() const;
 
 protected:
-	QJsonObject doSerialize() const override;
+	std::string doSerialize() const override;
 
 private:
 	const std::string m_languageStandard;

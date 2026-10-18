@@ -79,6 +79,10 @@ void JavaEnvironmentFactory::createInstance(const std::string &classPath, std::s
 	std::string classPathOption = "-Djava.class.path=" + classPath;
 	options.push_back({ .optionString = const_cast<char*>(classPathOption.c_str()) });
 	options.push_back({ .optionString = const_cast<char*>("-Xms64m") });
+	// Cap the heap explicitly. Without -Xmx the JVM grows until the OS refuses, and
+	// with several threads resolving bindings concurrently it used to spend most of
+	// its time in GC before failing with an uncaught OutOfMemoryError.
+	options.push_back({ .optionString = const_cast<char*>("-Xmx2048m") });
 
 	// Prevent JVM warning:
 	// - A restricted method in java.lang.System has been called
@@ -144,8 +148,15 @@ std::shared_ptr<JavaEnvironmentFactory> JavaEnvironmentFactory::getInstance()
 
 JavaEnvironmentFactory::~JavaEnvironmentFactory()
 {
-	// todo: what if there are threads running using the jvm?? log something!
-	m_jvm->DestroyJavaVM();
+	// Intentionally do NOT call m_jvm->DestroyJavaVM().
+	//
+	// DestroyJavaVM() blocks until every non-daemon Java thread has terminated.
+	// After indexing a Java project the process got stuck here: sourcetrail_cli
+	// never exited (it had to be killed) and Sourcetrail.exe hung on close. This
+	// factory is the process-wide singleton described above ("there can only be
+	// one java env per process which can never be destroyed"), so it is only
+	// destroyed during static teardown, right before the OS reclaims the JVM.
+	// Skipping the call costs nothing and removes the hang.
 }
 
 std::shared_ptr<JavaEnvironment> JavaEnvironmentFactory::createEnvironment()
@@ -198,7 +209,7 @@ void JavaEnvironmentFactory::registerEnvironment()
 
 void JavaEnvironmentFactory::unregisterEnvironment()
 {
-	aidkit::concurrent::access([jvm = m_jvm](auto &threadIdToEnvAndUserCount)
+	aidkit::concurrent::access([](auto &threadIdToEnvAndUserCount)
 	{
 		const std::thread::id currentThreadId = std::this_thread::get_id();
 
@@ -206,11 +217,10 @@ void JavaEnvironmentFactory::unregisterEnvironment()
 		if (it != threadIdToEnvAndUserCount.end())
 		{
 			it->second.second--;
-			if (it->second.second == 0)
-			{	 // TODO: currently this happens quite often. do something about that.
-				jvm->DetachCurrentThread();
-				threadIdToEnvAndUserCount.erase(it);
-			}
+			// Keep the thread attached. Detaching after every file forced a fresh
+			// AttachCurrentThread (and a JVM safepoint) for the next one; on large
+			// projects that dominated indexing. createEnvironment() reuses this
+			// entry for the next file on the same thread.
 		}
 		else
 		{

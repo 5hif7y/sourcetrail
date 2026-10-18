@@ -10,6 +10,7 @@
 
 #include <jni.h>
 
+#include <atomic>
 #include <functional>
 #include <map>
 #include <shared_mutex>
@@ -74,7 +75,9 @@ private:
 
 	static bool GetInterrupted(JNIEnv*  /*env*/, jobject  /*objectOrClass*/, jint parserId);
 
-	static int s_nextParserId;
+	// Worker threads create parsers concurrently; a plain int++ let two threads
+	// take the same id, overwrite each other in s_parsers and erase active parsers.
+	static std::atomic<int> s_nextParserId;
 	static std::map<int, JavaParser*> s_parsers;
 	static std::shared_mutex s_parsersMutex;
 

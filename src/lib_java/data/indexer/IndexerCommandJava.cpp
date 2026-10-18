@@ -1,7 +1,7 @@
 #include "IndexerCommandJava.h"
 
-#include <QJsonArray>
-#include <QJsonObject>
+#include "SharedIndexerCommand.h"
+
 
 IndexerCommandType IndexerCommandJava::getStaticIndexerCommandType()
 {
@@ -48,21 +48,48 @@ std::vector<FilePath> IndexerCommandJava::getClassPath() const
 	return m_classPath;
 }
 
-QJsonObject IndexerCommandJava::doSerialize() const
+void IndexerCommandJava::populateSharedCommand(SharedIndexerCommand* sharedCmd) const
 {
-	QJsonObject jsonObject = IndexerCommand::doSerialize();
+	sharedCmd->setType(SharedIndexerCommand::JAVA);
+	sharedCmd->setLanguageStandard(m_languageStandard);
+	sharedCmd->setClassPaths(m_classPath);
+}
 
+namespace
+{
+	std::shared_ptr<IndexerCommand> createJavaCommandFromShared(const SharedIndexerCommand& cmd)
 	{
-		QJsonArray classPathArray;
-		for (const FilePath& classPath: m_classPath)
+		return std::make_shared<IndexerCommandJava>(
+			cmd.getSourceFilePath(), cmd.getLanguageStandard(), cmd.getClassPaths());
+	}
+
+	struct JavaCommandFactoryRegistrar
+	{
+		JavaCommandFactoryRegistrar()
 		{
-			classPathArray.append(QString::fromStdString(classPath.str()));
+			SharedIndexerCommand::registerFactory(
+				SharedIndexerCommand::JAVA, createJavaCommandFromShared);
 		}
-		jsonObject["class_path"] = classPathArray;
-	}
-	{
-		jsonObject["language_standard"] = QString::fromStdString(m_languageStandard);
+	} registrar;
+}	 // namespace
+
+std::string IndexerCommandJava::doSerialize() const
+{
+	std::string json = IndexerCommand::doSerialize();
+
+	// Remove the trailing '}' to append more fields
+	if (!json.empty() && json.back() == '}') {
+		json.pop_back();
 	}
 
-	return jsonObject;
+	json += ", \"class_path\": [";
+	bool first = true;
+	for (const FilePath& classPath: m_classPath) {
+		if (!first) json += ", ";
+		json += "\"" + classPath.str() + "\"";
+		first = false;
+	}
+	json += "], \"language_standard\": \"" + m_languageStandard + "\"}";
+
+	return json;
 }

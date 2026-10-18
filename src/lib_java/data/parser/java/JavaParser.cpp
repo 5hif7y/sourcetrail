@@ -18,7 +18,7 @@
 
 using namespace utility;
 
-int JavaParser::s_nextParserId = 0;
+std::atomic<int> JavaParser::s_nextParserId{0};
 std::map<int, JavaParser*> JavaParser::s_parsers;
 std::shared_mutex JavaParser::s_parsersMutex;
 

@@ -3,8 +3,7 @@
 #include "FilePath.h"
 #include "utilityApp.h"
 
-#include <QByteArray>
-#include <QtEnvironmentVariables>
+#include <cstdlib>
 
 using namespace std;
 using namespace string_literals;
@@ -48,8 +47,8 @@ FilePath getJavaInPath()
 
 FilePath getJavaInJavaHome()
 {
-	const QByteArray p = qgetenv("JAVA_HOME");
-	if (p.isNull())
+	const char* p = std::getenv("JAVA_HOME");
+	if (p == nullptr)
 	{
 		return FilePath();
 	}

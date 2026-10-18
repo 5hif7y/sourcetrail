@@ -14,6 +14,8 @@
 #include "utilityGradle.h"
 #include "utilityString.h"
 
+#include <cstdlib>
+
 namespace utility
 {
 std::vector<std::string> getRequiredJarNames()
@@ -174,13 +176,17 @@ std::vector<FilePath> getClassPath(
 
 void setJavaHomeVariableIfNotExists()
 {
-	if (qgetenv("JAVA_HOME").isNull())
+	if (std::getenv("JAVA_HOME") == nullptr)
 	{
 		const FilePath javaPath = ApplicationSettings::getInstance()->getJavaPath();
 		const FilePath javaHomePath = javaPath.getParentDirectory().getParentDirectory().getParentDirectory();
 
 		LOG_WARNING( "Environment variable \"JAVA_HOME\" not found on system. Setting value to \"" + javaHomePath.str() + "\" for this process.");
-		qputenv("JAVA_HOME", javaHomePath.str());
+#ifdef _WIN32
+		_putenv_s("JAVA_HOME", javaHomePath.str().c_str());
+#else
+		setenv("JAVA_HOME", javaHomePath.str().c_str(), 1);
+#endif
 	}
 }
 

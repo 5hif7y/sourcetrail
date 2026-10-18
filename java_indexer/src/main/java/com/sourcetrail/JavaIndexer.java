@@ -44,6 +44,52 @@ public class JavaIndexer
 			verbose);
 	}
 
+	/**
+	 * Keep only the source roots that contain the file being indexed.
+	 *
+	 * JDT walks every source root recursively on each package/module lookup, so the
+	 * cost of indexing ONE file grows with the number of files in ALL roots. On Kafka
+	 * (6177 files spread over 134 roots) that made indexing crawl: after five minutes
+	 * the process was still burning CPU inside ClasspathDirectory.computeDirectoryList
+	 * and never finished. Passing only the file's own root keeps resolution inside its
+	 * module and reduces the per-file cost to that module's size.
+	 *
+	 * Falls back to the full list when no root matches, so a file outside the declared
+	 * roots is still indexed with the previous behaviour.
+	 */
+	/**
+	 * Keep only the source roots that contain the file being indexed.
+	 *
+	 * JDT walks every source root recursively on each package/module lookup, so the
+	 * cost of indexing ONE file grows with the number of files in ALL roots. On Kafka
+	 * (6177 files spread over 134 roots) that made indexing crawl: after five minutes
+	 * the process was still burning CPU inside ClasspathDirectory.computeDirectoryList
+	 * and never finished. Passing only the file's own root keeps resolution inside its
+	 * module and reduces the per-file cost to that module's size.
+	 *
+	 * Falls back to the full list when no root matches, so a file outside the declared
+	 * roots is still indexed with the previous behaviour.
+	 */
+	private static List<String> filterSourcesForFile(List<String> sources, Path file)
+	{
+		if (sources.size() <= 1)
+		{
+			return sources;
+		}
+
+		final String filePath = file.toAbsolutePath().normalize().toString().replace('\\', '/');
+		List<String> matching = new ArrayList<>();
+		for (String source: sources)
+		{
+			final String sourcePath = Paths.get(source).toAbsolutePath().normalize().toString().replace('\\', '/');
+			if (filePath.equals(sourcePath) || filePath.startsWith(sourcePath + "/"))
+			{
+				matching.add(source);
+			}
+		}
+		return matching.isEmpty() ? sources : matching;
+	}
+
 	public static void processFile(
 		AstVisitorClient astVisitorClient,
 		String filePath,
@@ -101,6 +147,8 @@ public class JavaIndexer
 				}
 			}
 
+			sources = filterSourcesForFile(sources, path);
+
 			parser.setEnvironment(classpath.toArray(new String[0]), sources.toArray(new String[0]), null, true);
 			parser.setSource(fileContent.toCharArray());
 
@@ -138,8 +186,11 @@ public class JavaIndexer
 				}
 			}
 		}
-		catch (Exception e)
+		catch (Throwable e)
 		{
+			// Catch Throwable, not Exception: OutOfMemoryError and LinkageError are
+			// Errors, and letting one escape leaves a pending JNI exception that
+			// breaks every subsequent call on this thread.
 			StringWriter sw = new StringWriter();
 			PrintWriter pw = new PrintWriter(sw);
 			e.printStackTrace(pw);
