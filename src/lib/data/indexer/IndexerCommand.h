@@ -8,7 +8,7 @@
 #include "FilePathFilter.h"
 #include "IndexerCommandType.h"
 
-class QJsonObject;
+
 
 class IndexerCommand
 {
@@ -26,7 +26,7 @@ public:
 	const FilePath& getSourceFilePath() const;
 
 protected:
-	virtual QJsonObject doSerialize() const;
+	virtual std::string doSerialize() const;
 
 private:
 	FilePath m_sourceFilePath;

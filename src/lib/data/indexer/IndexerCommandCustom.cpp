@@ -1,7 +1,6 @@
 #include "IndexerCommandCustom.h"
 
-#include <QJsonArray>
-#include <QJsonObject>
+
 
 #include "utilityString.h"
 
@@ -91,26 +90,30 @@ bool IndexerCommandCustom::getRunInParallel() const
 	return m_runInParallel;
 }
 
-QJsonObject IndexerCommandCustom::doSerialize() const
+std::string IndexerCommandCustom::doSerialize() const
 {
-	QJsonObject jsonObject = IndexerCommand::doSerialize();
-
+	std::string json = IndexerCommand::doSerialize();
+	if (!json.empty() && json.back() == '}')
 	{
-		jsonObject["command"] = QString::fromStdString(m_command);
+		json.pop_back();
 	}
+
+	json += ", ";
+	json += "\"command\": \"" + m_command + "\", ";
+	json += "\"arguments\": [";
+	for (size_t i = 0; i < m_arguments.size(); ++i)
 	{
-		QJsonArray argumentsArray;
-		for (const std::string& argument: m_arguments)
+		json += "\"" + m_arguments[i] + "\"";
+		if (i + 1 < m_arguments.size())
 		{
-			argumentsArray.append(QString::fromStdString(argument));
+			json += ", ";
 		}
-		jsonObject["arguments"] = argumentsArray;
 	}
-	{
-		jsonObject["run_in_parallel"] = m_runInParallel;
-	}
+	json += "], ";
+	json += "\"run_in_parallel\": " + std::string(m_runInParallel ? "true" : "false");
+	json += "}";
 
-	return jsonObject;
+	return json;
 }
 
 std::string IndexerCommandCustom::replaceVariables(std::string s) const

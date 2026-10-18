@@ -27,6 +27,7 @@
 		"qtbase",
 		"qtimageformats",
 
+		"nlohmann-json",
 		"sqlite3",
 		"tinyxml",
 

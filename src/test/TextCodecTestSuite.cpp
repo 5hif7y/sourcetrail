@@ -62,14 +62,7 @@ const string LATIN_1_EURO     = {'\x80'};
 
 const string LATIN_1_CHARACTERS = LATIN_1_LOWER_AE + LATIN_1_LOWER_OE + LATIN_1_LOWER_UE + LATIN_1_UPPER_AE + LATIN_1_UPPER_OE + LATIN_1_UPPER_UE + LATIN_1_SHARP_SS + LATIN_1_EURO;
 
-using Encoding = QStringConverter::Encoding;
-
 const string EMPTY_STRING;
-
-static TextCodec makeCodec(Encoding encoding)
-{
-	return TextCodec(QStringConverter::nameForEncoding(encoding));
-}
 
 //=================================================================================================
 
@@ -77,14 +70,14 @@ TEST_CASE("TextCodec invalid encoding")
 {
 	TextCodec invalidCodec("invalid/unknown");
 
-	REQUIRE(invalidCodec.getName() == "Locale");
+	REQUIRE(invalidCodec.getName() == "UTF-8");
 }
 
 //=================================================================================================
 
 TEST_CASE("TextCodec empty decoded string")
 {
-	TextCodec codec = makeCodec(Encoding::System);
+	TextCodec codec("UTF-8");
 
 	string decodedString = codec.decode(EMPTY_STRING);
 
@@ -93,7 +86,7 @@ TEST_CASE("TextCodec empty decoded string")
 
 TEST_CASE("TextCodec empty encoded string")
 {
-	TextCodec codec = makeCodec(Encoding::System);
+	TextCodec codec("UTF-8");
 
 	string encodedString = codec.encode(EMPTY_STRING);
 
@@ -104,7 +97,7 @@ TEST_CASE("TextCodec empty encoded string")
 
 TEST_CASE("TextCodec ascii decoding")
 {
-	TextCodec codec = makeCodec(Encoding::System);
+	TextCodec codec("UTF-8");
 
 	string decodedString = codec.decode("abcdef");
 
@@ -113,7 +106,7 @@ TEST_CASE("TextCodec ascii decoding")
 
 TEST_CASE("TextCodec ascii encoding")
 {
-	TextCodec codec = makeCodec(Encoding::System);
+	TextCodec codec("UTF-8");
 
 	string encodedString = codec.encode("12345");
 
@@ -124,7 +117,7 @@ TEST_CASE("TextCodec ascii encoding")
 
 TEST_CASE("TextCodec encode utf8 to utf16")
 {
-	TextCodec codec = makeCodec(Encoding::Utf16BE);
+	TextCodec codec("UTF-16BE");
 
 	string utf16Umlaute = codec.encode(UTF8_CHARACTERS);
 
@@ -133,7 +126,7 @@ TEST_CASE("TextCodec encode utf8 to utf16")
 
 TEST_CASE("TextCodec decode utf16 to utf8")
 {
-	TextCodec codec = makeCodec(Encoding::Utf16BE);
+	TextCodec codec("UTF-16BE");
 
 	string utf8Umlaute = codec.decode(UTF16_CHARACTERS);
 
@@ -144,7 +137,7 @@ TEST_CASE("TextCodec decode utf16 to utf8")
 
 TEST_CASE("TextCodec encode utf8 to utf32")
 {
-	TextCodec codec = makeCodec(Encoding::Utf32BE);
+	TextCodec codec("UTF-32BE");
 
 	string utf32Umlaute = codec.encode(UTF8_CHARACTERS);
 
@@ -153,7 +146,7 @@ TEST_CASE("TextCodec encode utf8 to utf32")
 
 TEST_CASE("TextCodec decode utf32 to utf8")
 {
-	TextCodec codec = makeCodec(Encoding::Utf32BE);
+	TextCodec codec("UTF-32BE");
 
 	string utf8Umlaute = codec.decode(UTF32_CHARACTERS);
 
@@ -164,7 +157,7 @@ TEST_CASE("TextCodec decode utf32 to utf8")
 
 TEST_CASE("TextCodec encode utf8 to latin1")
 {
-	TextCodec codec = makeCodec(Encoding::Latin1);
+	TextCodec codec("Latin1");
 
 	string latin1Umlaute = codec.encode(UTF8_CHARACTERS);
 
@@ -173,7 +166,7 @@ TEST_CASE("TextCodec encode utf8 to latin1")
 
 TEST_CASE("TextCodec decode latin1 to utf8")
 {
-	TextCodec codec = makeCodec(Encoding::Latin1);
+	TextCodec codec("Latin1");
 
 	string utf8Umlaute = codec.decode(LATIN_1_CHARACTERS);
 

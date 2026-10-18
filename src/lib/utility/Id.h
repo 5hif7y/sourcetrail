@@ -1,7 +1,7 @@
 #ifndef ID_H
 #define ID_H
 
-#include <QMetaType>
+
 
 #include <concepts>
 #include <cstddef>
@@ -74,7 +74,7 @@ private:
 	type m_value;
 };
 
-Q_DECLARE_METATYPE(Id)
+
 
 // Collision prevention:
 

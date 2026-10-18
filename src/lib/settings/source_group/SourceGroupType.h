@@ -3,7 +3,7 @@
 
 #include "language_packages.h"
 
-#include <QMetaType>
+
 
 #include <string>
 
@@ -25,7 +25,7 @@ enum class SourceGroupType
 	CUSTOM_COMMAND
 };
 
-Q_DECLARE_METATYPE(SourceGroupType)
+
 
 std::string sourceGroupTypeToString(SourceGroupType v);
 std::string sourceGroupTypeToProjectSetupString(SourceGroupType v);

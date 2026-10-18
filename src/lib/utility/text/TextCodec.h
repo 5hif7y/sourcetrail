@@ -2,31 +2,22 @@
 #define TEXT_CODEC_H
 
 #include <string>
-
-#include <QStringDecoder>
-#include <QStringEncoder>
-#include <QStringList>
+#include <vector>
 
 class TextCodec
 {
 public:
-	static QStringList availableCodecs();
+	static std::vector<std::string> availableCodecs();
 
 	TextCodec(const std::string& name);
-	TextCodec(QStringConverter::Encoding encoding);
 
-	std::string decode(const std::string &encodedString);
-	std::string encode(const std::string &decodedString);
-
-	QString decodeBytes(const QByteArray &encodedBytes);
-	QByteArray encodeBytes(const QString &decodedString);
+	std::string decode(const std::string& encodedString);
+	std::string encode(const std::string& decodedString);
 
 	std::string getName() const;
 
 private:
 	std::string m_name;
-	QStringDecoder m_decoder;
-	QStringEncoder m_encoder;
 };
 
-#endif	  // TEXT_CODEC_H
+#endif // TEXT_CODEC_H

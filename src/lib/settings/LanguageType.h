@@ -3,7 +3,7 @@
 
 #include "SourceGroupType.h"
 
-#include <QMetaType>
+
 
 #include <string>
 
@@ -20,7 +20,7 @@ enum class LanguageType
 	CUSTOM
 };
 
-Q_DECLARE_METATYPE(LanguageType)
+
 
 std::string languageTypeToString(LanguageType t);
 

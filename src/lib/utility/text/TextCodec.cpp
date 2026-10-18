@@ -1,72 +1,73 @@
 #include "TextCodec.h"
 
 #include <array>
+#include <algorithm>
+
+#include <boost/locale/encoding.hpp>
 
 using namespace std;
 
-static constexpr array AVAILABLE_ENCODINGS = {
-	QStringConverter::Encoding::Utf8,
-	QStringConverter::Encoding::Utf16,
-	QStringConverter::Encoding::Utf16LE,
-	QStringConverter::Encoding::Utf16BE,
-	QStringConverter::Encoding::Utf32,
-	QStringConverter::Encoding::Utf32LE,
-	QStringConverter::Encoding::Utf32BE,
-	QStringConverter::Encoding::Latin1,
-	QStringConverter::Encoding::System
+static const array<string, 9> AVAILABLE_ENCODINGS = {
+	"UTF-8",
+	"UTF-16",
+	"UTF-16LE",
+	"UTF-16BE",
+	"UTF-32",
+	"UTF-32LE",
+	"UTF-32BE",
+	"Latin1",
+	"ISO-8859-1"
 };
-static_assert(AVAILABLE_ENCODINGS.size() == QStringConverter::Encoding::LastEncoding + 1, "Encoding missing");
 
-static QStringConverter::Encoding makeValidEncoding(const string &name)
+static string makeValidEncoding(const string& name)
 {
-	for (const auto encoding : AVAILABLE_ENCODINGS)
+	for (const auto& encoding : AVAILABLE_ENCODINGS)
 	{
-		if (QStringConverter::nameForEncoding(encoding) == name)
+		if (encoding == name)
 			return encoding;
 	}
-	return QStringConverter::Encoding::System;
+	// Default to UTF-8 if encoding is not found
+	return "UTF-8";
 }
 
-QStringList TextCodec::availableCodecs()
+std::vector<std::string> TextCodec::availableCodecs()
 {
-	QStringList availableCodecs;
-
-	for (const auto encoding : AVAILABLE_ENCODINGS)
-		availableCodecs += QStringConverter::nameForEncoding(encoding);
-
-	return availableCodecs;
+	return {AVAILABLE_ENCODINGS.begin(), AVAILABLE_ENCODINGS.end()};
 }
 
-TextCodec::TextCodec(const string &name)
-	: TextCodec(makeValidEncoding(name))
+TextCodec::TextCodec(const string& name)
+	: m_name(makeValidEncoding(name))
 {
 }
 
-TextCodec::TextCodec(QStringConverter::Encoding encoding)
-	: m_name(QStringConverter::nameForEncoding(encoding))
-	, m_decoder(encoding)
-	, m_encoder(encoding)
+string TextCodec::decode(const string& encodedString)
 {
+	if (m_name == "UTF-8")
+		return encodedString;  // Already UTF-8, no conversion needed
+
+	try
+	{
+		return boost::locale::conv::between(encodedString, "UTF-8", m_name);
+	}
+	catch (const boost::locale::conv::conversion_error&)
+	{
+		return encodedString;  // Return as-is on conversion failure
+	}
 }
 
-string TextCodec::decode(const string &encodedString)
+string TextCodec::encode(const string& decodedString)
 {
-	return decodeBytes(QByteArray::fromStdString(encodedString)).toStdString();
-}
+	if (m_name == "UTF-8")
+		return decodedString;  // Already UTF-8, no conversion needed
 
-string TextCodec::encode(const string &decodedString)
-{
-	return encodeBytes(QString::fromStdString(decodedString)).toStdString();
-}
-
-QString TextCodec::decodeBytes(const QByteArray &encodedBytes)
-{
-	return static_cast<QString>(m_decoder.decode(encodedBytes));
-}
-
-QByteArray TextCodec::encodeBytes(const QString &decodedString)
-{
-	return static_cast<QByteArray>(m_encoder.encode(decodedString));
+	try
+	{
+		return boost::locale::conv::between(decodedString, m_name, "UTF-8");
+	}
+	catch (const boost::locale::conv::conversion_error&)
+	{
+		return decodedString;  // Return as-is on conversion failure
+	}
 }
 
 string TextCodec::getName() const

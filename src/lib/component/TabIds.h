@@ -1,7 +1,7 @@
 #ifndef TAB_IDS_H
 #define TAB_IDS_H
 
-#include <QMetaType>
+
 
 enum class TabId : unsigned
 {
@@ -14,7 +14,7 @@ enum class TabId : unsigned
 	USER = 10
 };
 
-Q_DECLARE_METATYPE(TabId)
+
 
 class TabIds
 {
