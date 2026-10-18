@@ -8,10 +8,11 @@
 
 namespace
 {
-// The Python indexer lives next to the neo-sourcetrail checkout rather than inside
-// the app bundle, so its location cannot be derived from a fixed number of parent
-// directories: the Release build runs from <repo>/build/Release/app while the bin
-// layout runs from <repo>/bin/app. Walk up from the app directory until it is found.
+// The Python indexer is shipped inside the app bundle at
+// <app>/data/python/SourcetrailPythonIndexer. In a development checkout it may also
+// live next to the neo-sourcetrail directory, so fall back to walking up from the
+// app directory (the Release build runs from <repo>/build/Release/app while the bin
+// layout runs from <repo>/bin/app).
 FilePath findPythonIndexerFilePath()
 {
 	const char* envPath = std::getenv("SourcetrailPythonIndexer");
@@ -21,6 +22,13 @@ FilePath findPythonIndexerFilePath()
 	}
 
 	const FilePath appDirectory = AppPath::getSharedDataDirectoryPath().getAbsolute();
+	const FilePath deployed =
+		appDirectory.getConcatenated("data/python/SourcetrailPythonIndexer/run.py");
+	if (deployed.exists())
+	{
+		return deployed;
+	}
+
 	FilePath directory = appDirectory;
 	for (int i = 0; i < 6; ++i)
 	{
@@ -37,9 +45,8 @@ FilePath findPythonIndexerFilePath()
 		directory = parent;
 	}
 
-	// Not found: keep the historical location so the error message points somewhere useful.
-	return appDirectory.getParentDirectory().getParentDirectory().getConcatenated(
-		"SourcetrailPythonIndexer/run.py");
+	// Not found: point at the packaged location so the error is actionable.
+	return deployed;
 }
 	// `-X utf8` makes Python's default `open()` use UTF-8. Without it, numbat opens
 	// the source file with the ANSI codepage (cp1252 on Windows) and dies with

@@ -16,3 +16,7 @@ vcpkg_installed/
 *-shm
 *-wal
 build/
+
+# Python bytecode (bundled Python indexer)
+__pycache__/
+*.pyc
