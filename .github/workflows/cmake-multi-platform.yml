@@ -116,9 +116,22 @@ jobs:
       - name: Configure
         shell: bash
         run: |
-          cmake -S . -B build/root-ctest \
+          triplet=x64-linux
+          arch=()
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            triplet=x64-windows
+            arch=(-A x64)
+          elif [ "$RUNNER_OS" = "macOS" ]; then
+            if [ "$(uname -m)" = "arm64" ]; then
+              triplet=arm64-osx
+            else
+              triplet=x64-osx
+            fi
+          fi
+          cmake -S . -B build/root-ctest "${arch[@]}" \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+            -DVCPKG_TARGET_TRIPLET="$triplet" \
             -DBUILD_GUI=OFF \
             -DBUILD_CXX_LANGUAGE_PACKAGE=OFF \
             -DBUILD_JAVA_LANGUAGE_PACKAGE=OFF \
