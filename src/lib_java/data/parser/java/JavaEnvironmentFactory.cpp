@@ -3,6 +3,10 @@
 #include "ApplicationSettings.h"
 #include "JavaEnvironment.h"
 #include "logging.h"
+#include "utilityApp.h"
+
+#include <algorithm>
+#include <string>
 
 namespace
 {
@@ -78,11 +82,17 @@ void JavaEnvironmentFactory::createInstance(const std::string &classPath, std::s
 	std::vector<JavaVMOption> options;						  // JVM invocation options
 	std::string classPathOption = "-Djava.class.path=" + classPath;
 	options.push_back({ .optionString = const_cast<char*>(classPathOption.c_str()) });
-	options.push_back({ .optionString = const_cast<char*>("-Xms64m") });
 	// Cap the heap explicitly. Without -Xmx the JVM grows until the OS refuses, and
 	// with several threads resolving bindings concurrently it used to spend most of
-	// its time in GC before failing with an uncaught OutOfMemoryError.
-	options.push_back({ .optionString = const_cast<char*>("-Xmx2048m") });
+	// its time in GC before failing with an uncaught OutOfMemoryError. The default
+	// scales with physical RAM (25%, 256..2048 MB) so the same binary works on a
+	// 2 GB embedded board and on a desktop; SOURCETRAIL_JAVA_HEAP overrides it.
+	const int javaHeapMb = utility::getJavaHeapSizeMb();
+	const int javaInitialHeapMb = std::max(1, std::min(64, javaHeapMb / 4));
+	std::string javaInitialHeapOption = "-Xms" + std::to_string(javaInitialHeapMb) + "m";
+	std::string javaMaxHeapOption = "-Xmx" + std::to_string(javaHeapMb) + "m";
+	options.push_back({ .optionString = const_cast<char*>(javaInitialHeapOption.c_str()) });
+	options.push_back({ .optionString = const_cast<char*>(javaMaxHeapOption.c_str()) });
 
 	// Prevent JVM warning:
 	// - A restricted method in java.lang.System has been called

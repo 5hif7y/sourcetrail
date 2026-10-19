@@ -2,6 +2,8 @@
 
 #include "CppSQLite3.h"
 
+#include <cstdlib>
+
 #include "Application.h"
 #include "ApplicationSettings.h"
 #include "CombinedIndexerCommandProvider.h"
@@ -550,19 +552,31 @@ void Project::buildIndex(RefreshInfo info, std::shared_ptr<DialogView> dialogVie
 	taskSequential->addTask(std::make_shared<TaskSetValue<bool>>("interrupted_indexing", false));
 	taskSequential->addTask(std::make_shared<TaskSetValue<float>>("index_time", 0.0f));
 
-	int indexerThreadCount = ApplicationSettings::getInstance()->getIndexerThreadCount();
-	if (indexerThreadCount <= 0)
+	int indexerThreadCount = 0;
+	const char* threadsEnv = std::getenv("SOURCETRAIL_INDEXER_THREADS");
+	if (threadsEnv && threadsEnv[0] != '\0')
 	{
-		// The GUI keeps one core free for itself; headless runs (sourcetrail_cli)
-		// can use every core, which matters on small machines (4 cores -> 3 vs 4).
-		const bool forGui =
-			Application::getInstance() == nullptr || Application::getInstance()->hasGUI();
-		indexerThreadCount = utility::getIdealThreadCount(forGui);
+		// --threads / SOURCETRAIL_INDEXER_THREADS overrides the saved setting.
+		indexerThreadCount = utility::getIdealThreadCount(false);
+	}
+	else
+	{
+		indexerThreadCount = ApplicationSettings::getInstance()->getIndexerThreadCount();
 		if (indexerThreadCount <= 0)
 		{
-			indexerThreadCount = 4;	   // setting to some fallback value
+			// The GUI keeps one core free for itself; headless runs cap the number
+			// of workers at 2 by default (embedded profile), overridable by env.
+			const bool forGui =
+				Application::getInstance() == nullptr || Application::getInstance()->hasGUI();
+			indexerThreadCount = utility::getIdealThreadCount(forGui);
+			if (indexerThreadCount <= 0)
+			{
+				indexerThreadCount = 4;	   // setting to some fallback value
+			}
 		}
 	}
+
+	LOG_INFO("Using " + std::to_string(indexerThreadCount) + " indexer thread(s).");
 
 	if (!indexerCommandProvider->empty())
 	{

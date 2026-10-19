@@ -29,8 +29,19 @@
 #endif
 
 #include <algorithm>
+#include <cstdint>
+#include <cstdlib>
 #include <set>
 #include <thread>
+
+#if defined(_WIN32)
+	#include <windows.h>
+#elif defined(__APPLE__)
+	#include <sys/sysctl.h>
+	#include <unistd.h>
+#elif defined(__unix__)
+	#include <unistd.h>
+#endif
 
 using namespace std;
 using namespace std::chrono;
@@ -264,12 +275,84 @@ std::string searchPath(const std::string& bin)
 
 int getIdealThreadCount(bool forGui)
 {
+	const char* env = std::getenv("SOURCETRAIL_INDEXER_THREADS");
+	if (env && env[0] != '\0')
+	{
+		char* end = nullptr;
+		const long requested = std::strtol(env, &end, 10);
+		if (end != env && requested >= 1)
+		{
+			return static_cast<int>(std::min<long>(requested, 64));
+		}
+	}
+
 	int threadCount = static_cast<int>(thread::hardware_concurrency());
+	if (threadCount <= 0)
+	{
+		threadCount = 4;
+	}
 	if (forGui && Platform::isWindows())
 	{
 		threadCount -= 1; // Most likely to keep the GUI thread responsive
 	}
+	if (!forGui)
+	{
+		// Headless/embedded default: keep the number of Python/Java workers low.
+		// Desktop CLI users can raise it with SOURCETRAIL_INDEXER_THREADS.
+		threadCount = std::min(threadCount, 2);
+	}
 	return std::max(1, threadCount);
+}
+
+unsigned long long getPhysicalMemoryBytes()
+{
+#if defined(_WIN32)
+	MEMORYSTATUSEX status = {};
+	status.dwLength = sizeof(status);
+	if (GlobalMemoryStatusEx(&status))
+	{
+		return static_cast<unsigned long long>(status.ullTotalPhys);
+	}
+#elif defined(__APPLE__)
+	uint64_t memory = 0;
+	size_t size = sizeof(memory);
+	if (sysctlbyname("hw.memsize", &memory, &size, nullptr, 0) == 0)
+	{
+		return static_cast<unsigned long long>(memory);
+	}
+#elif defined(__unix__)
+	const long pages = sysconf(_SC_PHYS_PAGES);
+	const long pageSize = sysconf(_SC_PAGE_SIZE);
+	if (pages > 0 && pageSize > 0)
+	{
+		return static_cast<unsigned long long>(pages) *
+			static_cast<unsigned long long>(pageSize);
+	}
+#endif
+	return 0;
+}
+
+int getJavaHeapSizeMb()
+{
+	const char* env = std::getenv("SOURCETRAIL_JAVA_HEAP");
+	if (env && env[0] != '\0')
+	{
+		char* end = nullptr;
+		const long requested = std::strtol(env, &end, 10);
+		if (end != env && requested > 0)
+		{
+			return static_cast<int>(std::min<long>(requested, 8192));
+		}
+	}
+
+	const unsigned long long bytes = getPhysicalMemoryBytes();
+	if (bytes == 0)
+	{
+		return 2048;
+	}
+	const long long totalMb = static_cast<long long>(bytes / (1024ULL * 1024ULL));
+	const long long heapMb = totalMb / 4; // 25% of physical RAM
+	return static_cast<int>(std::max<long long>(256, std::min<long long>(2048, heapMb)));
 }
 
 }	 // namespace utility

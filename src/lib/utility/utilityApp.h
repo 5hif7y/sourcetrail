@@ -39,6 +39,12 @@ void killRunningProcesses();
 
 int getIdealThreadCount(bool forGui = true);
 
+// Total physical memory in bytes (0 if it cannot be determined).
+unsigned long long getPhysicalMemoryBytes();
+
+// JVM heap in MB: SOURCETRAIL_JAVA_HEAP or 25% of physical RAM (clamped 256..2048).
+int getJavaHeapSizeMb();
+
 }
 
 #endif	  // UTILITY_APP_H

@@ -54,8 +54,12 @@ FilePath findPythonIndexerFilePath()
 	// axes/_base.py).
 	std::string makePythonIndexerCommand(const FilePath& pythonIndexerFile)
 	{
+		const char* shallow = std::getenv("SOURCETRAIL_PYTHON_SHALLOW");
+		const bool useShallow = shallow && shallow[0] != '\0' && shallow[0] != '0';
+
 		return "python -X utf8 \"" + pythonIndexerFile.str() +
-			"\" index --source-file-path=\"%{SOURCE_FILE_PATH}\" --database-file-path=\"%{DATABASE_FILE_PATH}\"";
+			"\" index --source-file-path=\"%{SOURCE_FILE_PATH}\" --database-file-path=\"%{DATABASE_FILE_PATH}\"" +
+			(useShallow ? " --shallow" : "");
 	}
 }	 // namespace
 

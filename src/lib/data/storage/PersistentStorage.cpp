@@ -1,5 +1,6 @@
 #include "PersistentStorage.h"
 
+#include <cstdlib>
 #include <queue>
 
 #include "AccessKind.h"
@@ -593,6 +594,15 @@ std::shared_ptr<SourceLocationCollection> PersistentStorage::getFullTextSearchLo
 
 	std::shared_ptr<SourceLocationCollection> collection =
 		std::make_shared<SourceLocationCollection>();
+
+	// The headless CLI sets SOURCETRAIL_FTS=0: it does not search and building the
+	// suffix index costs RAM and time. The GUI keeps the default (enabled).
+	const char* fullTextSearchEnv = std::getenv("SOURCETRAIL_FTS");
+	if (fullTextSearchEnv && fullTextSearchEnv[0] == '0')
+	{
+		return collection;
+	}
+
 	if (searchTerm.empty())
 	{
 		return collection;

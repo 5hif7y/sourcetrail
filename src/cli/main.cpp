@@ -30,8 +30,19 @@
 #include <thread>
 #include <chrono>
 #include <atomic>
+#include <cstdlib>
+#include <string>
 
 using namespace utility;
+
+static void setEnvironmentVariable(const std::string& name, const std::string& value)
+{
+#if defined(_WIN32)
+	_putenv_s(name.c_str(), value.c_str());
+#else
+	setenv(name.c_str(), value.c_str(), 1);
+#endif
+}
 
 void signalHandler(int /*signum*/)
 {
@@ -73,17 +84,89 @@ int main(int argc, char* argv[])
 	const Version version = Version::getApplicationVersion();
 	std::cout << "Starting Sourcetrail CLI version " << version.toDisplayString() << std::endl;
 
-	if (argc < 2)
+	std::string projectFileArg;
+	RefreshMode refreshMode = RefreshMode::UPDATED_AND_INCOMPLETE_FILES;
+
+	for (int i = 1; i < argc; ++i)
 	{
-		std::cout << "Usage: sourcetrail_cli <project_file.srctrlprj>" << std::endl;
+		const std::string arg = argv[i];
+		if (arg == "--help" || arg == "-h")
+		{
+			std::cout << "Usage: sourcetrail_cli [options] <project_file.srctrlprj>\n"
+				<< "  --refresh=all|updated   Refresh mode (default: updated)\n"
+				<< "  --threads=N             Indexer threads (default: min(cores, 2) headless)\n"
+				<< "  --java-heap=MB          JVM max heap (default: 25% of RAM, 256..2048)\n"
+				<< "  --python-shallow        Use the shallow Python indexer\n"
+				<< "  --help                  Show this help\n";
+			return 0;
+		}
+		if (arg.rfind("--refresh=", 0) == 0)
+		{
+			const std::string value = arg.substr(std::string("--refresh=").size());
+			if (value == "all")
+			{
+				refreshMode = RefreshMode::ALL_FILES;
+			}
+			else if (value == "updated")
+			{
+				refreshMode = RefreshMode::UPDATED_AND_INCOMPLETE_FILES;
+			}
+			else
+			{
+				std::cerr << "Invalid --refresh value: " << value << std::endl;
+				return 1;
+			}
+		}
+		else if (arg.rfind("--threads=", 0) == 0)
+		{
+			setEnvironmentVariable(
+				"SOURCETRAIL_INDEXER_THREADS",
+				arg.substr(std::string("--threads=").size()));
+		}
+		else if (arg.rfind("--java-heap=", 0) == 0)
+		{
+			setEnvironmentVariable(
+				"SOURCETRAIL_JAVA_HEAP",
+				arg.substr(std::string("--java-heap=").size()));
+		}
+		else if (arg == "--python-shallow")
+		{
+			setEnvironmentVariable("SOURCETRAIL_PYTHON_SHALLOW", "1");
+		}
+		else if (!arg.empty() && arg[0] == '-')
+		{
+			std::cerr << "Unknown option: " << arg << std::endl;
+			return 1;
+		}
+		else if (projectFileArg.empty())
+		{
+			projectFileArg = arg;
+		}
+		else
+		{
+			std::cerr << "More than one project file provided." << std::endl;
+			return 1;
+		}
+	}
+
+	if (projectFileArg.empty())
+	{
+		std::cout << "Usage: sourcetrail_cli [options] <project_file.srctrlprj>" << std::endl;
 		return 1;
+	}
+
+	// The headless CLI does not need the in-memory full-text search index while
+	// indexing; make it opt-in through SOURCETRAIL_FTS (the GUI keeps its default).
+	if (std::getenv("SOURCETRAIL_FTS") == nullptr)
+	{
+		setEnvironmentVariable("SOURCETRAIL_FTS", "0");
 	}
 
 	// Resolve the project path against the current directory. Otherwise the
 	// temporary database path derived from it stays relative and the indexer
 	// process (which runs with the project directory as its working directory)
 	// resolves it to the wrong location.
-	FilePath projectFilePath{std::string(argv[1])};
+	FilePath projectFilePath{projectFileArg};
 	projectFilePath.makeAbsolute();
 	const std::string projectFile = projectFilePath.str();
 
@@ -130,7 +213,7 @@ int main(int argc, char* argv[])
 	QuitListener quitListener(quitReceived);
 
 	// Load and index project
-	MessageLoadProject(FilePath(projectFile), false, RefreshMode::ALL_FILES).dispatch();
+	MessageLoadProject(FilePath(projectFile), false, refreshMode).dispatch();
 
 	while(!quitReceived && MessageQueue::getInstance()->isLoopRunning())
 	{
