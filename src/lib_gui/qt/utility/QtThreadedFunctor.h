@@ -17,6 +17,7 @@ class QtThreadedFunctorHelper : public QObject, public MessageListener<MessageWi
 
 public:
 	QtThreadedFunctorHelper();
+	~QtThreadedFunctorHelper() override;
 
 	void operator()(std::function<void()> callback);
 

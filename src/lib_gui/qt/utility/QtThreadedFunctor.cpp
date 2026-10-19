@@ -6,6 +6,15 @@ QtThreadedFunctorHelper::QtThreadedFunctorHelper()
 	QObject::connect(this, &QtThreadedFunctorHelper::signalExecution, this, &QtThreadedFunctorHelper::execute, Qt::QueuedConnection);
 }
 
+QtThreadedFunctorHelper::~QtThreadedFunctorHelper()
+{
+	// Release threads waiting for a callback before the semaphore is destroyed,
+	// then unregister: a queued message may still reference this helper while
+	// the owning widget is being destroyed.
+	m_freeCallbacks.release(1000);
+	unregister();
+}
+
 void QtThreadedFunctorHelper::operator()(std::function<void ()> callback)
 {
 	if (QThread::currentThread() == this->thread())
