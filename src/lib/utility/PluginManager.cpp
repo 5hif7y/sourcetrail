@@ -5,6 +5,7 @@
 #include <boost/dll/import.hpp>
 #include <boost/filesystem.hpp>
 #include <algorithm>
+#include <cstdlib>
 
 #if defined(_WIN32)
 #  ifndef NOMINMAX
@@ -78,6 +79,13 @@ PluginManager* PluginManager::getInstance()
 
 void PluginManager::loadPluginsBesideModule()
 {
+	const char* overrideDirectory = std::getenv("SOURCETRAIL_PLUGIN_DIR");
+	if (overrideDirectory && overrideDirectory[0] != '\0')
+	{
+		loadPlugins(overrideDirectory);
+		return;
+	}
+
 	const std::string directory = moduleDirectory();
 	if (directory.empty())
 	{

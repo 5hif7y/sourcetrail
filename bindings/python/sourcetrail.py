@@ -22,7 +22,19 @@ def _load_lib():
         
     try:
         if sys.platform == 'win32' and hasattr(os, 'add_dll_directory'):
+            # The API DLL lives in build/src/lib_api/<config>, while its
+            # dependencies and language plugins are deployed into
+            # build/<config>/app. Add both before loading.
             os.add_dll_directory(os.path.dirname(os.path.abspath(lib_path)))
+
+            config = 'Debug' if 'Debug' in lib_path else 'Release'
+            app_dir = os.path.abspath(
+                os.path.join(base_dir, '..', '..', 'build', config, 'app'))
+            if os.path.isdir(app_dir):
+                os.add_dll_directory(app_dir)
+                plugin_dir = os.path.join(app_dir, 'plugins')
+                if os.path.isdir(plugin_dir):
+                    os.environ.setdefault('SOURCETRAIL_PLUGIN_DIR', plugin_dir)
         return ctypes.CDLL(lib_path)
     except OSError as e:
         raise RuntimeError(f"Failed to load Sourcetrail library from {lib_path}: {e}")
