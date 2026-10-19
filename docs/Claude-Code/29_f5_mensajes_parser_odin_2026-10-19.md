@@ -53,6 +53,9 @@ ejercita en `plugin_host_test` con registros genéricos.
 | `offset_of(Type, field)` | `field` se registraba como referencia al paquete | Sólo se escanea el primer argumento; `offset_of` es keyword, por lo que el chequeo va antes del guard de `.Ident` |
 | Nombres de imports desnudos (`_, _, _ :: intrinsics, strconv, math`) | Referencias no resueltas | Se omiten los nombres locales de imports cuando no van seguidos de `.` |
 | Locales que ensombrecen builtins (`real`, `min`, ...) | El builtin se saltaba antes de consultar `locals`, y la cadena siguiente se resolvía contra el paquete | `locals` se consulta antes de `is_builtin_proc` |
+| `card`, `make_slice` | Builtins del compilador no listados | Agregados a `is_builtin_proc` |
+| `kind: enum { Element = 0, Comment, }` | El `=` interno se tomaba como default del campo y `Comment` se escaneaba como referencia | El `=` se busca sólo a profundidad 0 |
+| `using ipv4: linux.Sock_Addr_In` | Se registraba `linux` (el paquete) como base de herencia | La cadena completa se resuelve contra el import |
 
 ### Resultado
 
@@ -60,14 +63,14 @@ Core actual (`C:\Software\Odin-oct-2026\core`, **1.288 archivos**):
 
 | Métrica | Antes | Después |
 |---|---:|---:|
-| Ocurrencias no resueltas (`--unsolved`) | 182 | **41** |
+| Ocurrencias no resueltas (`--unsolved`) | 182 | **31** |
 | Nodos (con no resueltas) | 115.773 | **115.773** |
-| Aristas (con no resueltas) | 314.465 | **314.456** |
+| Aristas (con no resueltas) | 314.465 | **314.454** |
 | Errores | 0 | **0** |
 
-Sin no resueltas: **115.772 nodos, 314.435 aristas, 18,7 s**, 0 errores.
+Sin no resueltas: **115.772 nodos, 314.441 aristas, 18,7–19,5 s**, 0 errores.
 
-Las 41 restantes:
+Las 31 restantes:
 
 - 15 en `image/png/png.odin`: campos traídos por `using header`, donde el
   parser no infiere el tipo del puntero.
@@ -75,7 +78,9 @@ Las 41 restantes:
   del fuente).
 - 3 en `fmt/fmt.odin`: `$T` en el `where` de un proc anidado.
 - 2 en `math/linalg/general.odin`: `matrix_inverse_generic` no existe en core.
-- 2 en `nbio/impl_linux.odin`, y el resto casos aislados.
+- 3 en `os/file_stream.odin`, `os/file_util.odin` y `os/file_windows.odin`.
+- 1 en `debug/trace/allocator.odin`, 1 en `mem/tracking_allocator.odin`,
+  1 en `text/edit/text_edit.odin` y 1 en `thread/thread_pool.odin`.
 
 Tests: **7/7** (`run_tests.ps1`). Se agregó el fixture
 `strings_enum.odin`, que cubre raw strings triples, alias de enum y
@@ -116,8 +121,8 @@ del experimento no quedó en el árbol.
 | Odin sample embedded | **32 / 42 / 0** |
 | `tictactoe_cpp` | **383 / 819 / 0** |
 | `tutorial-py` | 103 / 270–283 / 0 (varía entre corridas) |
-| Core Odin (1.288 archivos) | **115.772 / 314.435 / 0**, 18,7 s |
-| Core Odin con `--unsolved` | **115.773 / 314.456 / 0**, 41 no resueltas |
+| Core Odin (1.288 archivos) | **115.772 / 314.441 / 0**, 18,7–19,5 s |
+| Core Odin con `--unsolved` | **115.773 / 314.454 / 0**, 31 no resueltas |
 | Indexador Odin | **7/7** |
 | Plugins | **3/3** |
 | Registro de lenguajes | **1/1** |
@@ -150,7 +155,7 @@ Falta el recorrido manual del diálogo en la GUI; el camino de datos
 - **E5**: cross-build ARM64.
 - **Historial**: purge opcional (aprobación explícita).
 - **GUI**: recorrido manual del wizard Odin.
-- **Parser**: 41 no resueltas; las 15 de `png` requieren inferencia de tipos
+- **Parser**: 31 no resueltas; las 15 de `png` requieren inferencia de tipos
   para `using header`.
 - **Writer**: reducir índices durante la escritura o tantear lotes de 64/256;
   la lista de archivos está descartada con medición.
