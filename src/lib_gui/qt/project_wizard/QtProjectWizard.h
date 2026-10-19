@@ -24,6 +24,10 @@ public:
 	QtProjectWizard(QWidget* parent = nullptr);
 	QSize sizeHint() const override;
 
+	void populateSourceGroupContents(
+		QtProjectWizardContentGroup* group,
+		std::shared_ptr<SourceGroupSettings> settings);
+
 public slots:
 	void newProject();
 

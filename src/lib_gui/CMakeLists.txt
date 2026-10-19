@@ -183,6 +183,7 @@ add_library(Sourcetrail_lib_gui
 
 	qt/project_wizard/QtProjectWizard.cpp
 	qt/project_wizard/QtProjectWizard.h
+	qt/project_wizard/QtProjectWizardPageRegistry.h
 	qt/project_wizard/QtProjectWizardWindow.cpp
 	qt/project_wizard/QtProjectWizardWindow.h
 
@@ -282,6 +283,11 @@ add_library(Sourcetrail_lib_gui
 	qt/window/QtLicenseWindow.h
 	qt/window/QtMainWindow.cpp
 	qt/window/QtMainWindow.h
+	qt/window/QtMenuRegistry.h
+	qt/window/QtPreferencesPageRegistry.h
+	qt/window/UiPlugin.cpp
+	qt/window/UiPlugin.h
+	qt/project_wizard/SourceGroupUiRegistry.h
 	qt/window/QtPathListDialog.cpp
 	qt/window/QtPathListDialog.h
 	qt/window/QtPreferencesWindow.cpp

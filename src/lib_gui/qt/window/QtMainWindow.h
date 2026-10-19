@@ -13,6 +13,7 @@
 class Bookmark;
 class MessageBase;
 class QDockWidget;
+class QMenu;
 class View;
 
 class QtViewToggle: public QWidget
@@ -83,6 +84,14 @@ public:
 	void hideWindowTitleProgress();
 
 	void alert();
+
+	// Menu contributors invoked by the UI plugin through QtMenuRegistry.
+	void populateProjectMenu(QMenu* menu);
+	void populateEditMenu(QMenu* menu);
+	void populateViewMenu(QMenu* menu);
+	void populateHistoryMenu(QMenu* menu);
+	void populateBookmarksMenu(QMenu* menu);
+	void populateHelpMenu(QMenu* menu);
 	
 signals:
 	void showScreenSearch();

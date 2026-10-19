@@ -29,6 +29,8 @@
 #include "MessageTabOpen.h"
 #include "MessageTabSelect.h"
 #include "MessageWindowClosed.h"
+#include "QtMenuRegistry.h"
+#include "UiPlugin.h"
 #include "MessageZoom.h"
 #include "QtAbout.h"
 #include "QtActions.h"
@@ -136,6 +138,7 @@ QtMainWindow::QtMainWindow()
 		app->setStyleSheet(QtResources::loadStyleSheet(QtResources::MAIN_SCROLLBAR_CSS));
 	}
 
+	st::plugin::ensureUiPluginLoaded();
 	setupProjectMenu();
 	setupEditMenu();
 	setupViewMenu();
@@ -200,7 +203,17 @@ void QtMainWindow::addView(View* view)
 	QAction* action = new QAction(name + " Window", this);
 	action->setCheckable(true);
 	connect(action, &QAction::triggered, toggle, &QtViewToggle::toggledByAction);
-	m_viewMenu->insertAction(m_viewSeparator, action);
+	if (m_viewMenu)
+	{
+		if (m_viewSeparator)
+		{
+			m_viewMenu->insertAction(m_viewSeparator, action);
+		}
+		else
+		{
+			m_viewMenu->addAction(action);
+		}
+	}
 
 	DockWidget dockWidget;
 	dockWidget.widget = dock;
@@ -776,6 +789,12 @@ void QtMainWindow::openRecentProject()
 
 void QtMainWindow::updateRecentProjectsMenu()
 {
+	if (!m_recentProjectsMenu)
+	{
+		// The UI plugin did not register the project menu contributor.
+		return;
+	}
+
 	m_recentProjectsMenu->clear();
 
 	const std::vector<FilePath> recentProjects =
@@ -851,7 +870,11 @@ void QtMainWindow::setupProjectMenu()
 {
 	QMenu* menu = new QMenu(tr("&Project"), this);
 	menuBar()->addMenu(menu);
+	QtMenuRegistry::instance().populate("project", menu, this);
+}
 
+void QtMainWindow::populateProjectMenu(QMenu* menu)
+{
 	menu->addAction(QtActions::newProject().text(), QtActions::newProject().shortcut(), this, &QtMainWindow::newProject);
 	menu->addAction(QtActions::openProject().text(), QtActions::openProject().shortcut(), this, &QtMainWindow::openProject);
 
@@ -873,7 +896,11 @@ void QtMainWindow::setupEditMenu()
 {
 	QMenu* menu = new QMenu(tr("&Edit"), this);
 	menuBar()->addMenu(menu);
+	QtMenuRegistry::instance().populate("edit", menu, this);
+}
 
+void QtMainWindow::populateEditMenu(QMenu* menu)
+{
 	menu->addAction(QtActions::refresh().text(), QtActions::refresh().shortcut(), this, &QtMainWindow::refresh);
 	menu->addAction(QtActions::fullRefresh().text(), QtActions::fullRefresh().shortcut(), this, &QtMainWindow::forceRefresh);
 
@@ -911,7 +938,11 @@ void QtMainWindow::setupViewMenu()
 {
 	QMenu* menu = new QMenu(tr("&View"), this);
 	menuBar()->addMenu(menu);
+	QtMenuRegistry::instance().populate("view", menu, this);
+}
 
+void QtMainWindow::populateViewMenu(QMenu* menu)
+{
 	menu->addAction(QtActions::newTab().text(), QtActions::newTab().shortcut(), this, &QtMainWindow::openTab);
 	menu->addAction(QtActions::closeTab().text(), QtActions::closeTab().shortcut(), this, &QtMainWindow::closeTab);
 	menu->addAction(QtActions::selectNextTab().text(), QtActions::selectNextTab().shortcut(), this, &QtMainWindow::nextTab);
@@ -950,10 +981,7 @@ void QtMainWindow::setupHistoryMenu()
 	else
 		m_historyMenu->clear();
 
-	m_historyMenu->addAction(QtActions::back().text(), QtActions::back().shortcut(), this, &QtMainWindow::undo);
-	m_historyMenu->addAction(QtActions::forward().text(), QtActions::forward().shortcut(), this, &QtMainWindow::redo);
-
-	m_historyMenu->addSection(tr("Recent Symbols"));
+	QtMenuRegistry::instance().populate("history", m_historyMenu, this);
 
 	for (size_t i = 0; i < m_history.size(); i++)
 	{
@@ -975,6 +1003,14 @@ void QtMainWindow::setupHistoryMenu()
 	}
 }
 
+void QtMainWindow::populateHistoryMenu(QMenu* menu)
+{
+	menu->addAction(QtActions::back().text(), QtActions::back().shortcut(), this, &QtMainWindow::undo);
+	menu->addAction(QtActions::forward().text(), QtActions::forward().shortcut(), this, &QtMainWindow::redo);
+
+	menu->addSection(tr("Recent Symbols"));
+}
+
 void QtMainWindow::setupBookmarksMenu()
 {
 	if (!m_bookmarksMenu)
@@ -985,10 +1021,7 @@ void QtMainWindow::setupBookmarksMenu()
 	else
 		m_bookmarksMenu->clear();
 
-	m_bookmarksMenu->addAction(QtActions::bookmarkActiveSymbol().text(), QtActions::bookmarkActiveSymbol().shortcut(), this, &QtMainWindow::showBookmarkCreator);
-	m_bookmarksMenu->addAction(QtActions::bookmarkManager().text(), QtActions::bookmarkManager().shortcut(), this, &QtMainWindow::showBookmarkBrowser);
-
-	m_bookmarksMenu->addSection(tr("Recent Bookmarks"));
+	QtMenuRegistry::instance().populate("bookmarks", m_bookmarksMenu, this);
 
 	for (size_t i = 0; i < m_bookmarks.size(); i++)
 	{
@@ -1004,11 +1037,23 @@ void QtMainWindow::setupBookmarksMenu()
 	}
 }
 
+void QtMainWindow::populateBookmarksMenu(QMenu* menu)
+{
+	menu->addAction(QtActions::bookmarkActiveSymbol().text(), QtActions::bookmarkActiveSymbol().shortcut(), this, &QtMainWindow::showBookmarkCreator);
+	menu->addAction(QtActions::bookmarkManager().text(), QtActions::bookmarkManager().shortcut(), this, &QtMainWindow::showBookmarkBrowser);
+
+	menu->addSection(tr("Recent Bookmarks"));
+}
+
 void QtMainWindow::setupHelpMenu()
 {
 	QMenu* menu = new QMenu(tr("&Help"), this);
 	menuBar()->addMenu(menu);
+	QtMenuRegistry::instance().populate("help", menu, this);
+}
 
+void QtMainWindow::populateHelpMenu(QMenu* menu)
+{
 	menu->addAction(QtActions::showKeyboardShortcuts().text(), QtActions::showKeyboardShortcuts().shortcut(), this, &QtMainWindow::showKeyboardShortcuts);
 	menu->addAction(QtActions::showLegend().text(), QtActions::showLegend().shortcut(), &QtMainWindow::showLegend);
 

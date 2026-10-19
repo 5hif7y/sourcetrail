@@ -17,7 +17,9 @@
 #include "QtProjectWizardContentSourceGroupData.h"
 #include "QtProjectWizardContentSourceGroupInfoText.h"
 #include "QtProjectWizardContentUnloadable.h"
+#include "QtProjectWizardPageRegistry.h"
 #include "QtResources.h"
+#include "UiPlugin.h"
 #include "SourceGroupSettingsCustomCommand.h"
 #include "SourceGroupSettingsPythonEmpty.h"
 #include "SourceGroupSettingsOdinEmpty.h"
@@ -652,6 +654,25 @@ void QtProjectWizard::selectedSourceGroupChanged(int index)
 	summary->addContent(content);
 	summary->addSpace();
 
+	st::plugin::ensureUiPluginLoaded();
+	QtProjectWizardPageRegistry::instance().populate(summary, group, this);
+
+	summary->addSpace();
+	summary->addContent(new QtProjectWizardContentRequiredLabel(this));
+
+	setContent(summary);
+
+	qDeleteAll(m_contentWidget->children());
+	QtProjectWizardWindow::populateWindow(m_contentWidget);
+
+	loadContent();
+
+	m_previouslySelectedIndex = index;
+}
+
+void QtProjectWizard::populateSourceGroupContents(
+	QtProjectWizardContentGroup* summary, std::shared_ptr<SourceGroupSettings> group)
+{
 	if (std::shared_ptr<SourceGroupSettingsCustomCommand> settings =
 			std::dynamic_pointer_cast<SourceGroupSettingsCustomCommand>(group))
 	{
@@ -709,18 +730,6 @@ void QtProjectWizard::selectedSourceGroupChanged(int index)
 		addSourceGroupContents(summary, settings, this);
 	}
 #endif	  // BUILD_JAVA_LANGUAGE_PACKAGE
-
-	summary->addSpace();
-	summary->addContent(new QtProjectWizardContentRequiredLabel(this));
-
-	setContent(summary);
-
-	qDeleteAll(m_contentWidget->children());
-	QtProjectWizardWindow::populateWindow(m_contentWidget);
-
-	loadContent();
-
-	m_previouslySelectedIndex = index;
 }
 
 void QtProjectWizard::selectedSourceGroupNameChanged(const QString& name)

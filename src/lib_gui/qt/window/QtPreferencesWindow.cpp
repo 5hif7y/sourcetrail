@@ -1,7 +1,5 @@
 #include "QtPreferencesWindow.h"
 
-#include "language_packages.h"
-
 #include "MessageLoadProject.h"
 #include "MessagePluginPortChange.h"
 #include "MessageRefreshUI.h"
@@ -9,11 +7,9 @@
 
 #include "Application.h"
 #include "DialogView.h"
+#include "QtPreferencesPageRegistry.h"
 #include "QtProjectWizardContentGroup.h"
-#include "QtProjectWizardContentPathsFrameworkSearchGlobal.h"
-#include "QtProjectWizardContentPathsHeaderSearchGlobal.h"
-#include "QtProjectWizardContentPreferences.h"
-#include "Platform.h"
+#include "UiPlugin.h"
 
 QtPreferencesWindow::QtPreferencesWindow(QWidget* parent): QtProjectWizardWindow(parent)
 {
@@ -29,16 +25,17 @@ QtPreferencesWindow::QtPreferencesWindow(QWidget* parent): QtProjectWizardWindow
 	m_appSettings.setScreenScaleFactor(appSettings->getScreenScaleFactor());
 
 
-	QtProjectWizardContentGroup* summary = new QtProjectWizardContentGroup(this);
-	summary->addContent(new QtProjectWizardContentPreferences(this));
+	st::plugin::ensureUiPluginLoaded();
 
-#if BUILD_CXX_LANGUAGE_PACKAGE
-	summary->addContent(new QtProjectWizardContentPathsHeaderSearchGlobal(this));
-	if constexpr (utility::Platform::isMac())
+	QtProjectWizardContentGroup* summary = new QtProjectWizardContentGroup(this);
+	for (const QtPreferencesPageRegistry::Factory& factory:
+		 QtPreferencesPageRegistry::instance().pages())
 	{
-		summary->addContent(new QtProjectWizardContentPathsFrameworkSearchGlobal(this));
+		if (QtProjectWizardContent* content = factory(this))
+		{
+			summary->addContent(content);
+		}
 	}
-#endif	  // BUILD_CXX_LANGUAGE_PACKAGE
 
 	setPreferredSize(QSize(750, 500));
 	setContent(summary);

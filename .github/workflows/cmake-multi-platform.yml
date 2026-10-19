@@ -45,3 +45,43 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build/language-registry -C Release --output-on-failure
+
+  cli-options:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S src/lib/utility/commandline/tests -B build/cli-options -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build/cli-options --config Release
+
+      - name: Test
+        run: ctest --test-dir build/cli-options -C Release --output-on-failure
+
+  ui-registry:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S src/lib_gui/tests -B build/ui-registry -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build/ui-registry --config Release
+
+      - name: Test
+        run: ctest --test-dir build/ui-registry -C Release --output-on-failure

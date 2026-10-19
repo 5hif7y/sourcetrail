@@ -704,6 +704,16 @@ if (BUILD_PLUGIN_CONTEXT_TESTS)
 	target_compile_features(cli_options_test PRIVATE cxx_std_17)
 	target_link_libraries(cli_options_test PRIVATE ${CMAKE_DL_LIBS})
 	add_test(NAME cli_options COMMAND cli_options_test)
+
+	add_executable(ui_registry_test src/lib_gui/tests/UiRegistryTest.cpp)
+	target_include_directories(ui_registry_test PRIVATE
+		src/lib_gui/qt/window
+		src/lib_gui/qt/project_wizard
+		src/lib/settings
+		src/lib/settings/source_group
+		${CMAKE_BINARY_DIR}/src/lib)
+	target_compile_features(ui_registry_test PRIVATE cxx_std_17)
+	add_test(NAME ui_registry COMMAND ui_registry_test)
 endif()
 
 if (BUILD_UNIT_TESTS_PACKAGE)
