@@ -24,6 +24,8 @@ std::string sourceGroupTypeToString(SourceGroupType v)
 
 	case SourceGroupType::PYTHON_EMPTY:
 		return "Python Source Group";
+	case SourceGroupType::ODIN_EMPTY:
+		return "Odin Source Group";
 
 	case SourceGroupType::CUSTOM_COMMAND:
 		return "Custom Command Source Group";
@@ -57,6 +59,8 @@ std::string sourceGroupTypeToProjectSetupString(SourceGroupType v)
 
 	case SourceGroupType::PYTHON_EMPTY:
 		return "Empty Python Source Group";
+	case SourceGroupType::ODIN_EMPTY:
+		return "Empty Odin Source Group";
 
 	case SourceGroupType::CUSTOM_COMMAND:
 		return "Custom Command Source Group";
@@ -105,6 +109,10 @@ SourceGroupType stringToSourceGroupType(const std::string& v)
 	if (v == sourceGroupTypeToString(SourceGroupType::PYTHON_EMPTY) || v == sourceGroupTypeToProjectSetupString(SourceGroupType::PYTHON_EMPTY))
 	{
 		return SourceGroupType::PYTHON_EMPTY;
+	}
+	if (v == sourceGroupTypeToString(SourceGroupType::ODIN_EMPTY) || v == sourceGroupTypeToProjectSetupString(SourceGroupType::ODIN_EMPTY))
+	{
+		return SourceGroupType::ODIN_EMPTY;
 	}
 
 	if (v == sourceGroupTypeToString(SourceGroupType::CUSTOM_COMMAND) || v == sourceGroupTypeToProjectSetupString(SourceGroupType::CUSTOM_COMMAND))

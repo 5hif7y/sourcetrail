@@ -1453,8 +1453,12 @@ target_include_directories(Sourcetrail_lib
 	target_sources(Sourcetrail_lib PRIVATE
 		project/SourceGroupFactoryModulePython.cpp
 		project/SourceGroupFactoryModulePython.h
+		project/SourceGroupFactoryModuleOdin.cpp
+		project/SourceGroupFactoryModuleOdin.h
 		settings/source_group/type/SourceGroupSettingsPythonEmpty.cpp
 		settings/source_group/type/SourceGroupSettingsPythonEmpty.h
+		settings/source_group/type/SourceGroupSettingsOdinEmpty.cpp
+		settings/source_group/type/SourceGroupSettingsOdinEmpty.h
 	)
 
 if (BUILD_CXX_LANGUAGE_PACKAGE)

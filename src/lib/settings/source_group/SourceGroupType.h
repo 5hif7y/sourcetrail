@@ -21,6 +21,7 @@ enum class SourceGroupType
 	JAVA_GRADLE,
 
 	PYTHON_EMPTY,
+	ODIN_EMPTY,
 
 	CUSTOM_COMMAND
 };

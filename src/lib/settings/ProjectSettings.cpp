@@ -20,6 +20,7 @@
 #endif	  // BUILD_JAVA_LANGUAGE_PACKAGE
 
 #include "SourceGroupSettingsPythonEmpty.h"
+#include "SourceGroupSettingsOdinEmpty.h"
 
 
 const std::string ProjectSettings::PROJECT_FILE_EXTENSION = ".srctrlprj";
@@ -187,6 +188,10 @@ std::vector<std::shared_ptr<SourceGroupSettings>> ProjectSettings::getAllSourceG
 
 		case SourceGroupType::PYTHON_EMPTY:
 			settings = std::make_shared<SourceGroupSettingsPythonEmpty>(id, this);
+			break;
+
+		case SourceGroupType::ODIN_EMPTY:
+			settings = std::make_shared<SourceGroupSettingsOdinEmpty>(id, this);
 			break;
 
 		case SourceGroupType::CUSTOM_COMMAND:

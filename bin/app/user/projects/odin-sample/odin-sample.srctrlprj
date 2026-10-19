@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<config>
+    <source_groups>
+        <source_group_6f1d2c3a-9b4e-4c7d-8a21-0d5e6f7a8b9c>
+            <name>Odin Sample</name>
+            <source_extensions>
+                <source_extension>.odin</source_extension>
+            </source_extensions>
+            <source_paths>
+                <source_path>./src</source_path>
+            </source_paths>
+            <status>enabled</status>
+            <type>Empty Odin Source Group</type>
+        </source_group_6f1d2c3a-9b4e-4c7d-8a21-0d5e6f7a8b9c>
+    </source_groups>
+    <version>8</version>
+</config>

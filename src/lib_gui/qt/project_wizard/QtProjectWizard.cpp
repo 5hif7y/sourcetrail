@@ -20,6 +20,7 @@
 #include "QtResources.h"
 #include "SourceGroupSettingsCustomCommand.h"
 #include "SourceGroupSettingsPythonEmpty.h"
+#include "SourceGroupSettingsOdinEmpty.h"
 #include "SourceGroupSettingsUnloadable.h"
 #include "ToolChain.h"
 #include "language_packages.h"
@@ -960,6 +961,10 @@ void QtProjectWizard::selectedProjectType(SourceGroupType sourceGroupType)
 
 	case SourceGroupType::PYTHON_EMPTY:
 		settings = std::make_shared<SourceGroupSettingsPythonEmpty>(
+			sourceGroupId, m_projectSettings.get());
+		break;
+	case SourceGroupType::ODIN_EMPTY:
+		settings = std::make_shared<SourceGroupSettingsOdinEmpty>(
 			sourceGroupId, m_projectSettings.get());
 		break;
 	case SourceGroupType::CUSTOM_COMMAND:

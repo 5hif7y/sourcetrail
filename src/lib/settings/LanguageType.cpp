@@ -13,6 +13,8 @@ std::string languageTypeToString(LanguageType t)
 		return "Java";
 	case LanguageType::PYTHON:
 		return "Python";
+	case LanguageType::ODIN:
+		return "Odin";
 	case LanguageType::CUSTOM:
 		return "Custom";
 	case LanguageType::UNKNOWN:
@@ -45,6 +47,8 @@ LanguageType getLanguageTypeForSourceGroupType(SourceGroupType t)
 
 	case SourceGroupType::PYTHON_EMPTY:
 		return LanguageType::PYTHON;
+	case SourceGroupType::ODIN_EMPTY:
+		return LanguageType::ODIN;
 
 	case SourceGroupType::CUSTOM_COMMAND:
 		return LanguageType::CUSTOM;

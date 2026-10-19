@@ -14,6 +14,7 @@
 #include "SourceGroupFactory.h"
 #include "SourceGroupFactoryModuleCustom.h"
 #include "SourceGroupFactoryModulePython.h"
+#include "SourceGroupFactoryModuleOdin.h"
 #include "PluginManager.h"
 #include <boost/dll.hpp>
 #include "AppPath.h"
@@ -191,6 +192,7 @@ int main(int argc, char* argv[])
 	// Add default custom source group (others were CXX/Java, can add them later)
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleCustom>());
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModulePython>());
+	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleOdin>());
 
 	signal(SIGINT, signalHandler);
 	signal(SIGTERM, signalHandler);
