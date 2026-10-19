@@ -304,3 +304,15 @@ Con eso, Odin se agrega sin tocar el núcleo y el mismo camino sirve para el pr�
 lenguaje. La alternativa de empezar por el plugin nativo sin actualizar la gramática
 entrega una demo rápida pero no un soporte utilizable: los errores de parseo afectan a
 la mayoría de los archivos reales.
+
+---
+
+## 10. Nota posterior: PoC ejecutado (2026-10-19)
+
+El PoC del documento 23 se hizo con un **scanner propio en Python** (lexer +
+reconocimiento de declaraciones), no con la gramática tree-sitter, justamente porque
+ésta falla en la mayoría de los archivos. El scanner validó la integración con
+Sourcetrail y la navegación en el sample, `core/strings` y `core/bufio` + `core/fmt`,
+sin errores. Eso **no cierra** la decisión del parser final: actualizar tree-sitter con
+`odin.ebnf` sigue siendo la opción de menor riesgo para el plugin nativo, y el scanner
+sirve como referencia y como fallback léxico.
