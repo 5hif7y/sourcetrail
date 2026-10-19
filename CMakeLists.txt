@@ -689,6 +689,7 @@ if (BUILD_PLUGIN_CONTEXT_TESTS)
 	target_include_directories(plugin_abi_test PRIVATE src/lib/plugin)
 	target_compile_features(plugin_abi_test PRIVATE cxx_std_17)
 	target_link_libraries(plugin_abi_test PRIVATE ${CMAKE_DL_LIBS})
+	add_dependencies(plugin_abi_test dynamic_test_plugin sticky_test_plugin)
 	add_test(NAME plugin_abi COMMAND plugin_abi_test
 		$<TARGET_FILE:dynamic_test_plugin>
 		$<TARGET_FILE:sticky_test_plugin>)

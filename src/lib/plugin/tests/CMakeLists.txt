@@ -24,6 +24,7 @@ target_compile_definitions(sticky_test_plugin PRIVATE TEST_PLUGIN_STICKY=1)
 add_executable(plugin_abi_test PluginABITest.cpp)
 target_include_directories(plugin_abi_test PRIVATE ..)
 target_link_libraries(plugin_abi_test PRIVATE ${CMAKE_DL_LIBS})
+add_dependencies(plugin_abi_test dynamic_test_plugin sticky_test_plugin)
 add_test(NAME plugin_abi COMMAND plugin_abi_test
 	$<TARGET_FILE:dynamic_test_plugin>
 	$<TARGET_FILE:sticky_test_plugin>)
