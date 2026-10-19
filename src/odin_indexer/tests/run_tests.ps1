@@ -168,6 +168,16 @@ Run-Test "raw strings, enum aliases and offset_of field names" {
 		"--unsolved", "0")
 }
 
+Run-Test "multi-line types, using fields and config keys" {
+	$db = Join-Path $WorkDir "parser-edges.srctrldb"
+	Invoke-Index $db @((Join-Path $fixtures "parser_edges.odin")) @("--unsolved")
+	Invoke-Check @(
+		"check", $db,
+		"--require", "parser_edges.Header,parser_edges.Header.width,parser_edges.Header.height,parser_edges.Handler,parser_edges.MAX,parser_edges.read_header",
+		"--forbid", "parser_edges.err,parser_edges.width,parser_edges.height,parser_edges.thread_local,parser_edges.PARSER_EDGES_MAX",
+		"--unsolved", "0")
+}
+
 Run-Test "batch indexing is deterministic" {
 	$first = Join-Path $WorkDir "deterministic-a.srctrldb"
 	$second = Join-Path $WorkDir "deterministic-b.srctrldb"

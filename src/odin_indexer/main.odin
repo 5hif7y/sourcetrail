@@ -101,6 +101,13 @@ Import :: struct {
 	tok:        Token,
 }
 
+// A `using <local>` whose local type can be inferred with a simple cast or
+// annotation. The resolver uses it to ignore unqualified field names.
+Using_Type :: struct {
+	ctx:       string,
+	type_name: string,
+}
+
 File_Info :: struct {
 	pkg:         string,
 	pkg_tok:     Token,
@@ -108,6 +115,7 @@ File_Info :: struct {
 	imports:    [dynamic]Import,
 	decls:      [dynamic]Decl,
 	refs:       [dynamic]Ref,
+	using_types: [dynamic]Using_Type,
 }
 
 Parser :: struct {
@@ -181,7 +189,7 @@ is_builtin_proc :: proc(s: string) -> bool {
 		"jmag", "kmag", "non_zero_resize", "map_entry", "simd_shuffle",
 		"free_all", "container_of", "inject_at",
 		"offset_of_by_string", "typeid_of", "assert_contextless", "unreachable",
-		"card", "make_slice":
+		"card", "make_slice", "append_elems", "clear_map", "remove_range":
 		return true
 	}
 	return false
@@ -791,6 +799,79 @@ parse_declaration :: proc(p: ^Parser) {
 	skip_to_nl(p)
 }
 
+// `name :: #type proc(...)` may span several lines. Skipping only to the
+// first newline leaves the parameters/results to be parsed as top-level
+// declarations (and their named results as references).
+skip_type_alias :: proc(p: ^Parser, full: string) {
+	if at(p, "proc") {
+		start := p.index
+		advance(p)
+		for peek(p).kind != .Eof && !at(p, "(") && !at(p, "{") {
+			if peek(p).kind == .Newline {
+				break
+			}
+			advance(p)
+		}
+		if at(p, "(") {
+			skip_balanced(p, "(", ")")
+		}
+		skip_newlines(p)
+		if at(p, "->") {
+			advance(p)
+			collect_result_tokens(p)
+		}
+		end := p.index
+		skip_newlines(p)
+		if at(p, "where") {
+			advance(p)
+			depth := 0
+			for peek(p).kind != .Eof {
+				text := peek(p).text
+				if depth == 0 &&
+					(text == "{" || text == ";" || peek(p).kind == .Newline) {
+					break
+				}
+				if text == "(" || text == "[" {
+					depth += 1
+				} else if text == ")" || text == "]" {
+					if depth > 0 {
+						depth -= 1
+					}
+				}
+				advance(p)
+			}
+		}
+		if at(p, "{") {
+			skip_balanced(p, "{", "}")
+		}
+		if p.full {
+			scan_proc_type(p, p.tokens[start:end], 0, full, make(map[string]bool))
+		}
+		return
+	}
+
+	if at(p, "struct") || at(p, "union") || at(p, "enum") ||
+		at(p, "bit_set") || at(p, "bit_field") {
+		advance(p)
+		if at(p, "(") {
+			skip_balanced(p, "(", ")")
+		}
+		if at(p, "[") {
+			skip_balanced(p, "[", "]")
+		}
+		skip_newlines(p)
+		if at(p, "where") {
+			skip_until_body(p)
+		}
+		if at(p, "{") {
+			skip_balanced(p, "{", "}")
+		}
+		return
+	}
+
+	skip_to_nl(p)
+}
+
 parse_value :: proc(p: ^Parser, name: Token) {
 	full := make_full_name(p.file.pkg, name.text)
 	token := peek(p)
@@ -899,7 +980,7 @@ parse_value :: proc(p: ^Parser, name: Token) {
 			}
 			if directive == "type" {
 				append(&p.file.decls, Decl{name = full, kind = .TYPEDEF, tok = name})
-				skip_to_nl(p)
+				skip_type_alias(p, full)
 				return
 			}
 			// `name :: #force_inline proc ...`, `name :: #config(...)`, etc.
@@ -1227,7 +1308,7 @@ parse_proc :: proc(p: ^Parser, full: string, name: Token) {
 	}
 	append(&p.file.decls, Decl{name = full, kind = .FUNCTION, tok = name, scope = scope_tok, has_scope = has_scope})
 	if p.full && len(body) > 0 {
-		add_body_locals(&local_names, body)
+		add_body_locals(p, &local_names, body, full)
 		add_using_fields(&local_names, body, p.file.decls)
 		scan_expr_tokens(p, body, full, local_names)
 	}
@@ -1440,6 +1521,28 @@ scan_proc_type :: proc(p: ^Parser, tokens: []Token, start: int, context_name: st
 		scan_result_tokens(p, tokens[result_start:index], context_name, &locals)
 	}
 
+	if index < len(tokens) && tokens[index].text == "where" {
+		index += 1
+		where_start := index
+		where_depth := 0
+		for index < len(tokens) {
+			text := tokens[index].text
+			if where_depth == 0 &&
+				(text == "{" || text == ";" || tokens[index].kind == .Newline) {
+				break
+			}
+			if text == "(" || text == "[" {
+				where_depth += 1
+			} else if text == ")" || text == "]" {
+				if where_depth > 0 {
+					where_depth -= 1
+				}
+			}
+			index += 1
+		}
+		scan_expr_tokens(p, tokens[where_start:index], context_name, locals)
+	}
+
 	if index < len(tokens) && tokens[index].text == "{" {
 		index += 1
 		body_start := index
@@ -1459,7 +1562,7 @@ scan_proc_type :: proc(p: ^Parser, tokens: []Token, start: int, context_name: st
 		if index < len(tokens) && tokens[index].text == "}" {
 			index += 1
 		}
-		add_body_locals(&locals, body)
+		add_body_locals(p, &locals, body, context_name)
 		add_using_fields(&locals, body, p.file.decls)
 		scan_tokens(p, body, context_name, locals, .USAGE)
 	}
@@ -1519,6 +1622,66 @@ scan_offset_of :: proc(
 		index += 1
 	}
 	return index
+}
+
+// `#config(key, default_expression)`: the first argument is a config key, not
+// a symbol. Scan only the default expression.
+scan_config_args :: proc(
+	p: ^Parser,
+	tokens: []Token,
+	start: int,
+	context_name: string,
+	locals: map[string]bool,
+) -> int {
+	index := start + 2
+	if index >= len(tokens) || tokens[index].text != "(" {
+		return index
+	}
+	index += 1
+	depth := 0
+	first_comma := -1
+	for index < len(tokens) {
+		text := tokens[index].text
+		if text == "(" {
+			depth += 1
+		} else if text == ")" {
+			if depth == 0 {
+				break
+			}
+			depth -= 1
+		} else if text == "," && depth == 0 {
+			first_comma = index
+			break
+		}
+		index += 1
+	}
+	if first_comma < 0 {
+		if index < len(tokens) && tokens[index].text == ")" {
+			index += 1
+		}
+		return index
+	}
+
+	rest_start := first_comma + 1
+	cursor := rest_start
+	depth = 0
+	for cursor < len(tokens) {
+		text := tokens[cursor].text
+		if text == "(" {
+			depth += 1
+		} else if text == ")" {
+			if depth == 0 {
+				break
+			}
+			depth -= 1
+		}
+		cursor += 1
+	}
+	scan_expr_tokens(p, tokens[rest_start:cursor], context_name, locals)
+	if cursor < len(tokens) && tokens[cursor].text == ")" {
+		cursor += 1
+	}
+	return cursor
 }
 
 scan_tokens :: proc(p: ^Parser, tokens: []Token, context_name: string, local_names: map[string]bool, default_kind: Ref_Kind) {
@@ -1594,6 +1757,11 @@ scan_tokens :: proc(p: ^Parser, tokens: []Token, context_name: string, local_nam
 			index += 1
 			continue
 		}
+		if token.text == "#" && index + 2 < len(tokens) &&
+			tokens[index + 1].text == "config" && tokens[index + 2].text == "(" {
+			index = scan_config_args(p, tokens, index, context_name, locals)
+			continue
+		}
 		if token.text == "#" {
 			index += 2
 			continue
@@ -1616,6 +1784,12 @@ scan_tokens :: proc(p: ^Parser, tokens: []Token, context_name: string, local_nam
 				}
 			} else {
 				index += 1
+				// Bare attributes (`@thread_local`, `@private`, ...) must
+				// consume their name; otherwise it is scanned as a reference.
+				if index < len(tokens) &&
+					(tokens[index].kind == .Ident || tokens[index].kind == .Keyword) {
+					index += 1
+				}
 			}
 			continue
 		}
@@ -1769,7 +1943,49 @@ add_using_fields :: proc(local_names: ^map[string]bool, tokens: []Token, decls: 
 	}
 }
 
-add_body_locals :: proc(local_names: ^map[string]bool, tokens: []Token) {
+infer_type_name :: proc(tokens: []Token, start: int) -> string {
+	if start >= len(tokens) {
+		return ""
+	}
+	cursor := start
+	if tokens[cursor].text == "cast" {
+		cursor += 1
+		if cursor >= len(tokens) || tokens[cursor].text != "(" {
+			return ""
+		}
+		cursor += 1
+	} else if tokens[cursor].text == "(" {
+		cursor += 1
+	} else if tokens[cursor].kind != .Ident && tokens[cursor].text != "^" {
+		return ""
+	}
+	if cursor < len(tokens) && tokens[cursor].text == "^" {
+		cursor += 1
+	}
+	parts := make([dynamic]string, 0, 3)
+	for cursor < len(tokens) && tokens[cursor].kind == .Ident {
+		append(&parts, tokens[cursor].text)
+		cursor += 1
+		if cursor < len(tokens) && tokens[cursor].text == "." {
+			cursor += 1
+			continue
+		}
+		break
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	joined, _ := strings.join(parts[:], ".", context.allocator)
+	return joined
+}
+
+add_body_locals :: proc(
+	p: ^Parser,
+	local_names: ^map[string]bool,
+	tokens: []Token,
+	context_name: string,
+) {
+	local_types := make(map[string]string)
 	for token, index in tokens {
 		if token.text == "for" {
 			// `for i, v in ...` introduces locals; `for` is a keyword, so this
@@ -1806,7 +2022,14 @@ add_body_locals :: proc(local_names: ^map[string]bool, tokens: []Token) {
 		if token.text == "using" {
 			// `using params` imports the fields of params into the scope.
 			if index + 1 < len(tokens) && tokens[index + 1].kind == .Ident {
-				local_names^[tokens[index + 1].text] = true
+				name := tokens[index + 1].text
+				local_names^[name] = true
+				if type_name, ok := local_types[name]; ok {
+					append(
+						&p.file.using_types,
+						Using_Type{ctx = context_name, type_name = type_name},
+					)
+				}
 			}
 			continue
 		}
@@ -1824,6 +2047,11 @@ add_body_locals :: proc(local_names: ^map[string]bool, tokens: []Token) {
 					break
 				}
 				cursor -= 1
+			}
+			if index + 2 < len(tokens) {
+				if type_name := infer_type_name(tokens, index + 2); type_name != "" {
+					local_types[token.text] = type_name
+				}
 			}
 		}
 		if index + 1 < len(tokens) && tokens[index + 1].text == "::" {
@@ -2207,6 +2435,104 @@ build_symbol_table :: proc(source_path: string, imports: [dynamic]Import, cache:
 	return table
 }
 
+external_package_directory :: proc(source_path: string, imp: Import) -> string {
+	directory := filepath.dir(source_path)
+	if !is_external_import_path(imp.path) {
+		return normalize_path(join_path(directory, imp.path))
+	}
+
+	prefixes := []string{"core:", "base:", "vendor:"}
+	markers := []string{"/core/", "/base/", "/vendor/"}
+	normalized := strings.replace_all(source_path, "\\", "/", context.temp_allocator) or_else source_path
+	for prefix, index in prefixes {
+		if strings.has_prefix(imp.path, prefix) {
+			if position := strings.index(normalized, markers[index]); position >= 0 {
+				root := normalized[:position + len(markers[index]) - 1]
+				rest := imp.path[len(prefix):]
+				return normalize_path(join_path(root, rest))
+			}
+		}
+	}
+	return ""
+}
+
+fields_for_type :: proc(table: map[string]Symbol_Kind, type_name: string) -> map[string]bool {
+	fields := make(map[string]bool)
+	prefix := fmt.tprintf("%s.", type_name)
+	for name, kind in table {
+		if kind == .FIELD && strings.has_prefix(name, prefix) {
+			if dot := strings.last_index_byte(name, '.'); dot >= 0 {
+				fields[name[dot + 1:]] = true
+			}
+		}
+	}
+	return fields
+}
+
+merge_using_fields :: proc(
+	target: ^map[string]map[string]bool,
+	context_name: string,
+	fields: map[string]bool,
+) {
+	if len(fields) == 0 {
+		return
+	}
+	if existing, exists := target^[context_name]; exists {
+		for field, _ in fields {
+			existing[field] = true
+		}
+		return
+	}
+	target^[context_name] = fields
+}
+
+collect_using_fields :: proc(
+	cache: ^Table_Cache,
+	source_path: string,
+	imports: [dynamic]Import,
+	using_types: [dynamic]Using_Type,
+	local_table: map[string]Symbol_Kind,
+) -> map[string]map[string]bool {
+	result := make(map[string]map[string]bool)
+	for using_type in using_types {
+		dot := strings.index_byte(using_type.type_name, '.')
+		if dot < 0 {
+			merge_using_fields(
+				&result,
+				using_type.ctx,
+				fields_for_type(local_table, using_type.type_name),
+			)
+			continue
+		}
+
+		package_name := using_type.type_name[:dot]
+		resolved := false
+		for imp in imports {
+			if imp.pkg == package_name || imp.local_name == package_name {
+				directory := external_package_directory(source_path, imp)
+				if directory != "" {
+					table := table_for_directory(cache, directory)
+					merge_using_fields(
+						&result,
+						using_type.ctx,
+						fields_for_type(table, using_type.type_name),
+					)
+				}
+				resolved = true
+				break
+			}
+		}
+		if !resolved {
+			merge_using_fields(
+				&result,
+				using_type.ctx,
+				fields_for_type(local_table, using_type.type_name),
+			)
+		}
+	}
+	return result
+}
+
 index_files :: proc(source_paths: []string, database_path: string, verbose: bool, timing: bool, report_unsolved: bool, debug_refs: bool) -> int {
 	if len(source_paths) == 0 {
 		fmt.eprintln("no source files")
@@ -2255,6 +2581,9 @@ index_files :: proc(source_paths: []string, database_path: string, verbose: bool
 			}
 		}
 		t_symbols := time.now()
+
+		using_fields := collect_using_fields(
+			&cache, source_path, info.imports, info.using_types, table)
 
 		normalized := strings.replace_all(source_path, "\\", "/", context.allocator) or_else source_path
 		file_id := sodb_file(handle, to_cstr(normalized))
@@ -2309,12 +2638,27 @@ index_files :: proc(source_paths: []string, database_path: string, verbose: bool
 				continue
 			}
 			target, resolved, external := resolve_ref_target(ref.target, w.table, external_pkgs)
+			suppressed := false
+			if !resolved && (ref.kind == .USAGE || ref.kind == .CALL) {
+				if fields, exists := using_fields[ref.ctx]; exists {
+					field := ref.target
+					if dot := strings.last_index_byte(field, '.'); dot >= 0 {
+						field = field[dot + 1:]
+					}
+					suppressed = fields[field]
+				}
+			}
 			if debug_refs {
 				state := "unsolved"
 				if resolved {
 					state = external ? "external" : "resolved"
+				} else if suppressed {
+					state = "using-field"
 				}
 				fmt.eprintfln("  ref %d:%d %s -> %s (%s)", ref.tok.line, ref.tok.col, ref.target, target, state)
+			}
+			if suppressed {
+				continue
 			}
 			if resolved {
 				writer_reference(&w, context_id, target, ref.kind, ref.tok, external)
