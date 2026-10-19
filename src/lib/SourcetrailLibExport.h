@@ -2,7 +2,10 @@
 #define SOURCETRAIL_LIB_EXPORT_H
 
 #if defined(_WIN32) || defined(__CYGWIN__)
-	#if defined(Sourcetrail_lib_EXPORTS)
+	#if !defined(SOURCETRAIL_SHARED)
+		// Static core: no import/export decoration.
+		#define SOURCETRAIL_LIB_EXPORT
+	#elif defined(Sourcetrail_lib_EXPORTS)
 		#define SOURCETRAIL_LIB_EXPORT __declspec(dllexport)
 	#else
 		#define SOURCETRAIL_LIB_EXPORT __declspec(dllimport)

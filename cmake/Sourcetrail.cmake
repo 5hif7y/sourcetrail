@@ -74,6 +74,13 @@ function(deploySourcetrailCore targetName)
 			COMMAND ${CMAKE_COMMAND} -E copy_if_different
 				$<TARGET_FILE:Sourcetrail_lib>
 				$<TARGET_FILE_DIR:${targetName}>
+			# The shared core's own runtime DLLs (ICU, SQLite, Boost) are not
+			# direct imports of the executable, so MSBuild does not deploy them
+			# when there is no GUI target to pull the core's dependencies in.
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different
+				$<TARGET_RUNTIME_DLLS:${targetName}>
+				$<TARGET_FILE_DIR:${targetName}>
+			COMMAND_EXPAND_LISTS
 		)
 	endif()
 endfunction()

@@ -10,10 +10,15 @@ set_target_properties(Sourcetrail_indexer
 		OUTPUT_NAME sourcetrail_indexer
 )
 
+# The indexer defines main(), not WinMain: build it as a console application.
+# It used to get WinMain from Qt only because it linked Sourcetrail_lib_gui.
+if(WIN32 AND NOT MINGW AND NOT CYGWIN)
+	set_property(TARGET Sourcetrail_indexer PROPERTY WIN32_EXECUTABLE OFF)
+endif()
+
 target_link_libraries(Sourcetrail_indexer
 	PRIVATE
 		Sourcetrail_lib
-		Sourcetrail_lib_gui
 )
 
 if(BUILD_CXX_LANGUAGE_PACKAGE)

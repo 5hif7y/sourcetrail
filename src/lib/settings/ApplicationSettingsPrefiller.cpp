@@ -2,6 +2,7 @@
 
 #include "ApplicationSettings.h"
 #include "MessageStatus.h"
+#include "language_packages.h"
 #include "logging.h"
 #include "utilityPathDetection.h"
 
@@ -9,17 +10,23 @@ void ApplicationSettingsPrefiller::prefillPaths(ApplicationSettings* settings)
 {
 	bool updated = false;
 
+#if BUILD_JAVA_LANGUAGE_PACKAGE
 	updated |= prefillJavaRuntimePath(settings);
 	updated |= prefillMavenExecutablePath(settings);
 	updated |= prefillJreSystemLibraryPaths(settings);
+#endif
+#if BUILD_CXX_LANGUAGE_PACKAGE
 	updated |= prefillCxxHeaderPaths(settings);
 	updated |= prefillCxxFrameworkPaths(settings);
+#endif
 
 	if (updated)
 	{
 		settings->save();
 	}
 }
+
+#if BUILD_JAVA_LANGUAGE_PACKAGE
 
 bool ApplicationSettingsPrefiller::prefillJavaRuntimePath(ApplicationSettings* settings)
 {
@@ -100,6 +107,10 @@ bool ApplicationSettingsPrefiller::prefillMavenExecutablePath(ApplicationSetting
 	return true;
 }
 
+#endif	// BUILD_JAVA_LANGUAGE_PACKAGE
+
+#if BUILD_CXX_LANGUAGE_PACKAGE
+
 bool ApplicationSettingsPrefiller::prefillCxxHeaderPaths(ApplicationSettings* settings)
 {
 	if (settings->getHasPrefilledHeaderSearchPaths())	 // allow empty
@@ -148,3 +159,5 @@ bool ApplicationSettingsPrefiller::prefillCxxFrameworkPaths(ApplicationSettings*
 	settings->setHasPrefilledFrameworkSearchPaths(true);
 	return true;
 }
+
+#endif	// BUILD_CXX_LANGUAGE_PACKAGE
