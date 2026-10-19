@@ -42,25 +42,39 @@ Neo-Sourcetrail uses `vcpkg.json` (manifest mode) to manage dependencies automat
 cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE="[path_to_vcpkg]/scripts/buildsystems/vcpkg.cmake"
 ```
 
+**The default is the embedded/headless profile**: CLI only, no Qt GUI, no C++ indexer
+and no Java indexer. The configure step installs only the base dependencies (Boost,
+ICU, SQLite, tinyxml, nlohmann-json); it does **not** install Qt, LLVM or the JVM.
+
 Dependencies are split into **vcpkg manifest features**:
 
+- `gui` (Qt) is only installed when the GUI is enabled.
 - `cxx` (LLVM/Clang) is only installed when the C/C++ indexer is enabled.
 - `tests` (Catch2/GoogleTest) is only installed when the unit tests are enabled.
 
-By default the C++ indexer is **off**, so the configure step does not build LLVM (which
-takes hours on a 4-core machine). Enable it explicitly:
+To build the full desktop application (GUI + C++ + Java + tests):
 
 ```cmd
-cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE="[path_to_vcpkg]/scripts/buildsystems/vcpkg.cmake" -DBUILD_CXX_LANGUAGE_PACKAGE=ON
+cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE="[path_to_vcpkg]/scripts/buildsystems/vcpkg.cmake" ^
+  -DBUILD_GUI=ON ^
+  -DBUILD_CXX_LANGUAGE_PACKAGE=ON ^
+  -DBUILD_JAVA_LANGUAGE_PACKAGE=ON ^
+  -DBUILD_UNIT_TESTS_PACKAGE=ON
 ```
 
 Other useful options:
 
 | Option | Default | Meaning |
 |---|---|---|
-| `BUILD_JAVA_LANGUAGE_PACKAGE` | `ON` | Build the Java indexer (requires JDK 17+ and Maven). |
-| `BUILD_UNIT_TESTS_PACKAGE` | `OFF` | Build the unit tests (installs Catch2/GoogleTest). |
-| `SOURCETRAIL_SHARED_CORE` | `OFF` | Build `src/lib` as a shared library for the plugin architecture. |
+| `BUILD_GUI` | `OFF` | Build the Qt GUI (`Sourcetrail.exe`). |
+| `BUILD_CXX_LANGUAGE_PACKAGE` | `OFF` | Build the C/C++ indexer (installs LLVM; hours from source). |
+| `BUILD_JAVA_LANGUAGE_PACKAGE` | `OFF` | Build the Java indexer (requires JDK 17+ and Maven). |
+| `BUILD_UNIT_TESTS_PACKAGE` | `OFF` | Build the unit tests (requires `BUILD_GUI=ON`; installs Catch2/GoogleTest). |
+| `COPY_SAMPLE_PROJECTS` | `OFF` | Copy the tutorial projects into the app data. |
+| `SOURCETRAIL_SHARED_CORE` | `OFF` | Shared core for plugins; forced `ON` when CXX or Java is enabled. |
+
+The `gui` feature keeps Qt out of the dependency tree in embedded builds; the `cxx`
+feature keeps LLVM out. This is what makes a fresh embedded configure fast.
 
 ### 4. Build the Project
 
@@ -68,19 +82,28 @@ Other useful options:
 cmake --build build --config Release --parallel
 ```
 
-To build only the CLI:
+The default `ALL` target of the embedded profile builds only the headless pieces. To
+build explicitly:
 
 ```cmd
 cmake --build build --config Release --target sourcetrail_cli --parallel
 ```
+
+The GUI target (`Sourcetrail`) only exists when `BUILD_GUI=ON`, and the language plugins
+only exist when their options are enabled.
 
 ### 5. Running the Application
 
 The built executables are located in `build/Release/app` (or `build/Debug/app`):
 
 ```cmd
-.\build\Release\app\Sourcetrail.exe
 .\build\Release\app\sourcetrail_cli.exe
+```
+
+With `BUILD_GUI=ON` the GUI is also available:
+
+```cmd
+.\build\Release\app\Sourcetrail.exe
 ```
 
 ### 6. Python indexing

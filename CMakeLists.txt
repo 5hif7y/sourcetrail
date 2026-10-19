@@ -34,23 +34,37 @@ endif()
 
 # These options are declared before project() because the vcpkg toolchain runs
 # inside project() and needs VCPKG_MANIFEST_FEATURES to know which optional
-# dependencies to install (see vcpkg.json). In particular, the C++ indexer
-# requires LLVM, which takes hours to build from source, so it is only
-# installed when BUILD_CXX_LANGUAGE_PACKAGE is enabled.
+# dependencies to install (see vcpkg.json). The defaults are the embedded
+# profile: CLI only, no Qt GUI, no LLVM and no JVM. Desktop features are opt-in.
 
+option(BUILD_GUI "Build the Qt GUI" OFF)
 option(BUILD_CXX_LANGUAGE_PACKAGE "Build the C/C++ language package" OFF)
-option(BUILD_JAVA_LANGUAGE_PACKAGE "Build the Java language package" ON)
+option(BUILD_JAVA_LANGUAGE_PACKAGE "Build the Java language package" OFF)
 option(BUILD_PYTHON_LANGUAGE_PACKAGE "Build the Python language package" OFF)
 option(BUILD_UNIT_TESTS_PACKAGE "Build unit tests" OFF)
+option(COPY_SAMPLE_PROJECTS "Copy the sample projects into the app data" OFF)
 
 option(SOURCETRAIL_SHARED_CORE "Build core as shared library for plugin architecture" OFF)
 
-set(VCPKG_MANIFEST_FEATURES "")
+# The language plugins are DLLs loaded at runtime, so they need the shared core.
+if (BUILD_CXX_LANGUAGE_PACKAGE OR BUILD_JAVA_LANGUAGE_PACKAGE)
+	set(SOURCETRAIL_SHARED_CORE ON CACHE BOOL "Build core as shared library for plugin architecture" FORCE)
+endif()
+
+# Keep any features supplied on the command line (e.g. -DVCPKG_MANIFEST_FEATURES=gui)
+# and add the ones implied by the build options.
+set(VCPKG_MANIFEST_FEATURES "${VCPKG_MANIFEST_FEATURES}")
+if (BUILD_GUI)
+	list(APPEND VCPKG_MANIFEST_FEATURES "gui")
+endif()
 if (BUILD_CXX_LANGUAGE_PACKAGE)
 	list(APPEND VCPKG_MANIFEST_FEATURES "cxx")
 endif()
 if (BUILD_UNIT_TESTS_PACKAGE)
 	list(APPEND VCPKG_MANIFEST_FEATURES "tests")
+endif()
+if (VCPKG_MANIFEST_FEATURES)
+	list(REMOVE_DUPLICATES VCPKG_MANIFEST_FEATURES)
 endif()
 
 ###############################################################################
@@ -204,7 +218,30 @@ endfunction()
 forEachBuildConfiguration(copyGenerateCoverageReportScript)
 
 function(copyAppData configDir)
-	copyDirectory("bin/app/" "${configDir}/app/")
+	set(appDir "${configDir}/app")
+
+	# Always needed: the Python indexer and the fallback settings.
+	copyDirectory("bin/app/data/python/" "${appDir}/data/python/")
+	copyDirectory("bin/app/data/fallback/" "${appDir}/data/fallback/")
+	copyDirectory("bin/app/data/license/" "${appDir}/data/license/")
+
+	if (BUILD_JAVA_LANGUAGE_PACKAGE)
+		copyDirectory("bin/app/data/java/" "${appDir}/data/java/")
+	endif()
+
+	if (BUILD_GUI)
+		copyDirectory("bin/app/data/color_schemes/" "${appDir}/data/color_schemes/")
+		copyDirectory("bin/app/data/fonts/" "${appDir}/data/fonts/")
+		copyDirectory("bin/app/data/syntax_highlighting_rules/" "${appDir}/data/syntax_highlighting_rules/")
+		copyFile("bin/app/data/color_scheme_template.xml" "${appDir}/data/color_scheme_template.xml")
+		copyFile("bin/app/data/ProjectSettings_template.xml" "${appDir}/data/ProjectSettings_template.xml")
+		file(MAKE_DIRECTORY "${appDir}/user")
+		copyFile("bin/app/user/ApplicationSettings_template.xml" "${appDir}/user/ApplicationSettings_template.xml")
+	endif()
+
+	if (COPY_SAMPLE_PROJECTS)
+		copyDirectory("bin/app/user/projects/" "${appDir}/user/projects/")
+	endif()
 endfunction()
 forEachBuildConfiguration(copyAppData)
 
@@ -326,6 +363,8 @@ target_link_libraries(External_lib_boost
 # Qt / External_lib_qt
 ###############################################################################
 
+if (BUILD_GUI)
+
 set(QT_NO_PRIVATE_MODULE_WARNING ON)
 
 set(QT_MIN_VERSION 6.8.3)
@@ -362,6 +401,8 @@ target_link_libraries(External_lib_qt
 		Qt6::Network
 		Qt6::Svg
 )
+
+endif()
 
 ###############################################################################
 # SQLite / External_lib_sqlite3 / External_lib_cppsqlite3
@@ -421,8 +462,10 @@ endif()
 # Sourcetrail_lib_gui
 ###############################################################################
 
-add_subdirectory(src/resources)
-add_subdirectory(src/lib_gui)
+if (BUILD_GUI)
+	add_subdirectory(src/resources)
+	add_subdirectory(src/lib_gui)
+endif()
 
 ###############################################################################
 # Sourcetrail_lib
@@ -567,28 +610,39 @@ endif()
 # Sourcetrail_indexer
 ###############################################################################
 
-add_subdirectory(src/indexer)
+if (BUILD_CXX_LANGUAGE_PACKAGE)
+	add_subdirectory(src/indexer)
+endif()
 
 ###############################################################################
 # App / Sourcetrail
 ###############################################################################
 
-function(copyAppFiles configDir)
-	copyFile("src/app/Sourcetrail.ico" "${configDir}/app/Sourcetrail.ico")
-	if (UNIX)
-		copyFile("scripts/Sourcetrail.sh"      "${configDir}/app/Sourcetrail.sh")
-		copyFile("scripts/resetPreferences.sh" "${configDir}/app/resetPreferences.sh")
-		copyFile("scripts/_gdbinit"            "${configDir}/app/.gdbinit")
-	endif()
-endfunction()
-forEachBuildConfiguration(copyAppFiles)
+if (BUILD_GUI)
+	function(copyAppFiles configDir)
+		copyFile("src/app/Sourcetrail.ico" "${configDir}/app/Sourcetrail.ico")
+		if (UNIX)
+			copyFile("scripts/Sourcetrail.sh"      "${configDir}/app/Sourcetrail.sh")
+			copyFile("scripts/resetPreferences.sh" "${configDir}/app/resetPreferences.sh")
+			copyFile("scripts/_gdbinit"            "${configDir}/app/.gdbinit")
+		endif()
+	endfunction()
+	forEachBuildConfiguration(copyAppFiles)
+endif()
 
 add_subdirectory(src/cli)
-add_subdirectory(src/app)
+
+if (BUILD_GUI)
+	add_subdirectory(src/app)
+endif()
 
 ###############################################################################
 # Sourcetrail_test
 ###############################################################################
+
+if (BUILD_UNIT_TESTS_PACKAGE AND NOT BUILD_GUI)
+	message(FATAL_ERROR "BUILD_UNIT_TESTS_PACKAGE requires BUILD_GUI=ON: the test suite uses Qt test suites.")
+endif()
 
 if (BUILD_UNIT_TESTS_PACKAGE)
 	set(CATCH2_MIN_VERSION 3.7)
@@ -604,7 +658,9 @@ endif()
 
 # Create license information:
 include(cmake/licenses.cmake)
-configureLicenseFile(src/lib_gui/licenses.h)
+if (BUILD_GUI)
+	configureLicenseFile(src/lib_gui/licenses.h)
+endif()
 
 # Enable this code to find out *all* imported targets:
 # get_property(importedTargets DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY IMPORTED_TARGETS)

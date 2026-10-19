@@ -20,14 +20,19 @@
       ]
     },
     "icu",
-    "qtsvg",
-    "qtbase",
-    "qtimageformats",
     "nlohmann-json",
     "sqlite3",
     "tinyxml"
   ],
   "features": {
+    "gui": {
+      "description": "Qt GUI",
+      "dependencies": [
+        "qtsvg",
+        "qtbase",
+        "qtimageformats"
+      ]
+    },
     "cxx": {
       "description": "C/C++ language package (LLVM/Clang)",
       "dependencies": [

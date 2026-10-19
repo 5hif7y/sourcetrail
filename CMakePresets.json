@@ -84,9 +84,22 @@
 			"hidden": true,
 			"name": "sourcetrail-presets",
 			"cacheVariables": {
+				"BUILD_GUI": "OFF",
+				"BUILD_CXX_LANGUAGE_PACKAGE": "OFF",
+				"BUILD_JAVA_LANGUAGE_PACKAGE": "OFF",
+				"BUILD_UNIT_TESTS_PACKAGE": "OFF",
+				"COPY_SAMPLE_PROJECTS": "OFF"
+			}
+		},
+		{
+			"hidden": true,
+			"name": "desktop-presets",
+			"cacheVariables": {
+				"BUILD_GUI": "ON",
 				"BUILD_CXX_LANGUAGE_PACKAGE": "ON",
 				"BUILD_JAVA_LANGUAGE_PACKAGE": "ON",
-				"BUILD_UNIT_TESTS_PACKAGE": "ON"
+				"BUILD_UNIT_TESTS_PACKAGE": "ON",
+				"COPY_SAMPLE_PROJECTS": "ON"
 			}
 		},
 
@@ -208,6 +221,42 @@
 				"vcpkg-presets",
 				"ninja-multi-config-presets",
 				"sourcetrail-presets"
+			]
+		},
+
+
+
+		{
+			"name": "system-release-desktop",
+			"inherits": [
+				"default-presets",
+				"linux-presets",
+				"ninja-single-config-presets",
+				"release-presets",
+				"sourcetrail-presets",
+				"desktop-presets"
+			]
+		},
+		{
+			"name": "vcpkg-release-desktop",
+			"inherits": [
+				"default-presets",
+				"vcpkg-presets",
+				"ninja-single-config-presets",
+				"release-presets",
+				"sourcetrail-presets",
+				"desktop-presets"
+			]
+		},
+		{
+			"name": "vcpkg-debug-desktop",
+			"inherits": [
+				"default-presets",
+				"vcpkg-presets",
+				"ninja-single-config-presets",
+				"debug-presets",
+				"sourcetrail-presets",
+				"desktop-presets"
 			]
 		}
 	]
