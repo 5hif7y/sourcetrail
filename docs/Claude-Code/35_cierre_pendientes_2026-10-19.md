@@ -69,10 +69,16 @@ Nuevo test `src/lib/plugin/tests/LanguageRegistrationTest.cpp`:
 Para poder observar el estado se añadieron `moduleCount()` y
 `packageCount()`. El test enlaza `Sourcetrail_lib` desde el CMake raíz.
 
-El ABI v1 sigue sin callbacks de registro de lenguaje; un plugin **dinámico**
-tendría que duplicar los singletons de `lib` o requerir ABI v2. El test cubre
-la costura reversible real (alta, dispose, error) que es lo que F3 dejaba
-pendiente.
+Además, en builds con `SOURCETRAIL_SHARED_CORE=ON` hay un test **dinámico**:
+`language_test_plugin` enlaza `Sourcetrail_lib` y su `apply` llama a
+`LanguagePluginRegistration<TestModule, TestPackage>`. Como el host y el
+plugin comparten los singletons de la librería compartida, el test ve el
+módulo y el paquete tras `loadDynamic` y su desaparición tras `unload`. Con
+core estático el plugin tendría copias propias de los singletons, así que el
+test solo se registra en la variante compartida.
+
+El ABI v1 no necesita callbacks nuevos: el plugin usa la API C++ de la
+librería compartida y el efecto reversible del host para el dispose.
 
 ---
 
@@ -145,7 +151,7 @@ revisar los menús. El usuario lo hará una vez cerrados los demás pendientes.
 | Prueba | Resultado |
 |---|---|
 | Indexador Odin | **10/10** |
-| ctest raíz | **6/6** |
+| ctest raíz (shared core) | **7/7** |
 | Sample CLI desktop | **32 / 42 / 0** |
 | Core CLI | **133.440 / 356.768 / 0** |
 | Core CLI `--threads=1` | **28,9 s** (antes 30,4 s) |
@@ -167,6 +173,7 @@ desarrollador con ARM64).
 | `22d25bf7` | test de registro de lenguaje real |
 | `cf795f0b` | refresco de menús al cambiar contribuyentes |
 | `c0cc4d87` | perfiles de composición en runtime |
+| `d428bb4b` | plugin de lenguaje dinámico con módulo/paquete reales |
 | commit de este documento | doc 35 y actualización del doc 27 |
 
 ---
