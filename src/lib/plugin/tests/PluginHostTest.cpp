@@ -81,6 +81,27 @@ int main()
 	check(!host.load(duplicate), "duplicate load fails");
 	check(host.unload("test-plugin"), "clean up reloaded plugin");
 
+	PluginProfileRegistry& profiles = PluginProfileRegistry::instance();
+	PluginProfile restricted;
+	restricted.name = "restricted";
+	restricted.disabled = {"profile-disabled"};
+	profiles.define(restricted);
+	check(profiles.setActive("restricted"), "activate a runtime profile");
+	check(!profiles.setActive("unknown"), "unknown profile is rejected");
+	check(profiles.active() == "restricted", "active profile is unchanged");
+
+	PluginManifest blocked = manifest;
+	blocked.id = "profile-disabled";
+	check(!host.load(blocked), "profile-disabled plugin is not loaded");
+	check(
+		host.lastError().find("profile") != std::string::npos,
+		"profile rejection reports the reason");
+	check(!host.isLoaded("profile-disabled"), "profile-disabled plugin is not stored");
+
+	profiles.clearActive();
+	check(host.load(blocked), "plugin loads after clearing the profile");
+	check(host.unload("profile-disabled"), "clean up profile-disabled plugin");
+
 	if (s_failures != 0)
 	{
 		std::cerr << s_failures << " test(s) failed\n";

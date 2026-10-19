@@ -16,6 +16,7 @@
 
 #include "PluginABI.h"
 #include "PluginContext.h"
+#include "PluginProfile.h"
 
 #if defined(_WIN32)
 #  ifndef NOMINMAX
@@ -138,6 +139,11 @@ public:
 			m_lastError = "plugin already loaded: " + manifest.id;
 			return false;
 		}
+		if (!PluginProfileRegistry::instance().allows(manifest.id))
+		{
+			m_lastError = "plugin is disabled by profile: " + manifest.id;
+			return false;
+		}
 
 		const Component component{manifest.id, manifest.inject, manifest.apply};
 		try
@@ -225,6 +231,12 @@ public:
 		if (m_plugins.find(manifest.id) != m_plugins.end())
 		{
 			m_lastError = "plugin already loaded: " + manifest.id;
+			detail::closeLibrary(library);
+			return false;
+		}
+		if (!PluginProfileRegistry::instance().allows(manifest.id))
+		{
+			m_lastError = "plugin is disabled by profile: " + manifest.id;
 			detail::closeLibrary(library);
 			return false;
 		}
