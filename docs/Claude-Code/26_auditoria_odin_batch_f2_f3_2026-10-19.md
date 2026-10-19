@@ -29,7 +29,8 @@
 - Los blobs viejos con `error.log`/`build_log.txt` siguen en el historial
   (base `5f735e9e`); el purge con `git filter-repo` sigue siendo opcional y
   requiere force-push.
-- Graphify regenerado: **23.936 nodos, 62.946 aristas, 827 comunidades**.
+- Graphify regenerado: **27.578 nodos, 81.243 aristas, 763 comunidades**
+  (incluye el writer vendorizado y la C ABI).
 
 ---
 
