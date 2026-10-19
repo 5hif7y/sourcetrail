@@ -98,11 +98,12 @@ Se añadió el job `root-ctest` al workflow, en las tres OS:
 Validación local con el mismo perfil (reusando el vcpkg ya instalado): build
 limpio y **ctest 7/7**. En el primer run real, Windows falló antes de
 configurar porque `run-vcpkg@v11` exige un baseline y `vcpkg.json` no lo tenía;
-se fijó `vcpkgGitCommitId` al commit usado en el build local (`a4f386fd`). El
-2026-10-19 GitHub Actions estuvo en `degraded_performance` y los runs se
-encolaron; el primer run verde del `root-ctest` queda pendiente de confirmar.
-También se añadieron `paths-ignore` para docs y `concurrency` para cancelar
-runs viejos.
+se fijó `vcpkgGitCommitId` al commit usado en el build local (`a4f386fd`).
+Windows y macOS pasaron; Ubuntu falló al enlazar `libSourcetrail_lib.so`
+contra `External_lib_cppsqlite3`/`AidKit_lib` sin `-fPIC`, corregido con
+`POSITION_INDEPENDENT_CODE` (`2afb7506`). El primer run verde completo del
+`root-ctest` queda pendiente de confirmar. También se añadieron `paths-ignore`
+para docs y `concurrency` para cancelar runs viejos.
 
 ### 2.2 Páginas de preferencias sin refresco vivo
 
@@ -162,6 +163,7 @@ offscreen.
 | `70fce0a5` | `paths-ignore` para docs y `concurrency` |
 | `30dfcf17` | orden de vida del log sink en `PluginABITest` (segfault macOS) |
 | `a4f386fd` | baseline de vcpkg para `run-vcpkg` |
+| `2afb7506` | PIC en los estáticos para el core compartido en Linux |
 | commit de este documento | doc 36 y actualización de docs 27/35 |
 
 ---
