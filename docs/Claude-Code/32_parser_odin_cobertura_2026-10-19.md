@@ -52,9 +52,11 @@ práctica.
 
 ## 3. Tests y gates
 
-- `src/odin_indexer/tests/run_tests.ps1`: **8/8**.
-  - Nuevo fixture `parser_edges.odin`: alias `#type proc` multilínea,
-    `using` sobre un struct local, `#config`, `@thread_local` y builtins.
+- `src/odin_indexer/tests/run_tests.ps1`: **9/9**.
+  - Fixture `parser_edges.odin`: alias `#type proc` multilínea, `using`
+    sobre un struct local, `#config`, `@thread_local` y builtins.
+  - Fixture `core/test/using_external.odin`: `using` sobre un campo de
+    `core:image`, para cubrir la búsqueda de campos en paquetes externos.
 - Odin sample desktop / embedded: **32 / 42 / 0**.
 - `tictactoe_cpp`: **383 / 819 / 0**.
 - `tutorial-py`: **103 / 281 / 0**.
@@ -64,13 +66,25 @@ práctica.
 
 ---
 
-## 4. Pendientes
+## 4. Writer: control de page_size
+
+Se probó `PRAGMA PAGE_SIZE=8192` al crear la base temporal (antes de las
+tablas). El core completo quedó en 18,2–21,5 s, solapado con el baseline de
+18,7–20,0 s; sin mejora medible. El cambio se revirtió. Con esto quedan
+descartados índices, caché, `page_size` y tamaño de lote; el coste restante es
+volumen de filas/páginas.
+
+---
+
+## 5. Pendientes
 
 - Los 7 símbolos anteriores son bugs de `core` de Odin; no se corrigen desde el
   indexador.
-- **Writer**: reducir volumen de filas/páginas; índices, caché y tamaño de lote
-  ya descartados.
-- **E5**: ARM64.
+- **Writer**: reducir volumen de filas/páginas; índices, caché, `page_size` y
+  tamaño de lote ya descartados.
+- **E5 (ARM64)**: **no se hará**. El usuario no dispone de ninguna máquina
+  ARM64 a mano (confirmado 2026-10-19). El triplet/toolchain queda documentado
+  por si cambia el hardware.
 - **Historial**: purge opcional con aprobación explícita.
 - **GUI**: recorrido manual del wizard.
 
