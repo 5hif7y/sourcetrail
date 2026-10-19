@@ -104,6 +104,7 @@ descriptor, que es exactamente lo que usan CXX/Java.
 | `language_registry` | **1/1** |
 | Indexador Odin | **6/6** |
 | API (`srctrl_init`) con CXX | **383 / 819** |
+| Graphify (incremental) | **27.614 nodos / 81.294 aristas / 785 comunidades** |
 
 Notas de medición:
 
