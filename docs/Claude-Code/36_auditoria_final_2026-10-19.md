@@ -65,32 +65,34 @@ Después de los cambios se compilaron y ejecutaron:
 - embedded (`sourcetrail_cli`, sample 32/42/0);
 - standalone de plugins (3/3) y registro de lenguajes (1/1).
 
+### 1.6 macOS: segfault de `plugin_abi`
+
+El job `plugin-context (macos-latest)` fallaba con `plugin_abi` en SEGFAULT
+desde `9b52fd5`. Causa: `PluginHost` destruía `m_log` antes que `m_plugins`
+(orden de declaración); el dispose del plugin sticky llamaba a `host->log()` y
+accedía a un `std::function` ya destruido. Ahora `~PluginHost()` hace
+`m_plugins.clear()` en el cuerpo, con todos los miembros todavía vivos. El test
+sticky sigue cubriendo ese camino (`f8d93676`).
+
 ---
 
 ## 2. Hallazgos abiertos
 
-### 2.1 CI no ejecuta el root ctest — único pendiente de ingeniería
+### 2.1 CI del root ctest — implementado, pendiente de run verde
 
-`.github/workflows/cmake-multi-platform.yml` sólo ejecuta los tests
-standalone (plugin-context, language-registry, cli-options, ui-registry).
-Los tests que requieren el build completo no corren en CI:
+Se añadió el job `root-ctest` al workflow, en las tres OS:
 
-- `language_registration` (registro in-process con módulo/paquete reales);
-- `language_plugin_abi` (plugin dinámico, requiere `SOURCETRAIL_SHARED_CORE=ON`);
-- el resto del root ctest (`plugin_context`, `plugin_host`, `plugin_abi`,
-  `cli_options`, `ui_registry`).
+- instala las dependencias del manifiesto con `lukka/run-vcpkg@v11`;
+- configura el perfil embedded (`BUILD_GUI=OFF`, CXX/Java off), con
+  `SOURCETRAIL_SHARED_CORE=ON` y `BUILD_PLUGIN_CONTEXT_TESTS=ON`;
+- compila y ejecuta el root ctest completo, incluidos
+  `language_registration` y `language_plugin_abi`.
 
-Opciones:
-
-1. **Job de build completo** con vcpkg y
-   `-DSOURCETRAIL_SHARED_CORE=ON -DBUILD_PLUGIN_CONTEXT_TESTS=ON` en Windows y
-   Linux; es el camino directo, pero añade dependencias y minutos de CI.
-2. **Harness standalone** para `language_registration` con stubs de
-   `SourceGroupFactory`/`LanguagePackageManager`; más trabajo de build y no
-   cubre el plugin dinámico.
-
-Recomendación: opción 1, al menos en Windows y Linux. No se implementó en esta
-auditoría porque cambia el coste del CI y requiere validar vcpkg en tres OS.
+Validación local con el mismo perfil (reusando el vcpkg ya instalado): build
+limpio y **ctest 7/7**. El 2026-10-19 GitHub Actions está en
+`degraded_performance` (status.github.com) y los runs quedaron encolados; queda
+confirmar el primer run verde en GitHub. También se añadieron `paths-ignore`
+para docs y `concurrency` para cancelar runs viejos.
 
 ### 2.2 Páginas de preferencias sin refresco vivo
 
@@ -145,12 +147,16 @@ offscreen.
 |---|---|
 | `5425963c` | ownership de acciones de menú y `removeView` |
 | `c907eb1b` | activación de perfiles por `SOURCETRAIL_DISABLE_PLUGINS` |
+| `f8d93676` | orden de destrucción de `PluginHost` (segfault macOS) |
+| `8b65c7db` | job `root-ctest` con vcpkg y shared core |
+| `70fce0a5` | `paths-ignore` para docs y `concurrency` |
 | commit de este documento | doc 36 y actualización de docs 27/35 |
 
 ---
 
 ## 5. Conclusión
 
-No quedan pendientes funcionales. El único pendiente de ingeniería es llevar
-el root ctest al CI (sección 2.1). Todo lo demás es externo (E5, defecto
-upstream de Odin) o validación manual de la GUI.
+No quedan pendientes funcionales. El root ctest ya está en CI (sección 2.1),
+validado localmente 7/7 y pendiente sólo de un run verde cuando GitHub Actions
+salga de la incidencia actual. Todo lo demás es externo (E5, defecto upstream
+de Odin) o validación manual de la GUI.
