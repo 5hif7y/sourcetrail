@@ -25,18 +25,24 @@ int main()
 	{
 		QtMenuRegistry menus;
 		int calls = 0;
+		int changes = 0;
+		menus.setChangeCallback([&changes]() { ++changes; });
 		QtMenuRegistry::Populator populator = [&calls](QMenu*, QtMainWindow*) { ++calls; };
 
 		check(menus.addContributor("project", "core", populator), "add menu contributor");
+		check(changes == 1, "adding a contributor notifies the window");
 		check(
 			!menus.addContributor("project", "core", populator),
 			"duplicate contributor is rejected");
+		check(changes == 1, "rejected duplicate does not notify");
 		check(menus.contributorCount("project") == 1, "one contributor");
 
 		menus.populate("project", nullptr, nullptr);
 		check(calls == 1, "contributor runs on populate");
 		check(menus.removeContributor("project", "core"), "remove menu contributor");
+		check(changes == 2, "removing a contributor notifies the window");
 		check(!menus.removeContributor("project", "core"), "remove twice fails");
+		check(changes == 2, "rejected removal does not notify");
 		menus.populate("project", nullptr, nullptr);
 		check(calls == 1, "removed contributor does not run");
 	}

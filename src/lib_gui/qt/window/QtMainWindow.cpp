@@ -43,6 +43,8 @@
 #include "QtResources.h"
 #include "QtStartScreen.h"
 #include "QtViewWidgetWrapper.h"
+
+#include <QPointer>
 #include "ResourcePaths.h"
 #include "TabbedView.h"
 #include "UserPaths.h"
@@ -146,6 +148,14 @@ QtMainWindow::QtMainWindow()
 	setupBookmarksMenu();
 	setupHelpMenu();
 
+	QtMenuRegistry::instance().setChangeCallback(
+		[window = QPointer<QtMainWindow>(this)]() {
+			if (window)
+			{
+				window->refreshMenus();
+			}
+		});
+
 	// Need to call loadLayout here for right DockWidget size on Linux
 	// Second call is in Application.cpp
 	loadLayout();
@@ -203,6 +213,7 @@ void QtMainWindow::addView(View* view)
 	QAction* action = new QAction(name + " Window", this);
 	action->setCheckable(true);
 	connect(action, &QAction::triggered, toggle, &QtViewToggle::toggledByAction);
+	m_viewActions.push_back(action);
 	if (m_viewMenu)
 	{
 		if (m_viewSeparator)
@@ -868,9 +879,16 @@ void QtMainWindow::activateBookmarkAction()
 
 void QtMainWindow::setupProjectMenu()
 {
-	QMenu* menu = new QMenu(tr("&Project"), this);
-	menuBar()->addMenu(menu);
-	QtMenuRegistry::instance().populate("project", menu, this);
+	if (!m_projectMenu)
+	{
+		m_projectMenu = new QMenu(tr("&Project"), this);
+		menuBar()->addMenu(m_projectMenu);
+	}
+	else
+	{
+		m_projectMenu->clear();
+	}
+	QtMenuRegistry::instance().populate("project", m_projectMenu, this);
 }
 
 void QtMainWindow::populateProjectMenu(QMenu* menu)
@@ -894,9 +912,16 @@ void QtMainWindow::populateProjectMenu(QMenu* menu)
 
 void QtMainWindow::setupEditMenu()
 {
-	QMenu* menu = new QMenu(tr("&Edit"), this);
-	menuBar()->addMenu(menu);
-	QtMenuRegistry::instance().populate("edit", menu, this);
+	if (!m_editMenu)
+	{
+		m_editMenu = new QMenu(tr("&Edit"), this);
+		menuBar()->addMenu(m_editMenu);
+	}
+	else
+	{
+		m_editMenu->clear();
+	}
+	QtMenuRegistry::instance().populate("edit", m_editMenu, this);
 }
 
 void QtMainWindow::populateEditMenu(QMenu* menu)
@@ -936,9 +961,22 @@ void QtMainWindow::populateEditMenu(QMenu* menu)
 
 void QtMainWindow::setupViewMenu()
 {
-	QMenu* menu = new QMenu(tr("&View"), this);
-	menuBar()->addMenu(menu);
-	QtMenuRegistry::instance().populate("view", menu, this);
+	if (!m_viewMenu)
+	{
+		m_viewMenu = new QMenu(tr("&View"), this);
+		menuBar()->addMenu(m_viewMenu);
+	}
+	else
+	{
+		m_viewMenu->clear();
+	}
+	if (m_showTitleBarsAction)
+	{
+		delete m_showTitleBarsAction;
+		m_showTitleBarsAction = nullptr;
+	}
+	m_viewSeparator = nullptr;
+	QtMenuRegistry::instance().populate("view", m_viewMenu, this);
 }
 
 void QtMainWindow::populateViewMenu(QMenu* menu)
@@ -1047,9 +1085,16 @@ void QtMainWindow::populateBookmarksMenu(QMenu* menu)
 
 void QtMainWindow::setupHelpMenu()
 {
-	QMenu* menu = new QMenu(tr("&Help"), this);
-	menuBar()->addMenu(menu);
-	QtMenuRegistry::instance().populate("help", menu, this);
+	if (!m_helpMenu)
+	{
+		m_helpMenu = new QMenu(tr("&Help"), this);
+		menuBar()->addMenu(m_helpMenu);
+	}
+	else
+	{
+		m_helpMenu->clear();
+	}
+	QtMenuRegistry::instance().populate("help", m_helpMenu, this);
 }
 
 void QtMainWindow::populateHelpMenu(QMenu* menu)
@@ -1074,6 +1119,40 @@ void QtMainWindow::populateHelpMenu(QMenu* menu)
 
 	menu->addAction(tr("Show Data Folder..."), this, &QtMainWindow::showDataFolder);
 	menu->addAction(tr("Show Log Folder..."), this, &QtMainWindow::showLogFolder);
+}
+
+void QtMainWindow::refreshMenus()
+{
+	setupProjectMenu();
+	setupEditMenu();
+	setupViewMenu();
+	setupHistoryMenu();
+	setupBookmarksMenu();
+	setupHelpMenu();
+
+	if (!m_viewMenu)
+	{
+		return;
+	}
+
+	// Dock-view actions are created by addView(), outside the menu
+	// contributors. QMenu::clear() removes them from the menu but does not
+	// delete them because their parent is the window, so put them back.
+	for (QAction* action: m_viewActions)
+	{
+		if (!action || m_viewMenu->actions().contains(action))
+		{
+			continue;
+		}
+		if (m_viewSeparator)
+		{
+			m_viewMenu->insertAction(m_viewSeparator, action);
+		}
+		else
+		{
+			m_viewMenu->addAction(action);
+		}
+	}
 }
 
 QtMainWindow::DockWidget* QtMainWindow::getDockWidgetForView(View* view)

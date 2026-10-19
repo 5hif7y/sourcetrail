@@ -19,6 +19,7 @@ class QtMenuRegistry
 {
 public:
 	using Populator = std::function<void(QMenu*, QtMainWindow*)>;
+	using ChangeCallback = std::function<void()>;
 
 	bool addContributor(
 		const std::string& menuId, const std::string& contributorId, Populator populator)
@@ -41,6 +42,7 @@ public:
 		}
 
 		contributors.push_back(Contributor{contributorId, std::move(populator)});
+		notify();
 		return true;
 	}
 
@@ -69,6 +71,7 @@ public:
 		{
 			m_contributors.erase(menuIt);
 		}
+		notify();
 		return true;
 	}
 
@@ -94,6 +97,13 @@ public:
 		return it == m_contributors.end() ? 0 : it->second.size();
 	}
 
+	// Called after a contributor is added or removed. The main window uses it
+	// to rebuild its menus without requiring a restart.
+	void setChangeCallback(ChangeCallback callback)
+	{
+		m_changeCallback = std::move(callback);
+	}
+
 	static QtMenuRegistry& instance()
 	{
 		static QtMenuRegistry registry;
@@ -107,7 +117,16 @@ private:
 		Populator populator;
 	};
 
+	void notify() const
+	{
+		if (m_changeCallback)
+		{
+			m_changeCallback();
+		}
+	}
+
 	std::map<std::string, std::vector<Contributor>> m_contributors;
+	ChangeCallback m_changeCallback;
 };
 
 #endif	  // QT_MENU_REGISTRY_H

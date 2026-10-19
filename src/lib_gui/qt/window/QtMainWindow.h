@@ -92,7 +92,11 @@ public:
 	void populateHistoryMenu(QMenu* menu);
 	void populateBookmarksMenu(QMenu* menu);
 	void populateHelpMenu(QMenu* menu);
-	
+
+	// Rebuilds all menus from the registry, preserving the dock-view actions
+	// that are inserted into the View menu outside of the contributors.
+	void refreshMenus();
+
 signals:
 	void showScreenSearch();
 	void hideScreenSearch();
@@ -198,18 +202,20 @@ private:
 
 	std::vector<DockWidget> m_dockWidgets;
 
-	QMenu* m_viewMenu;
-	QAction* m_viewSeparator;
-
+	QMenu* m_projectMenu = nullptr;
+	QMenu* m_editMenu = nullptr;
+	QMenu* m_viewMenu = nullptr;
 	QMenu* m_historyMenu = nullptr;
-	std::vector<std::shared_ptr<MessageBase>> m_history;
-
 	QMenu* m_bookmarksMenu = nullptr;
+	QMenu* m_helpMenu = nullptr;
+
+	QAction* m_viewSeparator = nullptr;
+	QAction* m_showTitleBarsAction = nullptr;
+	QMenu* m_recentProjectsMenu = nullptr;
+
+	std::vector<std::shared_ptr<MessageBase>> m_history;
 	std::vector<std::shared_ptr<Bookmark>> m_bookmarks;
-
-	QMenu* m_recentProjectsMenu;
-
-	QAction* m_showTitleBarsAction;
+	std::vector<QAction*> m_viewActions;
 
 	bool m_showDockWidgetTitleBars = true;
 
