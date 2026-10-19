@@ -112,6 +112,7 @@ jobs:
         uses: lukka/run-vcpkg@v11
         with:
           vcpkgJsonGlob: 'vcpkg.json'
+          vcpkgGitCommitId: '2475cc332a47b3a63bb3de58293bdab7726613ca'
 
       - name: Configure
         shell: bash
