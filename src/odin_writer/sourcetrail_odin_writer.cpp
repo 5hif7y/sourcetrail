@@ -69,6 +69,10 @@ SODB_API sodb_writer sodb_open(const char* databasePath)
 		return nullptr;
 	}
 	Writer* writer = new Writer();
+	// Every database opened through this shim is a disposable per-file or
+	// per-batch database that the core merges and discards. Disabling fsyncs
+	// and using an in-memory journal removes the dominant indexing cost.
+	writer->impl.setFastMode(true);
 	if (!writer->impl.open(databasePath))
 	{
 		delete writer;

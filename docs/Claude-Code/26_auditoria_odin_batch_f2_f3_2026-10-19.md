@@ -6,6 +6,13 @@
 **Base de la sesión:** `ef54801a` (verificado con `git ls-remote`; el clon local
 `neo-sourcetrail` está en `master` y sucio por diseño).
 
+> **Actualización final (segunda pasada):** la cobertura no resuelta del `core`
+> completo bajó de 21.169 a **178 ocurrencias** (0,05 %); el writer quedó
+> **vendorizado** con modo rápido y el `core` se indexa en **19,0 s** (23,6 s de
+> pared) con los mismos nodos/aristas. Los tests del indexador son **6/6**. Las
+> secciones 2–3 conservan las cifras del corte anterior; la segunda pasada está
+> en la sección 11.
+
 ---
 
 ## 1. Auditoría del estado
@@ -229,3 +236,61 @@ build\Release\app\sourcetrail_cli.exe `
 ctest --test-dir _study\plugin-context-test -C Release --output-on-failure
 ctest --test-dir _study\language-registry-test -C Release --output-on-failure
 ```
+
+---
+
+## 11. Segunda pasada (2026-10-19): parser y writer
+
+### 11.1 Parser
+
+Correcciones adicionales, todas con test o medición:
+
+- Tipos `proc(...)` en campos/parámetros y literales: los nombres de sus
+  parámetros ya no son referencias.
+- `foreign libc { ... }` dentro de cuerpos y `@(link_name=...)` dentro de
+  bloques foreign.
+- Estructuras anónimas inline (`struct #raw_union { ... }`) y `where` en
+  líneas siguientes.
+- `switch v in x`, `#partial switch &v in x`, `using params` (campos del struct
+  en scope) y `for key, &value in`.
+- Imports relativos (`import x86 "../"`, `import "decimal"`): se resuelve la
+  ruta y se usa el **nombre de paquete declarado** (`rexcode_x86`,
+  `strconv_decimal`) para la tabla, manteniendo el nombre local para el código.
+- Builtins: `append_elem`, `ordered_remove`, `pop`, `shrink`, `quaternion`,
+  `jmag`, `kmag`, `Maybe`, `string16`, `Objc_Block`, `not_in`, etc.
+- `_ :: runtime` y embeddings anónimos (`using _`) ya no generan referencias.
+
+Resultado en `core` completo con `SOURCETRAIL_ODIN_UNSOLVED=1`:
+**21.169 → 178 ocurrencias no resueltas** (0,05 % de las aristas). Quedan
+algunos `_` en Foundation, constantes de enum y locales de `image/png`, sin
+impacto en las referencias resueltas.
+
+### 11.2 Writer vendorizado y modo rápido
+
+- `src/odin_writer/vendor/sourcetrail-db/` (6,8 MB, Apache-2.0) incluye el core
+  del writer y SQLite. Ya no hace falta el repo hermano; `build.ps1` lo usa por
+  defecto y `-SourcetrailDB` permite un checkout externo.
+- Modo rápido para DB temporales: `PRAGMA synchronous=OFF`,
+  `foreign_keys=OFF`, `wal_autocheckpoint=0`, `cache_size=-65536`,
+  `temp_store=MEMORY`. **No se cambia el journal mode**: el core crea las DB en
+  WAL y cambiarlo rompe la visibilidad de su conexión abierta (probado: 0
+  nodos).
+- Efecto: `sodb_open` baja de 74–424 ms a 2–100 ms; el commit sigue costando
+  0,3–5,7 s por lote (inserción/índices de SQLite, no fsync).
+
+| Medición | Antes | Después |
+|---|---:|---:|
+| `core` indexado (1.366 archivos) | 24,5 s | **19,0 s** |
+| Pared del CLI | 28,7 s | **23,6 s** |
+| Nodos / aristas | 133.502 / 356.574 | **133.502 / 356.574** |
+| `core/strings` | 1,07 s | **0,556 s** |
+| `core/bufio` + `fmt` (412/1.227) | 0,57 s | **0,572 s** |
+
+El siguiente límite es el coste de inserción/índices por lote: un solo proceso
+por source group con lista de archivos, o menos índices durante la escritura,
+sería el paso siguiente.
+
+### 11.3 Tests
+
+`src/odin_indexer/tests/run_tests.ps1`: **6/6** (se agregó el caso de tipos
+`proc`). Gates: sample 32/42/0, desktop y embedded.

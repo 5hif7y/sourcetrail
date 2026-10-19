@@ -148,6 +148,15 @@ Run-Test "attributes, directives and foreign blocks declare symbols" {
 		"--unsolved", "0")
 }
 
+Run-Test "proc type parameter names do not leak" {
+	$db = Join-Path $WorkDir "proctypes.srctrldb"
+	Invoke-Index $db @((Join-Path $fixtures "proctypes.odin")) @("--unsolved")
+	Invoke-Check @(
+		"check", $db,
+		"--require", "proctypes.Callback,proctypes.Holder,proctypes.Holder.cmp,proctypes.Holder.swap,proctypes.make_callback",
+		"--unsolved", "0")
+}
+
 Run-Test "batch indexing is deterministic" {
 	$first = Join-Path $WorkDir "deterministic-a.srctrldb"
 	$second = Join-Path $WorkDir "deterministic-b.srctrldb"

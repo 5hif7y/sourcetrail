@@ -94,10 +94,11 @@ Ref :: struct {
 }
 
 Import :: struct {
-	alias:   string,
-	path:    string,
-	pkg: string,
-	tok:     Token,
+	alias:      string,
+	local_name: string, // alias, or the last path component when unaliased
+	path:       string,
+	pkg:        string, // declared package name (owner of its symbols)
+	tok:        Token,
 }
 
 File_Info :: struct {
@@ -110,11 +111,12 @@ File_Info :: struct {
 }
 
 Parser :: struct {
-	tokens:  []Token,
-	index:   int,
-	full:    bool,
-	file:    File_Info,
-	generic: map[string]bool,
+	tokens:      []Token,
+	index:       int,
+	full:        bool,
+	file:        File_Info,
+	generic:     map[string]bool,
+	source_path: string,
 }
 
 MULTI_OPS := []string{"::", ":=", "->", "..<", "..=", "...", "==", "!=", "<=", ">=", "&&", "||", "<<", ">>", "&~", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^="}
@@ -123,10 +125,10 @@ is_keyword :: proc(s: string) -> bool {
 	switch s {
 	case "package", "import", "foreign", "proc", "struct", "union", "enum",
 		"bit_set", "bit_field", "distinct", "map", "matrix", "using", "when",
-		"where", "if", "else", "for", "in", "switch", "case", "defer", "return",
-		"break", "continue", "fallthrough", "or_return", "or_else", "or_break",
-		"or_continue", "nil", "true", "false", "cast", "transmute", "type_of",
-		"type_info_of", "size_of", "align_of", "offset_of", "context":
+		"where", "if", "else", "for", "in", "not_in", "switch", "case", "defer",
+		"return", "break", "continue", "fallthrough", "or_return", "or_else",
+		"or_break", "or_continue", "nil", "true", "false", "cast", "transmute",
+		"type_of", "type_info_of", "size_of", "align_of", "offset_of", "context":
 		return true
 	}
 	return false
@@ -153,7 +155,7 @@ is_builtin_type :: proc(s: string) -> bool {
 		"u64", "u128", "i8", "i16", "i32", "i64", "i128", "f16", "f32", "f64",
 		"f128", "complex32", "complex64", "complex128", "quaternion64",
 		"quaternion128", "quaternion256", "intle", "intbe", "uintle", "uintbe",
-		"dynamic":
+		"dynamic", "Maybe", "string16", "Objc_Block":
 		return true
 	}
 	return false
@@ -171,8 +173,14 @@ is_builtin_proc :: proc(s: string) -> bool {
 		"expand_values", "raw_data", "auto_cast", "cast", "transmute", "type_of",
 		"type_info_of", "size_of", "align_of", "offset_of", "swizzle",
 		"is_nan", "is_inf", "is_finite", "nan", "inf", "soa_zip", "soa_unzip",
-		"assert", "panic", "ensure", "ensure_contextless", "unimplemented", "todo",
-		"resize", "unreachable":
+		"assert", "panic", "panic_contextless", "ensure", "ensure_contextless",
+		"unimplemented", "unimplemented_contextless", "todo", "resize", "reserve",
+		"new_clone", "free", "copy_slice", "map_insert", "delete_key",
+		"append_elem", "non_zero_append_elem", "_append_elem", "_append_elems",
+		"ordered_remove", "unordered_remove", "pop", "shrink", "quaternion",
+		"jmag", "kmag", "non_zero_resize", "map_entry", "simd_shuffle",
+		"free_all", "container_of", "inject_at",
+		"offset_of_by_string", "typeid_of", "assert_contextless", "unreachable":
 		return true
 	}
 	return false
@@ -367,6 +375,29 @@ skip_until_body :: proc(p: ^Parser) {
 	}
 }
 
+skip_newlines :: proc(p: ^Parser) {
+	for peek(p).kind == .Newline {
+		advance(p)
+	}
+}
+
+skip_braced :: proc(tokens: []Token, open_index: int) -> int {
+	depth := 0
+	index := open_index
+	for index < len(tokens) {
+		if tokens[index].text == "{" {
+			depth += 1
+		} else if tokens[index].text == "}" {
+			depth -= 1
+			if depth == 0 {
+				return index + 1
+			}
+		}
+		index += 1
+	}
+	return index
+}
+
 skip_balanced :: proc(p: ^Parser, open: string, close: string) -> []Token {
 	inner := make([dynamic]Token, 0, 16)
 	if !at(p, open) {
@@ -444,7 +475,13 @@ skip_attribute :: proc(p: ^Parser) {
 }
 
 parse_file :: proc(path: string, source: string, full: bool) -> File_Info {
-	p := Parser{tokens = lex(source), index = 0, full = full, generic = make(map[string]bool)}
+	p := Parser{
+		tokens = lex(source),
+		index = 0,
+		full = full,
+		generic = make(map[string]bool),
+		source_path = path,
+	}
 	p.file.imports = make([dynamic]Import)
 	p.file.decls = make([dynamic]Decl)
 	p.file.refs = make([dynamic]Ref)
@@ -504,6 +541,37 @@ parse_file :: proc(path: string, source: string, full: bool) -> File_Info {
 	return p.file
 }
 
+package_name_cache: map[string]string
+
+declared_package_name :: proc(directory: string) -> string {
+	if package_name_cache == nil {
+		package_name_cache = make(map[string]string)
+	}
+	if name, exists := package_name_cache[directory]; exists {
+		return name
+	}
+
+	name := ""
+	for path in package_files(directory) {
+		data, err := os.read_entire_file_from_path(path, context.allocator)
+		if err != nil {
+			continue
+		}
+		tokens := lex(string(data))
+		for index := 0; index + 1 < len(tokens); index += 1 {
+			if tokens[index].text == "package" && tokens[index + 1].kind == .Ident {
+				name = tokens[index + 1].text
+				break
+			}
+		}
+		if name != "" {
+			break
+		}
+	}
+	package_name_cache[directory] = name
+	return name
+}
+
 parse_import :: proc(p: ^Parser) {
 	advance(p) // import
 	alias := ""
@@ -517,7 +585,29 @@ parse_import :: proc(p: ^Parser) {
 		if len(path) >= 2 {
 			path = path[1:len(path) - 1]
 		}
-		append(&p.file.imports, Import{alias = alias, path = path, pkg = import_package_name(path), tok = path_token})
+		pkg := ""
+		if is_external_import_path(path) {
+			pkg = import_package_name(path)
+		} else {
+			// The directory name is not always the declared package name
+			// (core/rexcode/isa/x86 declares `package rexcode_x86`).
+			directory := normalize_path(join_path(filepath.dir(p.source_path), path))
+			pkg = declared_package_name(directory)
+			if pkg == "" {
+				pkg = import_package_name(path)
+			}
+		}
+		local_name := alias
+		if local_name == "" {
+			local_name = import_package_name(path)
+		}
+		append(&p.file.imports, Import{
+			alias = alias,
+			local_name = local_name,
+			path = path,
+			pkg = pkg,
+			tok = path_token,
+		})
 	} else {
 		skip_to_nl(p)
 	}
@@ -538,6 +628,14 @@ parse_foreign :: proc(p: ^Parser) {
 		for peek(p).kind != .Eof && !at(p, "}") {
 			if peek(p).kind == .Newline || at(p, ";") {
 				advance(p)
+				continue
+			}
+			if at(p, "@") {
+				skip_attribute(p)
+				continue
+			}
+			if at(p, "#") {
+				skip_token_directive(p)
 				continue
 			}
 			if peek(p).kind == .Ident {
@@ -589,6 +687,18 @@ parse_declaration_block :: proc(p: ^Parser) {
 			skip_attribute(p)
 			continue
 		}
+		if at(p, "import") {
+			parse_import(p)
+			continue
+		}
+		if at(p, "foreign") {
+			parse_foreign(p)
+			continue
+		}
+		if at(p, "when") {
+			parse_when(p)
+			continue
+		}
 		if peek(p).kind == .Ident {
 			parse_declaration(p)
 		} else {
@@ -615,6 +725,11 @@ parse_declaration :: proc(p: ^Parser) {
 
 	p.generic = make(map[string]bool)
 	if accept(p, "::") {
+		if len(names) == 1 && names[0].text == "_" {
+			// `_ :: runtime` is an import/keep-alive marker, not a symbol.
+			skip_to_nl(p)
+			return
+		}
 		for name in names {
 			parse_value(p, name)
 		}
@@ -675,6 +790,7 @@ parse_value :: proc(p: ^Parser, name: Token) {
 			collect_generic_params(p, generic_tokens)
 		}
 		append(&p.file.decls, Decl{name = full, kind = .STRUCT, tok = name})
+		skip_newlines(p)
 		if at(p, "where") {
 			skip_until_body(p)
 		}
@@ -707,6 +823,7 @@ parse_value :: proc(p: ^Parser, name: Token) {
 			collect_generic_params(p, generic_tokens)
 		}
 		append(&p.file.decls, Decl{name = full, kind = .UNION, tok = name})
+		skip_newlines(p)
 		if at(p, "where") {
 			skip_until_body(p)
 		}
@@ -736,6 +853,7 @@ parse_value :: proc(p: ^Parser, name: Token) {
 			scan_type_tokens(p, backing, full)
 		}
 		append(&p.file.decls, Decl{name = full, kind = .STRUCT, tok = name})
+		skip_newlines(p)
 		if at(p, "where") {
 			skip_until_body(p)
 		}
@@ -1019,6 +1137,7 @@ parse_proc :: proc(p: ^Parser, full: string, name: Token) {
 		process_param_group(p, group, full, &local_names)
 	}
 
+	skip_newlines(p)
 	for at(p, "#") {
 		skip_token_directive(p)
 	}
@@ -1056,6 +1175,7 @@ parse_proc :: proc(p: ^Parser, full: string, name: Token) {
 	append(&p.file.decls, Decl{name = full, kind = .FUNCTION, tok = name, scope = scope_tok, has_scope = has_scope})
 	if p.full && len(body) > 0 {
 		add_body_locals(&local_names, body)
+		add_using_fields(&local_names, body, p.file.decls)
 		scan_expr_tokens(p, body, full, local_names)
 	}
 }
@@ -1200,11 +1320,149 @@ scan_expr_tokens :: proc(p: ^Parser, tokens: []Token, context_name: string, loca
 	scan_tokens(p, tokens, context_name, local_names, .USAGE)
 }
 
+// A `proc(...)` type appears in struct fields, parameters and proc literals.
+// Its parameter names must not become references; only their types do.
+scan_proc_type :: proc(p: ^Parser, tokens: []Token, start: int, context_name: string, outer_locals: map[string]bool) -> int {
+	index := start + 1
+	for index < len(tokens) && tokens[index].text != "(" {
+		if tokens[index].text == "{" {
+			return index
+		}
+		index += 1
+	}
+	if index >= len(tokens) {
+		return index
+	}
+
+	index += 1
+	param_start := index
+	depth := 0
+	for index < len(tokens) {
+		if tokens[index].text == "(" {
+			depth += 1
+		} else if tokens[index].text == ")" {
+			if depth == 0 {
+				break
+			}
+			depth -= 1
+		}
+		index += 1
+	}
+	param_tokens := tokens[param_start:index]
+	if index < len(tokens) && tokens[index].text == ")" {
+		index += 1
+	}
+
+	locals := make(map[string]bool)
+	for name, _ in p.generic {
+		locals[name] = true
+	}
+	for name, _ in outer_locals {
+		locals[name] = true
+	}
+	mark_generic_names(p, &locals, param_tokens)
+	for group in split_params(param_tokens) {
+		process_param_group(p, group, context_name, &locals)
+	}
+
+	if index < len(tokens) && tokens[index].text == "->" {
+		index += 1
+		result_start := index
+		result_depth := 0
+		for index < len(tokens) {
+			text := tokens[index].text
+			if result_depth == 0 &&
+				(text == "{" || text == ";" || text == "," || text == ")" || text == "}") {
+				break
+			}
+			if text == "(" || text == "[" {
+				result_depth += 1
+			} else if text == ")" || text == "]" {
+				if result_depth > 0 {
+					result_depth -= 1
+				}
+			}
+			index += 1
+		}
+		scan_result_tokens(p, tokens[result_start:index], context_name, &locals)
+	}
+
+	if index < len(tokens) && tokens[index].text == "{" {
+		index += 1
+		body_start := index
+		depth = 1
+		for index < len(tokens) {
+			if tokens[index].text == "{" {
+				depth += 1
+			} else if tokens[index].text == "}" {
+				depth -= 1
+				if depth == 0 {
+					break
+				}
+			}
+			index += 1
+		}
+		body := tokens[body_start:index]
+		if index < len(tokens) && tokens[index].text == "}" {
+			index += 1
+		}
+		add_body_locals(&locals, body)
+		add_using_fields(&locals, body, p.file.decls)
+		scan_tokens(p, body, context_name, locals, .USAGE)
+	}
+
+	return index
+}
+
 scan_tokens :: proc(p: ^Parser, tokens: []Token, context_name: string, local_names: map[string]bool, default_kind: Ref_Kind) {
 	index := 0
 	brace_depth := 0
+	paren_depth := 0
+	// A local map variable can be mutated; a map parameter cannot. Maps are
+	// references, so this also shares the caller's locals.
+	locals := local_names
+	if locals == nil {
+		locals = make(map[string]bool)
+	}
 	for index < len(tokens) {
 		token := tokens[index]
+		if token.text == "proc" {
+			index = scan_proc_type(p, tokens, index, context_name, locals)
+			continue
+		}
+		if token.text == "foreign" {
+			// Body-local foreign blocks (`when ... { foreign libc { ... } }`).
+			// Their procedures are local names; do not treat the library name
+			// or the declarations as references.
+			cursor := index + 1
+			if cursor < len(tokens) && tokens[cursor].kind == .Ident {
+				cursor += 1
+			}
+			if cursor < len(tokens) && tokens[cursor].text == "{" {
+				end := skip_braced(tokens, cursor)
+				for i := cursor + 1; i + 1 < end; i += 1 {
+					if tokens[i].kind == .Ident && tokens[i + 1].text == "::" {
+						locals[tokens[i].text] = true
+					}
+				}
+				index = end
+				continue
+			}
+			index = cursor
+			continue
+		}
+		if token.text == "struct" || token.text == "union" || token.text == "enum" ||
+			token.text == "bit_field" {
+			// Inline anonymous types: their field names are not references.
+			cursor := index + 1
+			for cursor < len(tokens) && tokens[cursor].text != "{" && tokens[cursor].text != ";" {
+				cursor += 1
+			}
+			if cursor < len(tokens) && tokens[cursor].text == "{" {
+				index = skip_braced(tokens, cursor)
+				continue
+			}
+		}
 		if token.text == "{" {
 			brace_depth += 1
 			index += 1
@@ -1213,6 +1471,18 @@ scan_tokens :: proc(p: ^Parser, tokens: []Token, context_name: string, local_nam
 		if token.text == "}" {
 			if brace_depth > 0 {
 				brace_depth -= 1
+			}
+			index += 1
+			continue
+		}
+		if token.text == "(" {
+			paren_depth += 1
+			index += 1
+			continue
+		}
+		if token.text == ")" {
+			if paren_depth > 0 {
+				paren_depth -= 1
 			}
 			index += 1
 			continue
@@ -1255,14 +1525,25 @@ scan_tokens :: proc(p: ^Parser, tokens: []Token, context_name: string, local_nam
 			index += 1
 			continue
 		}
-		// `.Red` enum shorthand: without type inference there is no owner to
-		// resolve, and inventing "package.Red" would create a phantom symbol.
+		// `.Red` enum shorthand and member chains rooted at a call result:
+		// without type inference there is no owner to resolve, so skip the
+		// whole dotted tail instead of inventing symbols.
 		if index > 0 && tokens[index - 1].text == "." &&
 			(index < 2 || tokens[index - 2].kind != .Ident) {
+			cursor := index + 1
+			for cursor + 1 < len(tokens) &&
+				tokens[cursor].text == "." && tokens[cursor + 1].kind == .Ident {
+				cursor += 2
+			}
+			index = cursor
+			continue
+		}
+		// `ptr->member(...)` accesses a field of the pointed value.
+		if index > 0 && tokens[index - 1].text == "->" {
 			index += 1
 			continue
 		}
-		if local_names[token.text] {
+		if locals[token.text] {
 			cursor := index + 1
 			for cursor + 1 < len(tokens) && tokens[cursor].text == "." && tokens[cursor + 1].kind == .Ident {
 				cursor += 2
@@ -1270,10 +1551,20 @@ scan_tokens :: proc(p: ^Parser, tokens: []Token, context_name: string, local_nam
 			index = cursor
 			continue
 		}
-		if brace_depth > 0 && index + 1 < len(tokens) && tokens[index + 1].text == "=" &&
-			(index == 0 || tokens[index - 1].text == "{" || tokens[index - 1].text == ",") {
-			index += 1
-			continue
+		// Composite-literal fields (`k = 4`) and named arguments
+		// (`assert(condition = ...)`) are not symbol references.
+		if (brace_depth > 0 || paren_depth > 0) && index + 1 < len(tokens) &&
+			tokens[index + 1].text == "=" {
+			skip := index == 0
+			if !skip {
+				previous := tokens[index - 1]
+				skip = previous.text == "{" || previous.text == "," ||
+					previous.text == "(" || previous.kind == .Newline
+			}
+			if skip {
+				index += 1
+				continue
+			}
 		}
 
 		chain := make([dynamic]string, 0, 4)
@@ -1295,6 +1586,14 @@ scan_tokens :: proc(p: ^Parser, tokens: []Token, context_name: string, local_nam
 }
 
 add_inheritance_refs :: proc(p: ^Parser, context_name: string, tokens: []Token, tok: Token) {
+	if len(tokens) == 0 || tok.text == "_" {
+		return
+	}
+	// Anonymous embeddings (`using _: struct { ... }`) have no named base.
+	if tokens[0].text == "struct" || tokens[0].text == "union" || tokens[0].text == "#" ||
+		tokens[0].text == "_" {
+		return
+	}
 	for token in tokens {
 		if token.kind != .Ident {
 			continue
@@ -1307,6 +1606,30 @@ add_inheritance_refs :: proc(p: ^Parser, context_name: string, tokens: []Token, 
 			append(&p.file.refs, Ref{ctx = context_name, target = target, kind = .INHERITANCE, tok = tok})
 			break
 		}
+	}
+}
+
+add_using_fields :: proc(local_names: ^map[string]bool, tokens: []Token, decls: [dynamic]Decl) {
+	has_using := false
+	for token, index in tokens {
+		if token.text == "using" && index + 1 < len(tokens) && tokens[index + 1].kind == .Ident {
+			has_using = true
+			break
+		}
+	}
+	if !has_using {
+		return
+	}
+
+	for decl in decls {
+		if decl.kind != .FIELD {
+			continue
+		}
+		name := decl.name
+		if index := strings.last_index_byte(name, '.'); index >= 0 {
+			name = name[index + 1:]
+		}
+		local_names^[name] = true
 	}
 }
 
@@ -1323,9 +1646,31 @@ add_body_locals :: proc(local_names: ^map[string]bool, tokens: []Token) {
 				local_names^[tokens[cursor].text] = true
 				if cursor + 1 < len(tokens) && tokens[cursor + 1].text == "," {
 					cursor += 2
+					for cursor < len(tokens) &&
+						(tokens[cursor].text == "&" || tokens[cursor].text == "#") {
+						cursor += 1
+					}
 					continue
 				}
 				break
+			}
+			continue
+		}
+		if token.text == "switch" {
+			// `switch v in value`, `#partial switch &info in t.variant`.
+			cursor := index + 1
+			if cursor < len(tokens) && tokens[cursor].text == "&" {
+				cursor += 1
+			}
+			if cursor < len(tokens) && tokens[cursor].kind == .Ident {
+				local_names^[tokens[cursor].text] = true
+			}
+			continue
+		}
+		if token.text == "using" {
+			// `using params` imports the fields of params into the scope.
+			if index + 1 < len(tokens) && tokens[index + 1].kind == .Ident {
+				local_names^[tokens[index + 1].text] = true
 			}
 			continue
 		}
@@ -1378,7 +1723,7 @@ resolve :: proc(p: ^Parser, chain: []string) -> (string, bool) {
 		return joined, true
 	}
 	for imp in p.file.imports {
-		if first == imp.alias || (imp.alias == "" && first == imp.pkg) {
+		if first == imp.local_name {
 			rest := chain[1:]
 			joined, _ := strings.join(rest, ".", context.allocator)
 			return make_full_name(imp.pkg, joined), true
@@ -1415,8 +1760,7 @@ resolve_ref_target :: proc(
 	if len(parts) == 0 {
 		return "", false, false
 	}
-	if len(parts) > 1 &&
-		(parts[0] == "intrinsics" || parts[0] == "builtin" || external_pkgs[parts[0]]) {
+	if parts[0] == "intrinsics" || parts[0] == "builtin" || external_pkgs[parts[0]] {
 		return target, true, true
 	}
 
@@ -1431,22 +1775,57 @@ resolve_ref_target :: proc(
 	return "", false, false
 }
 
-import_package_name :: proc(path: string) -> string {
+normalize_path :: proc(path: string) -> string {
+	parts, _ := strings.split_multi(path, []string{"/", "\\"}, context.temp_allocator)
+	stack := make([dynamic]string, 0, 8)
+	for part in parts {
+		if part == "" || part == "." {
+			continue
+		}
+		if part == ".." {
+			if len(stack) > 0 {
+				pop(&stack)
+			}
+			continue
+		}
+		append(&stack, part)
+	}
+	joined, _ := strings.join(stack[:], "/", context.temp_allocator)
+	if strings.has_prefix(path, "/") || strings.has_prefix(path, "\\") {
+		return fmt.tprintf("/%s", joined)
+	}
+	return joined
+}
+
+import_package_name :: proc(path: string, source_directory: string = "") -> string {
 	p := path
 	if idx := strings.index_byte(p, ':'); idx >= 0 {
 		p = p[idx + 1:]
 	}
-	for strings.has_suffix(p, "/") || strings.has_suffix(p, "\\") {
-		p = p[:len(p) - 1]
+
+	combined := p
+	if strings.has_prefix(p, ".") {
+		combined = join_path(source_directory, p)
 	}
-	idx := strings.last_index_byte(p, '/')
-	if idx < 0 {
-		idx = strings.last_index_byte(p, '\\')
+
+	parts, _ := strings.split_multi(combined, []string{"/", "\\"}, context.temp_allocator)
+	stack := make([dynamic]string, 0, 8)
+	for part in parts {
+		if part == "" || part == "." {
+			continue
+		}
+		if part == ".." {
+			if len(stack) > 0 {
+				pop(&stack)
+			}
+			continue
+		}
+		append(&stack, part)
 	}
-	if idx >= 0 {
-		p = p[idx + 1:]
+	if len(stack) == 0 {
+		return ""
 	}
-	return p
+	return stack[len(stack) - 1]
 }
 
 // Collect a proc result type, stopping before the body, a `where` clause, a
@@ -1456,6 +1835,24 @@ collect_result_tokens :: proc(p: ^Parser) -> []Token {
 	depth := 0
 	for peek(p).kind != .Eof {
 		token := peek(p)
+		// A result type ends at the end of its line unless the next
+		// non-empty line is the body, a `where` clause or a directive.
+		// Without this, `Callback :: proc(...) -> T` followed by
+		// `Holder :: struct {` consumes Holder's opening brace as the body.
+		if depth == 0 && token.kind == .Newline {
+			lookahead := p.index
+			for lookahead < len(p.tokens) && p.tokens[lookahead].kind == .Newline {
+				lookahead += 1
+			}
+			if lookahead < len(p.tokens) {
+				next := p.tokens[lookahead]
+				if next.text == "{" || next.text == "where" || next.text == "#" {
+					advance(p)
+					continue
+				}
+			}
+			break
+		}
 		// `---` is lexed as three '-' tokens; the first one terminates a
 		// foreign procedure declaration.
 		if depth == 0 &&
@@ -1645,11 +2042,12 @@ Table_Cache :: struct {
 }
 
 table_for_directory :: proc(cache: ^Table_Cache, directory: string) -> map[string]Symbol_Kind {
-	if table, exists := cache.tables[directory]; exists {
+	normalized := normalize_path(directory)
+	if table, exists := cache.tables[normalized]; exists {
 		return table
 	}
-	table := collect_symbols(package_files(directory))
-	cache.tables[directory] = table
+	table := collect_symbols(package_files(normalized))
+	cache.tables[normalized] = table
 	return table
 }
 
@@ -1667,7 +2065,8 @@ build_symbol_table :: proc(source_path: string, imports: [dynamic]Import, cache:
 		if is_external_import_path(imp.path) {
 			continue
 		}
-		merge_symbol_table(&table, table_for_directory(cache, join_path(directory, imp.path)))
+		merge_symbol_table(
+			&table, table_for_directory(cache, normalize_path(join_path(directory, imp.path))))
 	}
 	return table
 }

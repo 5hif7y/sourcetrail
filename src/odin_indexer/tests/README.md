@@ -24,6 +24,7 @@ indexer itself does not.
 | Member chains | `g.x`, `f.p.y` resolve to the declared `g` / `f` symbols instead of inventing `g.x`, `f.p`, `f.p.y`. |
 | Unresolved references | They are absent by default and become one `unsolved symbol` node with `--unsolved`. |
 | Attributes/directives/foreign | `@private`, `#force_inline`, `foreign libc { ... --- }`, struct `where` and generics keep their declarations. |
+| Proc types | Parameter names inside `proc(...)` field types and proc literals are not references (checked with `--unsolved`). |
 | Determinism | Two batch runs produce identical node and edge sets. |
 
 `check_db.py` also has a `compare` mode and a `check` mode useful for ad-hoc

@@ -8,14 +8,15 @@ $ErrorActionPreference = "Stop"
 
 $repo = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 if (-not $SourcetrailDB) {
-	$SourcetrailDB = (Resolve-Path (Join-Path $repo "..\sourcetrail-db")).Path
+	$SourcetrailDB = Join-Path $repo "src\odin_writer\vendor\sourcetrail-db"
 }
+$sdbArgs = @("-DSOURCETRAILDB_DIR=$((Resolve-Path $SourcetrailDB).Path)")
 $odinCommand = Get-Command $Odin -ErrorAction SilentlyContinue
 $odinExe = if ($odinCommand) { $odinCommand.Source } else { $Odin }
 
 $writerBuild = Join-Path $repo "build\odin_writer"
 Write-Host "Building SourcetrailDB writer shim in $writerBuild"
-cmake -S (Join-Path $repo "src\odin_writer") -B $writerBuild -G "Visual Studio 18 2026" -A x64 "-DSOURCETRAILDB_DIR=$SourcetrailDB"
+cmake -S (Join-Path $repo "src\odin_writer") -B $writerBuild -G "Visual Studio 18 2026" -A x64 @sdbArgs
 if ($LASTEXITCODE -ne 0) { throw "writer configure failed" }
 cmake --build $writerBuild --config $Configuration --parallel
 if ($LASTEXITCODE -ne 0) { throw "writer build failed" }

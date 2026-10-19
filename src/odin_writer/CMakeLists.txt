@@ -6,10 +6,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# The standalone SourcetrailDB core lives next to neo-sourcetrail in the
-# developer workspace. Pass -DSOURCETRAILDB_DIR=... when it lives elsewhere.
+# The writer core is vendored for reproducible builds. Pass
+# -DSOURCETRAILDB_DIR=... to build against a standalone checkout instead.
 if(NOT DEFINED SOURCETRAILDB_DIR)
-	set(SOURCETRAILDB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../sourcetrail-db")
+	set(SOURCETRAILDB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vendor/sourcetrail-db")
 endif()
 if(NOT EXISTS "${SOURCETRAILDB_DIR}/core/include/SourcetrailDBWriter.h")
 	message(FATAL_ERROR "SOURCETRAILDB_DIR does not point at a SourcetrailDB checkout: ${SOURCETRAILDB_DIR}")
