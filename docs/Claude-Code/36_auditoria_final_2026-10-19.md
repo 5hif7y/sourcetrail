@@ -101,8 +101,10 @@ configurar porque `run-vcpkg@v11` exige un baseline y `vcpkg.json` no lo tenía;
 se fijó `vcpkgGitCommitId` al commit usado en el build local (`a4f386fd`).
 Windows y macOS pasaron; Ubuntu falló al enlazar `libSourcetrail_lib.so`
 contra `External_lib_cppsqlite3`/`AidKit_lib` sin `-fPIC`, corregido con
-`POSITION_INDEPENDENT_CODE` (`2afb7506`). El primer run verde completo del
-`root-ctest` queda pendiente de confirmar. También se añadieron `paths-ignore`
+`POSITION_INDEPENDENT_CODE` (`2afb7506`).
+
+**Verde:** el run `39289862684` (commit `2afb7506`) terminó con **15/15 jobs
+success**, incluidos los tres `root-ctest`. También se añadieron `paths-ignore`
 para docs y `concurrency` para cancelar runs viejos.
 
 ### 2.2 Páginas de preferencias sin refresco vivo
@@ -170,7 +172,6 @@ offscreen.
 
 ## 5. Conclusión
 
-No quedan pendientes funcionales. El root ctest ya está en CI (sección 2.1),
-validado localmente 7/7 y pendiente sólo de un run verde cuando GitHub Actions
-salga de la incidencia actual. Todo lo demás es externo (E5, defecto upstream
-de Odin) o validación manual de la GUI.
+No quedan pendientes funcionales. El root ctest corre en CI y está verde en las
+tres OS (run `39289862684`, 15/15 jobs). Todo lo demás es externo (E5, defecto
+upstream de Odin) o validación manual de la GUI.
