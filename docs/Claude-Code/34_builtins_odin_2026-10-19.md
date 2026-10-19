@@ -101,8 +101,9 @@ el volumen de filas.
 
 - **Core de Odin**: `matrix_inverse_generic` inexistente en `linalg`; las 2
   no resueltas restantes son de `core`, no del parser.
-- **Writer**: volumen de filas/páginas; parámetros de SQLite, índices y
-  tamaños de lote ya descartados con mediciones.
+- **Writer**: resuelto en el doc 35 con `setSourceLocationDedup(false)`; el
+  resto del coste es volumen de filas/páginas, con parámetros de SQLite,
+  índices y tamaños de lote ya descartados con mediciones.
 - **E5 (ARM64)**: fuera de alcance; no hay hardware ARM64.
 - **GUI**: recorrido manual del wizard.
 - **Historial**: cerrado (doc 33).
