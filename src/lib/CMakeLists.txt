@@ -418,6 +418,8 @@ if(SOURCETRAIL_SHARED_CORE)
 		utility/commandline/CommandlineHelper.h
 		utility/commandline/CommandLineParser.cpp
 		utility/commandline/CommandLineParser.h
+		utility/commandline/CliOptionRegistry.cpp
+		utility/commandline/CliOptionRegistry.h
 
 		utility/commandline/commands/CommandlineCommand.cpp
 		utility/commandline/commands/CommandlineCommand.h
@@ -1100,6 +1102,8 @@ else()
 		utility/commandline/CommandlineHelper.h
 		utility/commandline/CommandLineParser.cpp
 		utility/commandline/CommandLineParser.h
+		utility/commandline/CliOptionRegistry.cpp
+		utility/commandline/CliOptionRegistry.h
 
 		utility/commandline/commands/CommandlineCommand.cpp
 		utility/commandline/commands/CommandlineCommand.h
@@ -1464,6 +1468,8 @@ target_include_directories(Sourcetrail_lib
 		project/OdinPlugin.h
 		project/CorePlugin.cpp
 		project/CorePlugin.h
+		project/CliPlugin.cpp
+		project/CliPlugin.h
 		settings/source_group/type/SourceGroupSettingsPythonEmpty.cpp
 		settings/source_group/type/SourceGroupSettingsPythonEmpty.h
 		settings/source_group/type/SourceGroupSettingsOdinEmpty.cpp

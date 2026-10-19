@@ -1,6 +1,8 @@
 #include "Application.h"
 #include "ApplicationSettings.h"
 #include "ApplicationSettingsPrefiller.h"
+#include "CliOptionRegistry.h"
+#include "CliPlugin.h"
 #include "ConsoleLogger.h"
 #include "FileLogger.h"
 #include "LogManager.h"
@@ -33,6 +35,7 @@
 #include <atomic>
 #include <cstdlib>
 #include <string>
+#include <vector>
 
 using namespace utility;
 
@@ -85,76 +88,52 @@ int main(int argc, char* argv[])
 	const Version version = Version::getApplicationVersion();
 	std::cout << "Starting Sourcetrail CLI version " << version.toDisplayString() << std::endl;
 
-	std::string projectFileArg;
-	RefreshMode refreshMode = RefreshMode::UPDATED_AND_INCOMPLETE_FILES;
+	st::plugin::ensureCliPluginLoaded();
 
-	for (int i = 1; i < argc; ++i)
+	commandline::CliParseResult cliResult;
+	std::string cliError;
+	if (!commandline::cliOptionRegistry().parse(
+			std::vector<std::string>(argv + 1, argv + argc), cliResult, cliError))
 	{
-		const std::string arg = argv[i];
-		if (arg == "--help" || arg == "-h")
+		std::cerr << cliError << std::endl;
+		return 1;
+	}
+
+	if (cliResult.help)
+	{
+		std::cout << "Usage: sourcetrail_cli [options] <project_file.srctrlprj>\n\nOptions:\n";
+		for (const commandline::CliOptionPtr& option: commandline::cliOptionRegistry().options())
 		{
-			std::cout << "Usage: sourcetrail_cli [options] <project_file.srctrlprj>\n"
-				<< "  --refresh=all|updated   Refresh mode (default: updated)\n"
-				<< "  --threads=N             Indexer threads (default: min(cores, 2) headless)\n"
-				<< "  --java-heap=MB          JVM max heap (default: 25% of RAM, 256..2048)\n"
-				<< "  --python-shallow        Use the shallow Python indexer\n"
-				<< "  --help                  Show this help\n";
-			return 0;
+			const std::string name = option->name();
+			std::cout << "  " << name
+				<< std::string(name.size() < 32 ? 32 - name.size() : 2, ' ')
+				<< option->help() << "\n";
 		}
-		if (arg.rfind("--refresh=", 0) == 0)
+		return 0;
+	}
+
+	if (cliResult.positional.size() != 1)
+	{
+		if (cliResult.positional.size() > 1)
 		{
-			const std::string value = arg.substr(std::string("--refresh=").size());
-			if (value == "all")
-			{
-				refreshMode = RefreshMode::ALL_FILES;
-			}
-			else if (value == "updated")
-			{
-				refreshMode = RefreshMode::UPDATED_AND_INCOMPLETE_FILES;
-			}
-			else
-			{
-				std::cerr << "Invalid --refresh value: " << value << std::endl;
-				return 1;
-			}
-		}
-		else if (arg.rfind("--threads=", 0) == 0)
-		{
-			setEnvironmentVariable(
-				"SOURCETRAIL_INDEXER_THREADS",
-				arg.substr(std::string("--threads=").size()));
-		}
-		else if (arg.rfind("--java-heap=", 0) == 0)
-		{
-			setEnvironmentVariable(
-				"SOURCETRAIL_JAVA_HEAP",
-				arg.substr(std::string("--java-heap=").size()));
-		}
-		else if (arg == "--python-shallow")
-		{
-			setEnvironmentVariable("SOURCETRAIL_PYTHON_SHALLOW", "1");
-		}
-		else if (!arg.empty() && arg[0] == '-')
-		{
-			std::cerr << "Unknown option: " << arg << std::endl;
-			return 1;
-		}
-		else if (projectFileArg.empty())
-		{
-			projectFileArg = arg;
+			std::cerr << "More than one project file provided." << std::endl;
 		}
 		else
 		{
-			std::cerr << "More than one project file provided." << std::endl;
-			return 1;
+			std::cout << "Usage: sourcetrail_cli [options] <project_file.srctrlprj>" << std::endl;
 		}
-	}
-
-	if (projectFileArg.empty())
-	{
-		std::cout << "Usage: sourcetrail_cli [options] <project_file.srctrlprj>" << std::endl;
 		return 1;
 	}
+
+	for (const auto& [name, value]: cliResult.environment)
+	{
+		setEnvironmentVariable(name, value);
+	}
+
+	const RefreshMode refreshMode = cliResult.refreshAll
+		? RefreshMode::ALL_FILES
+		: RefreshMode::UPDATED_AND_INCOMPLETE_FILES;
+	const std::string projectFileArg = cliResult.positional.front();
 
 	// The headless CLI does not need the in-memory full-text search index while
 	// indexing; make it opt-in through SOURCETRAIL_FTS (the GUI keeps its default).

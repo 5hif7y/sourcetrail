@@ -692,6 +692,18 @@ if (BUILD_PLUGIN_CONTEXT_TESTS)
 	add_test(NAME plugin_abi COMMAND plugin_abi_test
 		$<TARGET_FILE:dynamic_test_plugin>
 		$<TARGET_FILE:sticky_test_plugin>)
+
+	add_executable(cli_options_test
+		src/lib/utility/commandline/tests/CliOptionRegistryTest.cpp
+		src/lib/utility/commandline/CliOptionRegistry.cpp
+		src/lib/project/CliPlugin.cpp)
+	target_include_directories(cli_options_test PRIVATE
+		src/lib/utility/commandline
+		src/lib/project
+		src/lib/plugin)
+	target_compile_features(cli_options_test PRIVATE cxx_std_17)
+	target_link_libraries(cli_options_test PRIVATE ${CMAKE_DL_LIBS})
+	add_test(NAME cli_options COMMAND cli_options_test)
 endif()
 
 if (BUILD_UNIT_TESTS_PACKAGE)
