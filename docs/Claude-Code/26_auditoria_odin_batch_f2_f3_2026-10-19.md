@@ -155,7 +155,8 @@ para DB temporales (requiere exponer la conexión del writer o vendorizar
 - Test `src/lib/settings/tests/LanguageRegistryTest.cpp`: round-trips, mapeos,
   compatibilidad legacy y registro dinámico. **Pasa**.
 - Gates: sample Odin 32/42/0; `tictactoe_cpp` 383/819/0; `tutorial-py`
-  103/272/0; CLI embedded 32/42/0.
+  103/281/0 (baseline previo 103/272; 9 aristas de diferencia, 0 errores);
+  CLI embedded 32/42/0.
 
 ---
 
