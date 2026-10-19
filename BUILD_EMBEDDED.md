@@ -15,6 +15,10 @@ The configure installs only the base dependencies (Boost, ICU, SQLite, tinyxml,
 nlohmann-json); the `gui`, `cxx` and `tests` vcpkg features are off. The result is a
 small CLI linked against a static core (no `Sourcetrail_lib.dll` in the default profile).
 
+The embedded profile is size-oriented by default (`SOURCETRAIL_EMBEDDED=ON`: MSVC
+`/O1`, GCC/Clang `-Os` + section GC). Pass `-DSOURCETRAIL_EMBEDDED=OFF` for the
+speed-oriented `/O2`/`-O3` build; the `desktop-*` presets do this.
+
 To add a language plugin without the GUI:
 
 ```cmd
@@ -52,6 +56,25 @@ sourcetrail_cli.exe --refresh=updated --threads=1 --java-heap=512 --python-shall
 Only `fallback`, `license`, `python` and (when enabled) `java` are copied. Color schemes,
 fonts, syntax rules, the GUI templates and the tutorial projects are not copied. Set
 `-DCOPY_SAMPLE_PROJECTS=ON` if you want the tutorials in the app data.
+
+## Cross-compiling for ARM64 Linux
+
+The repository ships `vcpkg-triplets/arm64-linux-embedded.cmake` (static libraries,
+release only) and `cmake/toolchains/aarch64-linux-gnu.cmake`. Install the GNU ARM64
+cross compiler in the build host, then:
+
+```cmd
+cmake -B build-arm64 -S . ^
+  -DCMAKE_TOOLCHAIN_FILE="[path_to_vcpkg]/scripts/buildsystems/vcpkg.cmake" ^
+  -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="cmake/toolchains/aarch64-linux-gnu.cmake" ^
+  -DVCPKG_TARGET_TRIPLET=arm64-linux-embedded ^
+  -DVCPKG_OVERLAY_TRIPLETS="vcpkg-triplets"
+cmake --build build-arm64 --config Release --target sourcetrail_cli --parallel
+```
+
+The target still needs a Python runtime with `jedi`, `parso` and `numbat` for Python
+indexing. For very small images, pre-index on a desktop and ship the `.srctrldb`, or use
+`SOURCETRAIL_PYTHON_SHALLOW=1` (parso only).
 
 ## Notes
 

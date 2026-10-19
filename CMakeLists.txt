@@ -43,6 +43,7 @@ option(BUILD_JAVA_LANGUAGE_PACKAGE "Build the Java language package" OFF)
 option(BUILD_PYTHON_LANGUAGE_PACKAGE "Build the Python language package" OFF)
 option(BUILD_UNIT_TESTS_PACKAGE "Build unit tests" OFF)
 option(COPY_SAMPLE_PROJECTS "Copy the sample projects into the app data" OFF)
+option(SOURCETRAIL_EMBEDDED "Optimize for size (embedded profile)" ON)
 
 option(SOURCETRAIL_SHARED_CORE "Build core as shared library for plugin architecture" OFF)
 
@@ -135,8 +136,16 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 if (isGccCompiler OR isClangCompiler)
 	# https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html
 	# CMakeCache.txt entry: "-O3 -DNDEBUG"
-	add_compile_options("$<$<CONFIG:Release>:-O3;-fno-fast-math;-flto=auto>")
-	add_link_options("$<$<CONFIG:Release>:-flto=auto>")
+	if (SOURCETRAIL_EMBEDDED)
+		# Size-oriented profile: smaller binaries, no LTO (keeps cross-builds simple).
+		add_compile_options("$<$<CONFIG:Release>:-Os;-fno-fast-math;-ffunction-sections;-fdata-sections>")
+		if (NOT APPLE)
+			add_link_options("$<$<CONFIG:Release>:-Wl,--gc-sections>")
+		endif()
+	else()
+		add_compile_options("$<$<CONFIG:Release>:-O3;-fno-fast-math;-flto=auto>")
+		add_link_options("$<$<CONFIG:Release>:-flto=auto>")
+	endif()
 	
 	# Release-Build with Clang v21 on (K)Ubuntu v25.10 fails:
 	# 1) `-flto=auto` fails with: "error loading plugin: /usr/lib/llvm-21/bin/../lib/LLVMgold.so: cannot open shared object file"
@@ -148,8 +157,12 @@ if (isGccCompiler OR isClangCompiler)
 	endif()
 elseif (isMsvcCompiler)
 	# https://learn.microsoft.com/en-us/cpp/build/optimization-best-practices
-	# CMakeCache.txt entry: "/O2 /Ob2 /DNDEBUG"
-	add_compile_options("$<$<CONFIG:Release>:/O2;/Gy;/fp:precise;/GS->")
+	# CMakeCache.txt entry: "/O2 /Ob2 /DNDEBUG" or "/O1" for the embedded profile.
+	if (SOURCETRAIL_EMBEDDED)
+		add_compile_options("$<$<CONFIG:Release>:/O1;/Gy;/Gw;/fp:precise;/GS->")
+	else()
+		add_compile_options("$<$<CONFIG:Release>:/O2;/Gy;/fp:precise;/GS->")
+	endif()
 	add_link_options("$<$<CONFIG:Release>:/OPT:REF,ICF>")
 
 	# For profiling:
