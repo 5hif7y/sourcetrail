@@ -71,8 +71,23 @@ práctica.
 Se probó `PRAGMA PAGE_SIZE=8192` al crear la base temporal (antes de las
 tablas). El core completo quedó en 18,2–21,5 s, solapado con el baseline de
 18,7–20,0 s; sin mejora medible. El cambio se revirtió. Con esto quedan
-descartados índices, caché, `page_size` y tamaño de lote; el coste restante es
-volumen de filas/páginas.
+descartados índices, caché, `page_size` y tamaño de lote.
+
+Composición de la DB del core (108,7 MB):
+
+| Tabla | Filas |
+|---|---:|
+| `element` | 659.550 |
+| `node` | 115.710 |
+| `edge` | 314.572 |
+| `source_location` | 444.261 (404.361 token + 39.900 scope) |
+| `occurrence` | 444.518 |
+| `symbol` | 114.418 |
+| `file` | 1.288 |
+
+El 91 % de las localizaciones son token (navegación); las de scope son el 9 %.
+No hay una reducción sin pérdida de funcionalidad: el coste restante es el
+volumen de filas, no un parámetro de SQLite.
 
 ---
 
