@@ -105,6 +105,14 @@ public:
 		PluginProfileRegistry::instance().loadFromEnvironment();
 	}
 
+	~PluginHost()
+	{
+		// Dispose plugins while the log sink and root context are still alive.
+		// A dispose callback may call host->log(), and the implicit destructor
+		// would destroy m_log before m_plugins (it is declared after it).
+		m_plugins.clear();
+	}
+
 	PluginHost(const PluginHost&) = delete;
 	PluginHost& operator=(const PluginHost&) = delete;
 
