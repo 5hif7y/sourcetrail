@@ -715,6 +715,47 @@ if (BUILD_PLUGIN_CONTEXT_TESTS)
 		add_test(NAME language_registration COMMAND language_registration_test)
 	endif()
 
+	if (SOURCETRAIL_SHARED_CORE)
+		# A dynamically loaded language plugin shares the singletons through
+		# Sourcetrail_lib. With a static core the plugin would get its own
+		# copies, so this test only makes sense for the shared build.
+		add_library(language_test_plugin SHARED
+			src/lib/plugin/tests/TestLanguagePlugin.cpp)
+		target_include_directories(language_test_plugin PRIVATE
+			src/lib/plugin
+			src/lib/app
+			src/lib/project
+			src/lib/settings
+			src/lib/settings/source_group
+			src/lib/data/indexer)
+		target_compile_features(language_test_plugin PRIVATE cxx_std_17)
+		target_link_libraries(language_test_plugin PRIVATE Sourcetrail_lib)
+
+		add_executable(language_plugin_abi_test
+			src/lib/plugin/tests/LanguagePluginABITest.cpp)
+		target_include_directories(language_plugin_abi_test PRIVATE
+			src/lib/plugin
+			src/lib/app
+			src/lib/project
+			src/lib/settings
+			src/lib/settings/source_group
+			src/lib/data/indexer)
+		target_compile_features(language_plugin_abi_test PRIVATE cxx_std_17)
+		target_link_libraries(language_plugin_abi_test PRIVATE
+			Sourcetrail_lib
+			${CMAKE_DL_LIBS})
+		add_dependencies(language_plugin_abi_test language_test_plugin)
+		if (WIN32)
+			add_test(NAME language_plugin_abi COMMAND ${CMAKE_COMMAND} -E env
+				"PATH=$<TARGET_FILE_DIR:Sourcetrail_lib>;$ENV{PATH}"
+				$<TARGET_FILE:language_plugin_abi_test>
+				$<TARGET_FILE:language_test_plugin>)
+		else()
+			add_test(NAME language_plugin_abi COMMAND language_plugin_abi_test
+				$<TARGET_FILE:language_test_plugin>)
+		endif()
+	endif()
+
 	add_executable(cli_options_test
 		src/lib/utility/commandline/tests/CliOptionRegistryTest.cpp
 		src/lib/utility/commandline/CliOptionRegistry.cpp
