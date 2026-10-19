@@ -21,6 +21,12 @@ build/
 __pycache__/
 *.pyc
 
+# Native Odin indexer build output
+bin/app/data/odin/
+src/odin_indexer/*.lib
+src/odin_indexer/*.dll
+src/odin_indexer/*.exe
+
 # Local test logs
 error.log
 build_log.txt

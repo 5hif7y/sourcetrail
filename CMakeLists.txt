@@ -238,6 +238,12 @@ function(copyAppData configDir)
 	copyDirectory("bin/app/data/fallback/" "${appDir}/data/fallback/")
 	copyDirectory("bin/app/data/license/" "${appDir}/data/license/")
 
+	# The native Odin indexer is built by src/odin_indexer/build.ps1. Copy it
+	# when it has been produced; the Python indexer remains the fallback.
+	if (EXISTS "${CMAKE_SOURCE_DIR}/bin/app/data/odin")
+		copyDirectory("bin/app/data/odin/" "${appDir}/data/odin/")
+	endif()
+
 	if (BUILD_JAVA_LANGUAGE_PACKAGE)
 		copyDirectory("bin/app/data/java/" "${appDir}/data/java/")
 	endif()
