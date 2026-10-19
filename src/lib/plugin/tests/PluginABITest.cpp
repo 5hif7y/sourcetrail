@@ -28,7 +28,7 @@ int main(int argc, char** argv)
 {
 	if (argc < 2)
 	{
-		std::cerr << "usage: plugin_abi_test <plugin-library>\n";
+		std::cerr << "usage: plugin_abi_test <plugin-library> [sticky-plugin-library]\n";
 		return 2;
 	}
 
@@ -47,6 +47,15 @@ int main(int argc, char** argv)
 	check(host.unload("test-dynamic"), "unload dynamic plugin: " + host.lastError());
 	check(!host.isLoaded("test-dynamic"), "dynamic plugin is gone after unload");
 	check(contains(logs, "effect-disposed"), "effect disposed before dlclose");
+
+	if (argc >= 3)
+	{
+		check(host.loadDynamic(argv[2]), "load sticky plugin: " + host.lastError());
+		check(host.isLoaded("test-sticky"), "sticky plugin is loaded");
+		check(!host.unload("test-sticky"), "sticky plugin refuses unload");
+		check(host.isLoaded("test-sticky"), "sticky plugin stays loaded");
+		check(!host.lastError().empty(), "refused unload reports an error");
+	}
 
 	check(
 		!host.loadDynamic(std::string(argv[1]) + ".missing"),

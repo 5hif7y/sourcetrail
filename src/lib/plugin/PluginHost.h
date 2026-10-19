@@ -384,6 +384,15 @@ private:
 	std::string m_lastError;
 	LogSink m_log;
 };
+
+// Process-wide host shared by the language loaders (PluginManager, Odin and
+// any future built-in manifests). Leaked on purpose: effects and libraries
+// must outlive static destruction of the registries they register into.
+inline PluginHost& globalHost()
+{
+	static PluginHost* host = new PluginHost();
+	return *host;
+}
 }	 // namespace plugin
 }	 // namespace st
 

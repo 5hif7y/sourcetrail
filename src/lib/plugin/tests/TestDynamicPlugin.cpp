@@ -1,5 +1,21 @@
 #include "PluginABI.h"
 
+#if defined(TEST_PLUGIN_STICKY)
+namespace
+{
+constexpr const char* kPluginId = "test-sticky";
+constexpr const char* kPluginName = "Test Sticky Plugin";
+constexpr int kUnloadable = 0;
+}
+#else
+namespace
+{
+constexpr const char* kPluginId = "test-dynamic";
+constexpr const char* kPluginName = "Test Dynamic Plugin";
+constexpr int kUnloadable = 1;
+}
+#endif
+
 namespace
 {
 void disposeEffect(void* effectData)
@@ -29,7 +45,7 @@ extern "C" ST_PLUGIN_EXPORT const st_plugin_descriptor* sourcetrail_plugin_descr
 {
 	static const st_plugin_descriptor descriptor = {
 		ST_PLUGIN_ABI_VERSION,
-		{ST_PLUGIN_ABI_VERSION, "test-dynamic", "1.0", "Test Dynamic Plugin", nullptr, 0, 1},
+		{ST_PLUGIN_ABI_VERSION, kPluginId, "1.0", kPluginName, nullptr, 0, kUnloadable},
 		apply,
 	};
 	return &descriptor;

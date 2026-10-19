@@ -1,5 +1,7 @@
 #include "LanguagePackageManager.h"
 
+#include <algorithm>
+
 #include "IndexerComposite.h"
 #include "LanguagePackage.h"
 
@@ -20,6 +22,17 @@ void LanguagePackageManager::destroyInstance()
 void LanguagePackageManager::addPackage(std::shared_ptr<LanguagePackage> package)
 {
 	m_packages.push_back(package);
+}
+
+bool LanguagePackageManager::removePackage(const std::shared_ptr<LanguagePackage>& package)
+{
+	const auto it = std::find(m_packages.begin(), m_packages.end(), package);
+	if (it == m_packages.end())
+	{
+		return false;
+	}
+	m_packages.erase(it);
+	return true;
 }
 
 std::shared_ptr<IndexerComposite> LanguagePackageManager::instantiateSupportedIndexers()

@@ -6,7 +6,6 @@
 #include "CommandLineParser.h"
 #include "ConsoleLogger.h"
 #include "FileLogger.h"
-#include "LanguagePackageManager.h"
 #include "LogManager.h"
 #include "MessageIndexingInterrupted.h"
 #include "MessageLoadProject.h"
@@ -25,22 +24,9 @@
 #include "OdinPlugin.h"
 #include "PluginManager.h"
 #include <boost/dll.hpp>
-#include "language_packages.h"
 #include "utilityQt.h"
 #include "Version.h"
 #include "utilityString.h"
-
-#if BUILD_CXX_LANGUAGE_PACKAGE
-#  include "LanguagePackageCxx.h"
-#  include "SourceGroupFactoryModuleCxx.h"
-#endif
-
-#if BUILD_JAVA_LANGUAGE_PACKAGE
-#  include "LanguagePackageJava.h"
-#  include "SourceGroupFactoryModuleJava.h"
-#endif
-
-
 
 #if BOOST_OS_WINDOWS
 	#include <windows.h>
@@ -142,18 +128,10 @@ static void setupLogging(const ApplicationSettings *settings)
 
 void addLanguagePackages()
 {
-#if !SOURCETRAIL_SHARED
-#if BUILD_CXX_LANGUAGE_PACKAGE
-	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleCxx>());
-	LanguagePackageManager::getInstance()->addPackage(std::make_shared<LanguagePackageCxx>());
-#endif
-#if BUILD_JAVA_LANGUAGE_PACKAGE
-	// Note: You must #include "LanguagePackageJava.h" and "SourceGroupFactoryModuleJava.h" at the top if BUILD_JAVA_LANGUAGE_PACKAGE is true
-	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleJava>());
-	LanguagePackageManager::getInstance()->addPackage(std::make_shared<LanguagePackageJava>());
-#endif
-#endif
-
+	// CXX and Java are shared libraries with a C ABI v1 descriptor; the
+	// plugin manager registers them (and their language packages) through
+	// reversible effects, so there are no direct addModule/addPackage calls
+	// left in the entry points.
 	PluginManager::getInstance()->loadPlugins(FilePath(boost::dll::program_location().parent_path().string()).concatenate("plugins").str());
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleCustom>());
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModulePython>());

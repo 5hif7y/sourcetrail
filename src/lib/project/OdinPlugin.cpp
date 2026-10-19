@@ -33,8 +33,7 @@ void ensureOdinPluginLoaded()
 	// Intentionally process-lifetime: unloading at static destruction time
 	// would race the SourceGroupFactory singleton. PluginHost::unload is
 	// exercised by the plugin host tests.
-	static PluginHost* host = new PluginHost();
-	static const bool loaded = host->load(makeOdinPluginManifest());
+	static const bool loaded = globalHost().load(makeOdinPluginManifest());
 	(void)loaded;
 }
 }	 // namespace st::plugin
