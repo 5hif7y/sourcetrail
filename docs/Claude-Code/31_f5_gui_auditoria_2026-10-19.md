@@ -131,8 +131,8 @@ Opcional / fuera del gate:
   tamaño de lote ya se descartaron con mediciones.
 - **E5**: fuera de alcance; el usuario confirmó el 2026-10-19 que no tiene
   ninguna máquina ARM64 a mano. El toolchain queda documentado como referencia.
-- **Historial**: purge de `error.log`/`build_log.txt`; requiere aprobación
-  explícita y force-push.
+- **Historial**: purgado en el historial local; el remoto no contenía los
+  logs y no hubo force-push (doc 33).
 - **GUI**: recorrido manual del wizard.
 
 ---

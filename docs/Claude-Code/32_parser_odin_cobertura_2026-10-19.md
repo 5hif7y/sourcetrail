@@ -100,7 +100,7 @@ volumen de filas, no un parámetro de SQLite.
 - **E5 (ARM64)**: **no se hará**. El usuario no dispone de ninguna máquina
   ARM64 a mano (confirmado 2026-10-19). El triplet/toolchain queda documentado
   por si cambia el hardware.
-- **Historial**: purge opcional con aprobación explícita.
+- **Historial**: purgado (doc 33); el remoto ya estaba limpio, sin force-push.
 - **GUI**: recorrido manual del wizard.
 
 ---
