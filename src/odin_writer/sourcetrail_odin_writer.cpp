@@ -73,6 +73,11 @@ SODB_API sodb_writer sodb_open(const char* databasePath)
 	// per-batch database that the core merges and discards. Disabling fsyncs
 	// and using an in-memory journal removes the dominant indexing cost.
 	writer->impl.setFastMode(true);
+	// The Odin indexer emits one source location per occurrence. Two elements
+	// may share a range, but sharing the row is optional; skipping the indexed
+	// lookup removes ~488k SELECTs on the full core and leaves only a few
+	// hundred redundant location rows (0.05%).
+	writer->impl.setSourceLocationDedup(false);
 	if (!writer->impl.open(databasePath))
 	{
 		delete writer;

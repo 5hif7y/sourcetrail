@@ -54,6 +54,12 @@ public:
 
 	void setupDatabase();
 	void applyFastModePragmas();
+	// When disabled, addSourceLocation() inserts directly instead of looking
+	// for an existing row with the same range. Intended for writers whose
+	// indexer emits one location per occurrence: sharing ranges between
+	// different elements is allowed but not required, and skipping the lookup
+	// removes one indexed SELECT per location.
+	void setSourceLocationDedup(bool enabled);
 	void clearDatabase();
 
 	void setProjectSettingsText(const std::string& text);
@@ -127,6 +133,8 @@ private:
 	CppSQLite3Statement m_findErrorStatement;
 	CppSQLite3Statement m_insertErrorStatement;
 	CppSQLite3Statement m_insertOrUpdateMetaValueStmt;
+
+	bool m_sourceLocationDedup = true;
 };
 
 template <>

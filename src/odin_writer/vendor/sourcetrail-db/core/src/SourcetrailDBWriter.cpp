@@ -73,6 +73,11 @@ void SourcetrailDBWriter::setFastMode(bool fastMode)
 	m_fastMode = fastMode;
 }
 
+void SourcetrailDBWriter::setSourceLocationDedup(bool enabled)
+{
+	m_sourceLocationDedup = enabled;
+}
+
 bool SourcetrailDBWriter::open(const std::string& databaseFilePath)
 {
 	m_databaseFilePath = databaseFilePath;
@@ -671,6 +676,7 @@ void SourcetrailDBWriter::openDatabase()
 	try
 	{
 		m_storage = DatabaseStorage::openDatabase(m_databaseFilePath, m_fastMode);
+		m_storage->setSourceLocationDedup(m_sourceLocationDedup);
 	}
 	catch (CppSQLite3Exception e)
 	{

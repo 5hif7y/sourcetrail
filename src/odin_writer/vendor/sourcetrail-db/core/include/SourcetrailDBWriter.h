@@ -124,6 +124,14 @@ public:
 	void setFastMode(bool fastMode);
 
 	/**
+	 * Disables the source-location dedup lookup before open(). Use it when the
+	 * indexer emits one location per occurrence and does not rely on identical
+	 * ranges being shared between elements. The database remains valid; only
+	 * redundant location rows may be stored.
+	 */
+	void setSourceLocationDedup(bool enabled);
+
+	/**
 	 * Closes the currently open Sourcetrail database
 	 *
 	 *  return: Returns true if the operation was successful. Otherwise false is returned and getLastError()
@@ -524,6 +532,7 @@ private:
 	std::string m_databaseFilePath;
 	std::unique_ptr<DatabaseStorage> m_storage;
 	bool m_fastMode = false;
+	bool m_sourceLocationDedup = true;
 	mutable std::string m_lastError;
 };
 }	 // namespace sourcetrail

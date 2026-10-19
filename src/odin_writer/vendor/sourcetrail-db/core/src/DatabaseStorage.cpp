@@ -97,6 +97,11 @@ void DatabaseStorage::applyFastModePragmas()
 	executeStatement("PRAGMA synchronous=OFF;");
 }
 
+void DatabaseStorage::setSourceLocationDedup(bool enabled)
+{
+	m_sourceLocationDedup = enabled;
+}
+
 void DatabaseStorage::clearDatabase()
 {
 	executeStatement("PRAGMA foreign_keys=OFF;");
@@ -320,6 +325,7 @@ int DatabaseStorage::addSourceLocation(const StorageSourceLocationData& storageS
 {
 	int id = 0;
 
+	if (m_sourceLocationDedup)
 	{
 		m_findSourceLocationStmt.bind(1, storageSourceLocationData.fileNodeId);
 		m_findSourceLocationStmt.bind(2, storageSourceLocationData.startLineNumber);
