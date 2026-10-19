@@ -192,6 +192,60 @@ is_builtin_proc :: proc(s: string) -> bool {
 		"card", "make_slice", "append_elems", "clear_map", "remove_range":
 		return true
 	}
+
+	// Remaining procedures marked @builtin in base/runtime/core_builtin*.odin.
+	// They are the dynamic-array, map and SOA variants of make/append/pop/
+	// delete/assign_at; user code may call them by name.
+	switch s {
+	case "append_elem_string", "append_fixed_capacity_elem",
+		"append_fixed_capacity_elems", "append_fixed_capacity_string",
+		"append_nothing", "append_nothing_dynamic_array",
+		"append_nothing_fixed_capacity_dynamic_array", "append_nothing_soa",
+		"append_soa", "append_soa_elem", "append_soa_elems", "append_string",
+		"assign_at", "assign_at_elem",
+		"assign_at_elem_fixed_capacity_dynamic_array", "assign_at_elem_string",
+		"assign_at_elem_string_fixed_capacity_dynamic_array", "assign_at_elems",
+		"assign_at_elems_fixed_capacity_dynamic_array",
+		"clear_dynamic_array", "clear_fixed_capacity_dynamic_array", "clear_soa",
+		"clear_soa_dynamic_array", "copy_from_string", "copy_from_string16",
+		"delete_cstring", "delete_cstring16", "delete_dynamic_array",
+		"delete_map", "delete_slice", "delete_soa", "delete_soa_dynamic_array",
+		"delete_soa_slice", "delete_string", "delete_string16",
+		"init_global_temporary_allocator", "inject_at_elem",
+		"inject_at_elem_fixed_capacity_dynamic_array", "inject_at_elem_soa",
+		"inject_at_elem_string",
+		"inject_at_elem_string_fixed_capacity_dynamic_array", "inject_at_elems",
+		"inject_at_elems_fixed_capacity_dynamic_array", "inject_at_elems_soa",
+		"make_aligned", "make_dynamic_array", "make_dynamic_array_len",
+		"make_dynamic_array_len_cap", "make_map", "make_map_cap",
+		"make_multi_pointer", "make_soa", "make_soa_aligned",
+		"make_soa_dynamic_array", "make_soa_dynamic_array_len",
+		"make_soa_dynamic_array_len_cap", "make_soa_slice", "map_upsert",
+		"new_aligned", "non_zero_append",
+		"non_zero_append_elem_fixed_capacity_string",
+		"non_zero_append_elem_string", "non_zero_append_elems",
+		"non_zero_append_soa_elem", "non_zero_append_soa_elems",
+		"non_zero_reserve", "non_zero_reserve_dynamic_array",
+		"non_zero_reserve_soa", "non_zero_resize_dynamic_array",
+		"non_zero_resize_fixed_capacity_dynamic_array", "non_zero_resize_soa",
+		"ordered_remove_dynamic_array",
+		"ordered_remove_fixed_capacity_dynamic_array", "ordered_remove_soa",
+		"pop_dynamic_array", "pop_fixed_capacity_dynamic_array", "pop_front",
+		"pop_front_dynamic_array", "pop_front_fixed_capacity_dynamic_array",
+		"pop_front_safe", "pop_front_safe_dynamic_array",
+		"pop_front_safe_fixed_capacity_dynamic_array", "pop_front_safe_soa",
+		"pop_front_soa", "pop_safe", "pop_safe_dynamic_array",
+		"pop_safe_fixed_capacity_dynamic_array", "pop_safe_soa", "pop_soa",
+		"raw_soa_footer_dynamic_array", "raw_soa_footer_slice",
+		"remove_range_dynamic_array", "remove_range_fixed_capacity_dynamic_array",
+		"reserve_dynamic_array", "reserve_map", "reserve_soa",
+		"resize_dynamic_array", "resize_fixed_capacity_dynamic_array",
+		"resize_soa", "shrink_dynamic_array", "shrink_map",
+		"unordered_remove_dynamic_array",
+		"unordered_remove_fixed_capacity_dynamic_array",
+		"unordered_remove_soa":
+		return true
+	}
 	return false
 }
 

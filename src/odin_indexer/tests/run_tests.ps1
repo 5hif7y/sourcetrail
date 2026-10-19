@@ -190,6 +190,16 @@ Run-Test "using fields from an external core: package" {
 		"--unsolved", "0")
 }
 
+Run-Test "compiler builtins resolve without package symbols" {
+	$db = Join-Path $WorkDir "builtins.srctrldb"
+	Invoke-Index $db @((Join-Path $fixtures "builtins.odin")) @("--unsolved")
+	Invoke-Check @(
+		"check", $db,
+		"--require", "builtins.Thing,builtins.Thing.value,builtins.make_things,builtins.consume,builtins.use_builtins",
+		"--forbid", "builtins.make_dynamic_array,builtins.pop_front,builtins.assign_at,builtins.make_map,builtins.delete_map,builtins.map_upsert,builtins.make_multi_pointer,builtins.delete_dynamic_array",
+		"--unsolved", "0")
+}
+
 Run-Test "batch indexing is deterministic" {
 	$first = Join-Path $WorkDir "deterministic-a.srctrldb"
 	$second = Join-Path $WorkDir "deterministic-b.srctrldb"
