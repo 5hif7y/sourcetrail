@@ -5,10 +5,12 @@ add_library(AidKit_lib
 
 	aidkit/concurrent/thread_shared.hpp
 	aidkit/concurrent/thread_shared.cpp
-	
+
 	aidkit/concurrent/blocking_queue.hpp
 	aidkit/concurrent/blocking_queue.cpp
 )
+# This static archive is linked into the shared core on Linux.
+set_target_properties(AidKit_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 setDefaultTargetOptions(AidKit_lib)
 
 target_include_directories(AidKit_lib
@@ -23,6 +25,7 @@ if (BUILD_GUI)
 		aidkit/qt/Strings.hpp
 		aidkit/qt/Strings.cpp
 	)
+	set_target_properties(AidKit_qt PROPERTIES POSITION_INDEPENDENT_CODE ON)
 	setDefaultTargetOptions(AidKit_qt)
 
 	target_include_directories(AidKit_qt
