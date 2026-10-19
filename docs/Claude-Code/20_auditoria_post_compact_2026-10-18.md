@@ -14,7 +14,8 @@ fuente/fork, builds, smokes y seguridad, antes de los estudios Cordis y Odin.
   smokes registran `0 Fatal Errors` y la paridad de fuentes con el fork es correcta.
 - **Sí había dos artefactos con rutas personales rastreados en el fork.** Se eliminaron:
   `79c7b5b6` (`error.log`) y `ade8d23e` (`build_log.txt`). El HEAD actual del fork es
-  `ade8d23e` y el árbol rastreado ya no contiene identificadores personales.
+  `254562a3` (limpieza + estos estudios) y el árbol rastreado ya no contiene
+  identificadores personales.
 - **El único pendiente funcional sigue siendo E5**: la cross-compilación ARM64 no se
   ejecutó porque este host Windows no tiene `aarch64-linux-gnu-gcc`. El triplet, el
   toolchain y la documentación están listos; falta verificarlo en Linux/QEMU/placa.
@@ -29,7 +30,7 @@ fuente/fork, builds, smokes y seguridad, antes de los estudios Cordis y Odin.
 
 | Verificación | Resultado |
 |---|---|
-| Fork `_audit/fork` | limpio, rama `modernized`, HEAD `ade8d23e` |
+| Fork `_audit/fork` | limpio, rama `modernized`, HEAD `254562a3` |
 | Remoto | `origin/modernized` sincronizado (sin ahead/behind) |
 | Árbol de trabajo `neo-sourcetrail` | rama `master`, HEAD `20ffe0b`, sin remoto; sucio por diseño |
 | Archivos clave del fork | `SourcetrailLibExport.h`, `DebugStubs.cpp`, `SourcetrailCxxExport.h`, `cmake/toolchains`, `vcpkg-triplets`, docs 15–19: **todos rastreados** |
