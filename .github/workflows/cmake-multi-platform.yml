@@ -85,3 +85,40 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build/ui-registry -C Release --output-on-failure
+
+  root-ctest:
+    name: root-ctest (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgJsonGlob: 'vcpkg.json'
+
+      - name: Configure
+        shell: bash
+        run: |
+          cmake -S . -B build/root-ctest \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+            -DBUILD_GUI=OFF \
+            -DBUILD_CXX_LANGUAGE_PACKAGE=OFF \
+            -DBUILD_JAVA_LANGUAGE_PACKAGE=OFF \
+            -DBUILD_UNIT_TESTS_PACKAGE=OFF \
+            -DCOPY_SAMPLE_PROJECTS=OFF \
+            -DSOURCETRAIL_SHARED_CORE=ON \
+            -DBUILD_PLUGIN_CONTEXT_TESTS=ON
+
+      - name: Build
+        run: cmake --build build/root-ctest --config Release --parallel
+
+      - name: Test
+        run: ctest --test-dir build/root-ctest -C Release --output-on-failure
