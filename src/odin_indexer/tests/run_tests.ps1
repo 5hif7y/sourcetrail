@@ -157,6 +157,17 @@ Run-Test "proc type parameter names do not leak" {
 		"--unsolved", "0")
 }
 
+Run-Test "raw strings, enum aliases and offset_of field names" {
+	$db = Join-Path $WorkDir "strings-enum.srctrldb"
+	Invoke-Index $db @((Join-Path $fixtures "strings_enum.odin")) @("--unsolved")
+	Invoke-Check @(
+		"check", $db,
+		"--require", "strings_enum.Color,strings_enum.Color.Red,strings_enum.Color.Green,strings_enum.Color.Blue,strings_enum.State,strings_enum.State.first,strings_enum.State.second",
+		"--forbid", "strings_enum.fake,strings_enum.phantom,strings_enum.missing_call,strings_enum.second",
+		"--require-edge", "strings_enum.Color.Blue|4|strings_enum.Color.Green",
+		"--unsolved", "0")
+}
+
 Run-Test "batch indexing is deterministic" {
 	$first = Join-Path $WorkDir "deterministic-a.srctrldb"
 	$second = Join-Path $WorkDir "deterministic-b.srctrldb"

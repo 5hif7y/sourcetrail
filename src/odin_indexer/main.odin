@@ -259,6 +259,22 @@ lex :: proc(source: string) -> []Token {
 			}
 			continue
 		}
+		// Triple-quoted raw strings: C++/SQL/text embedded in Odin sources
+		// must not be lexed as Odin identifiers.
+		if ch == '"' && i + 2 < n && source[i + 1] == '"' && source[i + 2] == '"' {
+			start_i, start_line, start_col := i, line, col
+			advance(source, &i, &line, &col, 3)
+			for i < n {
+				if i + 2 < n && source[i] == '"' && source[i + 1] == '"' &&
+					source[i + 2] == '"' {
+					advance(source, &i, &line, &col, 3)
+					break
+				}
+				advance(source, &i, &line, &col)
+			}
+			emit(&tokens, source, .Raw, start_i, start_line, start_col, i, line, col)
+			continue
+		}
 		if ch == '"' || ch == '\'' || ch == '`' {
 			quote := ch
 			start_i, start_line, start_col := i, line, col
@@ -1032,8 +1048,38 @@ parse_bit_field_fields :: proc(p: ^Parser, owner: string) {
 	accept(p, "}")
 }
 
+// Inside an enum body, an unqualified name refers to a sibling variant
+// (`Bitsquid = SJSON`), not to a package-level symbol. The regular resolver
+// only knows package scope, so mark sibling variants as locals (to suppress
+// unresolved references) and add the reference to the owning enum explicitly.
+scan_enum_alias_expr :: proc(
+	p: ^Parser,
+	tokens: []Token,
+	owner: string,
+	context_name: string,
+	variants: map[string]bool,
+) {
+	locals := make(map[string]bool)
+	for name, _ in variants {
+		locals[name] = true
+	}
+	scan_expr_tokens(p, tokens, context_name, locals)
+
+	for token in tokens {
+		if token.kind == .Ident && variants[token.text] {
+			append(&p.file.refs, Ref{
+				ctx = context_name,
+				target = make_full_name(owner, token.text),
+				kind = .USAGE,
+				tok = token,
+			})
+		}
+	}
+}
+
 parse_enum_variants :: proc(p: ^Parser, owner: string) {
 	accept(p, "{")
+	variants := make(map[string]bool)
 	for peek(p).kind != .Eof && !at(p, "}") {
 		if peek(p).kind == .Newline || at(p, ";") || at(p, ",") {
 			advance(p)
@@ -1050,9 +1096,10 @@ parse_enum_variants :: proc(p: ^Parser, owner: string) {
 			if accept(p, "=") {
 				expr := collect_until(p, ",", "}", true)
 				if p.full {
-					scan_expr_tokens(p, expr, full, make(map[string]bool))
+					scan_enum_alias_expr(p, expr, owner, full, variants)
 				}
 			}
+			variants[variant.text] = true
 		} else {
 			advance(p)
 		}
@@ -1414,6 +1461,60 @@ scan_proc_type :: proc(p: ^Parser, tokens: []Token, start: int, context_name: st
 	return index
 }
 
+is_import_local_name :: proc(p: ^Parser, name: string) -> bool {
+	for imp in p.file.imports {
+		if imp.local_name == name {
+			return true
+		}
+	}
+	return false
+}
+
+// `offset_of(Type, field)` only contains a symbol in its first argument; the
+// second one is a struct field name.
+scan_offset_of :: proc(
+	p: ^Parser,
+	tokens: []Token,
+	start: int,
+	context_name: string,
+	locals: map[string]bool,
+) -> int {
+	index := start + 1
+	if index >= len(tokens) || tokens[index].text != "(" {
+		return index
+	}
+	index += 1
+	depth := 0
+	first_start := index
+	first_end := index
+	comma := -1
+	for index < len(tokens) {
+		text := tokens[index].text
+		if text == "(" {
+			depth += 1
+		} else if text == ")" {
+			if depth == 0 {
+				break
+			}
+			depth -= 1
+		} else if text == "," && depth == 0 && comma < 0 {
+			comma = index
+			first_end = index
+		}
+		index += 1
+	}
+	if comma < 0 {
+		first_end = index
+	}
+	if first_end > first_start {
+		scan_expr_tokens(p, tokens[first_start:first_end], context_name, locals)
+	}
+	if index < len(tokens) && tokens[index].text == ")" {
+		index += 1
+	}
+	return index
+}
+
 scan_tokens :: proc(p: ^Parser, tokens: []Token, context_name: string, local_names: map[string]bool, default_kind: Ref_Kind) {
 	index := 0
 	brace_depth := 0
@@ -1512,11 +1613,41 @@ scan_tokens :: proc(p: ^Parser, tokens: []Token, context_name: string, local_nam
 			}
 			continue
 		}
+		// offset_of(Type, field): the second argument is a field name, not a
+		// package symbol. Scan only the type argument. `offset_of` is lexed as
+		// a keyword, so this must run before the kind guard below.
+		if token.text == "offset_of" && index + 1 < len(tokens) &&
+			tokens[index + 1].text == "(" {
+			index = scan_offset_of(p, tokens, index, context_name, locals)
+			continue
+		}
 		if token.kind != .Ident {
 			index += 1
 			continue
 		}
-		if token.text == "_" || is_builtin_proc(token.text) {
+		if token.text == "_" {
+			index += 1
+			continue
+		}
+		// A local shadows a builtin with the same name (`real`, `min`, ...).
+		if locals[token.text] {
+			cursor := index + 1
+			for cursor + 1 < len(tokens) &&
+				tokens[cursor].text == "." && tokens[cursor + 1].kind == .Ident {
+				cursor += 2
+			}
+			index = cursor
+			continue
+		}
+		if is_builtin_proc(token.text) {
+			index += 1
+			continue
+		}
+		// Bare import names (`_, _, _ :: intrinsics, strconv, math`) are not
+		// package-level symbols; imported members still resolve below.
+		if (index + 1 >= len(tokens) || tokens[index + 1].text != ".") &&
+			(token.text == "intrinsics" || token.text == "builtin" ||
+				is_import_local_name(p, token.text)) {
 			index += 1
 			continue
 		}
@@ -1541,14 +1672,6 @@ scan_tokens :: proc(p: ^Parser, tokens: []Token, context_name: string, local_nam
 		// `ptr->member(...)` accesses a field of the pointed value.
 		if index > 0 && tokens[index - 1].text == "->" {
 			index += 1
-			continue
-		}
-		if locals[token.text] {
-			cursor := index + 1
-			for cursor + 1 < len(tokens) && tokens[cursor].text == "." && tokens[cursor + 1].kind == .Ident {
-				cursor += 2
-			}
-			index = cursor
 			continue
 		}
 		// Composite-literal fields (`k = 4`) and named arguments
