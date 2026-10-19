@@ -170,8 +170,14 @@ para DB temporales (requiere exponer la conexión del writer o vendorizar
   `SourceGroupFactoryModuleOdin` en un efecto; `main.cpp`, `cli/main.cpp` y
   `libsourcetrail.cpp` llaman a `st::plugin::ensureOdinPluginLoaded()`.
   `SourceGroupFactory::removeModule` permite la descarga.
-- **Pendiente de F3**: C ABI v1 para DLLs, carga dinámica, migración de CXX/Java
-  al host y páginas de UI. No se afirma que existan.
+- **C ABI v1 y carga dinámica**: `PluginABI.h` define el descriptor, el host API
+  y el punto de entrada `sourcetrail_plugin_descriptor()`. `PluginHost::loadDynamic`
+  usa `LoadLibrary`/`dlopen`, valida la ABI, ejecuta `apply` y descarga en orden
+  (efectos primero, `FreeLibrary`/`dlclose` después).
+- `PluginABITest.cpp` + `TestDynamicPlugin.cpp`: plugin compartido real,
+  `effect-applied`/`effect-disposed` y biblioteca inexistente. **Pasa**.
+- **Pendiente de F3**: migrar CXX/Java al host, efectos de mensajes/UI y
+  reemplazar las llamadas directas restantes. No se afirma que estén hechas.
 
 ---
 
@@ -204,7 +210,8 @@ unsolved 3/1 y 4/2).
 
 ## 9. Pendientes
 
-1. F3 completo: C ABI v1 + carga dinámica + migración CXX/Java.
+1. F3: migración de CXX/Java al `PluginHost` y efectos de mensajes/UI (C ABI v1
+   y carga dinámica ya están).
 2. Parser Odin: nombres de parámetros en tipos `proc` de structs, `using import`
    y tipos Objective-C; tests de coverage masiva.
 3. Coste de commit del writer: `synchronous=OFF` para DB temporales o vendorizar
@@ -294,3 +301,18 @@ sería el paso siguiente.
 
 `src/odin_indexer/tests/run_tests.ps1`: **6/6** (se agregó el caso de tipos
 `proc`). Gates: sample 32/42/0, desktop y embedded.
+
+### 11.4 F3: C ABI v1 y carga dinámica
+
+- `src/lib/plugin/PluginABI.h`: versión 1, `st_plugin_descriptor`,
+  `st_plugin_host_api` (`add_effect`, `log`) y el entry point
+  `sourcetrail_plugin_descriptor()`.
+- `PluginHost::loadDynamic` carga `.dll`/`.so`/`.dylib`, valida la ABI y la
+  dependencia `inject`, ejecuta `apply` y guarda el handle. Al descargar,
+  primero dispone los efectos (el plugin todavía está cargado) y después
+  cierra la biblioteca.
+- Test real: `TestDynamicPlugin.cpp` compila una biblioteca compartida que
+  registra un efecto; `PluginABITest.cpp` verifica `effect-applied`,
+  `effect-disposed`, lista de plugins y biblioteca inexistente. **3/3 tests de
+  plugin pasan**.
+- Queda migrar CXX/Java y los efectos de mensajes/UI al host.
