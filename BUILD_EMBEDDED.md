@@ -34,6 +34,9 @@ Both force `SOURCETRAIL_SHARED_CORE=ON`, because the plugins are DLLs.
 | `SOURCETRAIL_JAVA_HEAP` | 25% of RAM, 256..2048 MB | JVM `-Xmx` in MB (accepts `512` or `512m`). |
 | `SOURCETRAIL_PYTHON_SHALLOW` | off | Use the parso shallow indexer (less precise, lighter). |
 | `SOURCETRAIL_FTS` | `0` in CLI, on in GUI | Build the in-memory full-text search index. |
+| `SOURCETRAIL_PYTHON_DAEMON` | on | Keep a Python daemon per database (client + warm imports). Set `0` for one process per file. |
+| `SOURCETRAIL_PYTHON_DAEMON_IDLE` | 60 | Seconds before an idle daemon exits. |
+| `SOURCETRAIL_PYTHON_DAEMON_DEBUG` | off | Log daemon/client connection details to stderr. |
 
 The CLI exposes the same controls:
 
