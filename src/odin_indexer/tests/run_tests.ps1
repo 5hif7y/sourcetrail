@@ -178,6 +178,18 @@ Run-Test "multi-line types, using fields and config keys" {
 		"--unsolved", "0")
 }
 
+Run-Test "using fields from an external core: package" {
+	$file = Join-Path (Join-Path (Join-Path $fixtures "core") "test") `
+		"using_external.odin"
+	$db = Join-Path $WorkDir "using-external.srctrldb"
+	Invoke-Index $db @($file) @("--unsolved")
+	Invoke-Check @(
+		"check", $db,
+		"--require", "using_external.read,image.Header",
+		"--forbid", "using_external.width,using_external.height",
+		"--unsolved", "0")
+}
+
 Run-Test "batch indexing is deterministic" {
 	$first = Join-Path $WorkDir "deterministic-a.srctrldb"
 	$second = Join-Path $WorkDir "deterministic-b.srctrldb"
