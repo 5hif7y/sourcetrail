@@ -74,6 +74,13 @@
 		},
 		{
 			"hidden": true,
+			"name": "vcpkg-external-presets",
+			"cacheVariables": {
+				"CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+			}
+		},
+		{
+			"hidden": true,
 			"name": "clang-presets",
 			"cacheVariables": {
 				"CMAKE_C_COMPILER"  : "clang-21",
@@ -99,7 +106,8 @@
 				"BUILD_CXX_LANGUAGE_PACKAGE": "ON",
 				"BUILD_JAVA_LANGUAGE_PACKAGE": "ON",
 				"BUILD_UNIT_TESTS_PACKAGE": "ON",
-				"COPY_SAMPLE_PROJECTS": "ON"
+				"COPY_SAMPLE_PROJECTS": "ON",
+				"SOURCETRAIL_EMBEDDED": "OFF"
 			}
 		},
 
@@ -257,6 +265,17 @@
 				"debug-presets",
 				"sourcetrail-presets",
 				"desktop-presets"
+			]
+		},
+		{
+			"name": "vcpkg-external-release",
+			"inherits": [
+				"default-presets",
+				"vcpkg-presets",
+				"vcpkg-external-presets",
+				"ninja-single-config-presets",
+				"release-presets",
+				"sourcetrail-presets"
 			]
 		}
 	]

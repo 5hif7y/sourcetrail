@@ -22,6 +22,8 @@ cd vcpkg
 ```
 
 Make sure the `vcpkg` executable is in your PATH, or note its installation directory.
+If you use an external checkout instead of the submodule, set `VCPKG_ROOT` and use the
+`vcpkg-external-release` preset (or pass `-DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"`).
 
 ### 2. Clone the Repository
 
