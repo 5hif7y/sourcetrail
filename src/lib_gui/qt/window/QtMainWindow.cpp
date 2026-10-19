@@ -44,6 +44,8 @@
 #include "QtStartScreen.h"
 #include "QtViewWidgetWrapper.h"
 
+#include <algorithm>
+
 #include <QPointer>
 #include "ResourcePaths.h"
 #include "TabbedView.h"
@@ -286,6 +288,21 @@ void QtMainWindow::removeView(View* view)
 	{
 		if (m_dockWidgets[i].view == view)
 		{
+			if (m_dockWidgets[i].toggle)
+			{
+				m_dockWidgets[i].toggle->clear();
+			}
+			if (m_viewMenu && m_dockWidgets[i].action)
+			{
+				m_viewMenu->removeAction(m_dockWidgets[i].action);
+			}
+			const auto actionIt = std::find(
+				m_viewActions.begin(), m_viewActions.end(), m_dockWidgets[i].action);
+			if (actionIt != m_viewActions.end())
+			{
+				m_viewActions.erase(actionIt);
+			}
+			delete m_dockWidgets[i].action;
 			removeDockWidget(m_dockWidgets[i].widget);
 			m_dockWidgets.erase(m_dockWidgets.begin() + i);
 			return;
@@ -817,7 +834,7 @@ void QtMainWindow::updateRecentProjectsMenu()
 		const FilePath& project = recentProjects[i];
 		if (project.exists())
 		{
-			QAction* recentProject = new QAction(this);
+			QAction* recentProject = new QAction(m_recentProjectsMenu);
 			recentProject->setText(QString::fromStdString(project.fileName()));
 			recentProject->setData(QString::fromStdString(project.str()));
 			connect(recentProject, &QAction::triggered, this, &QtMainWindow::openRecentProject);
@@ -896,7 +913,10 @@ void QtMainWindow::populateProjectMenu(QMenu* menu)
 	menu->addAction(QtActions::newProject().text(), QtActions::newProject().shortcut(), this, &QtMainWindow::newProject);
 	menu->addAction(QtActions::openProject().text(), QtActions::openProject().shortcut(), this, &QtMainWindow::openProject);
 
-	m_recentProjectsMenu = new QMenu(tr("Recent Projects"));
+	if (!m_recentProjectsMenu)
+	{
+		m_recentProjectsMenu = new QMenu(tr("Recent Projects"), this);
+	}
 	menu->addMenu(m_recentProjectsMenu);
 	updateRecentProjectsMenu();
 
@@ -1032,7 +1052,7 @@ void QtMainWindow::setupHistoryMenu()
 		const SearchMatch match = msg->getSearchMatches()[0];
 		const std::string name = utility::elide(match.getFullName(), utility::ELIDE_RIGHT, 50);
 
-		QAction* action = new QAction();
+		QAction* action = new QAction(m_historyMenu);
 		action->setText(QString::fromStdString(name));
 		action->setData(QVariant(int(i)));
 
@@ -1066,7 +1086,7 @@ void QtMainWindow::setupBookmarksMenu()
 		Bookmark* bookmark = m_bookmarks[i].get();
 		std::string name = utility::elide(bookmark->getName(), utility::ELIDE_RIGHT, 50);
 
-		QAction* action = new QAction();
+		QAction* action = new QAction(m_bookmarksMenu);
 		action->setText(QString::fromStdString(name));
 		action->setData(QVariant(int(i)));
 
