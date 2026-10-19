@@ -20,3 +20,6 @@ build/
 # Python bytecode (bundled Python indexer)
 __pycache__/
 *.pyc
+
+# Local test logs
+error.log
