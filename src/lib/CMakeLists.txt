@@ -407,6 +407,8 @@ if(SOURCETRAIL_SHARED_CORE)
 		settings/ColorScheme.h
 		settings/LanguageType.cpp
 		settings/LanguageType.h
+		settings/LanguageRegistry.cpp
+		settings/LanguageRegistry.h
 		settings/ProjectSettings.cpp
 		settings/ProjectSettings.h
 		settings/Settings.cpp
@@ -1087,6 +1089,8 @@ else()
 		settings/ColorScheme.h
 		settings/LanguageType.cpp
 		settings/LanguageType.h
+		settings/LanguageRegistry.cpp
+		settings/LanguageRegistry.h
 		settings/ProjectSettings.cpp
 		settings/ProjectSettings.h
 		settings/Settings.cpp
@@ -1416,6 +1420,7 @@ target_include_directories(Sourcetrail_lib
 		data/storage
 		data/tooltip
 		data
+		plugin
 		project
 		settings/source_group/component
 		settings/source_group/component/cxx
@@ -1455,6 +1460,8 @@ target_include_directories(Sourcetrail_lib
 		project/SourceGroupFactoryModulePython.h
 		project/SourceGroupFactoryModuleOdin.cpp
 		project/SourceGroupFactoryModuleOdin.h
+		project/OdinPlugin.cpp
+		project/OdinPlugin.h
 		settings/source_group/type/SourceGroupSettingsPythonEmpty.cpp
 		settings/source_group/type/SourceGroupSettingsPythonEmpty.h
 		settings/source_group/type/SourceGroupSettingsOdinEmpty.cpp

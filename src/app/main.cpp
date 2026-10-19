@@ -22,7 +22,7 @@
 #include "SourceGroupFactoryModuleCustom.h"
 #include "SourceGroupFactoryModuleProxy.h"
 #include "SourceGroupFactoryModulePython.h"
-#include "SourceGroupFactoryModuleOdin.h"
+#include "OdinPlugin.h"
 #include "PluginManager.h"
 #include <boost/dll.hpp>
 #include "language_packages.h"
@@ -157,7 +157,7 @@ void addLanguagePackages()
 	PluginManager::getInstance()->loadPlugins(FilePath(boost::dll::program_location().parent_path().string()).concatenate("plugins").str());
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleCustom>());
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModulePython>());
-	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleOdin>());
+	st::plugin::ensureOdinPluginLoaded();
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleProxy>());
 }
 

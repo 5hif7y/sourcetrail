@@ -30,6 +30,12 @@ enum class SourceGroupType
 
 std::string sourceGroupTypeToString(SourceGroupType v);
 std::string sourceGroupTypeToProjectSetupString(SourceGroupType v);
+
+// Stable id for project files and plugins (e.g. "odin_empty"). Old projects
+// keep using the display strings; stringToSourceGroupType accepts both.
+std::string sourceGroupTypeToId(SourceGroupType v);
+SourceGroupType sourceGroupTypeFromId(const std::string& v);
+
 SourceGroupType stringToSourceGroupType(const std::string& v);
 
 #endif	  // SOURCE_GROUP_TYPE_H

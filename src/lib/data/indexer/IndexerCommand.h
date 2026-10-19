@@ -3,6 +3,7 @@
 
 #include <set>
 #include <string>
+#include <vector>
 
 #include "FilePath.h"
 #include "FilePathFilter.h"
@@ -27,6 +28,11 @@ public:
 	virtual void populateSharedCommand(SharedIndexerCommand* /*sharedCmd*/) const {}
 
 	const FilePath& getSourceFilePath() const;
+
+	// Commands usually describe one source file. Batch commands (currently the
+	// native Odin indexer) describe several; the default keeps the old behavior.
+	virtual std::vector<FilePath> getSourceFilePaths() const;
+	virtual size_t getSourceFileCount() const;
 
 protected:
 	virtual std::string doSerialize() const;

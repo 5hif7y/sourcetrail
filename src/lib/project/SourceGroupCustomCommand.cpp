@@ -1,5 +1,7 @@
 #include "SourceGroupCustomCommand.h"
 
+#include <algorithm>
+
 #include "FileManager.h"
 #include "IndexerCommandCustom.h"
 #include "ProjectSettings.h"
@@ -44,10 +46,43 @@ std::vector<std::shared_ptr<IndexerCommand>> SourceGroupCustomCommand::getIndexe
 {
 	const bool runInParallel = m_settings->getRunInParallel();
 
-	std::vector<std::shared_ptr<IndexerCommand>> indexerCommands;
+	std::vector<FilePath> filesToIndex;
 	for (const FilePath& sourcePath: getAllSourceFilePaths())
 	{
 		if (info.filesToIndex.find(sourcePath) != info.filesToIndex.end())
+		{
+			filesToIndex.push_back(sourcePath);
+		}
+	}
+
+	std::vector<std::shared_ptr<IndexerCommand>> indexerCommands;
+	if (m_settings->getRunInBatch())
+	{
+		// Keep the command line under the Windows limit while amortizing the
+		// database open/commit cost over many files.
+		constexpr size_t batchSize = 128;
+		for (size_t offset = 0; offset < filesToIndex.size(); offset += batchSize)
+		{
+			const size_t end = std::min(offset + batchSize, filesToIndex.size());
+			const std::vector<FilePath> batch(
+				filesToIndex.begin() + static_cast<std::ptrdiff_t>(offset),
+				filesToIndex.begin() + static_cast<std::ptrdiff_t>(end));
+
+			std::shared_ptr<IndexerCommandCustom> command = std::make_shared<IndexerCommandCustom>(
+				m_settings->getCustomCommand(),
+				std::vector<std::string> {},
+				m_settings->getProjectSettings()->getProjectFilePath(),
+				m_settings->getProjectSettings()->getTempDBFilePath(),
+				std::to_string(SqliteIndexStorage::getStorageVersion()),
+				batch.front(),
+				runInParallel);
+			command->setSourceFilePaths(batch);
+			indexerCommands.push_back(command);
+		}
+	}
+	else
+	{
+		for (const FilePath& sourcePath: filesToIndex)
 		{
 			indexerCommands.push_back(std::make_shared<IndexerCommandCustom>(
 				m_settings->getCustomCommand(),

@@ -1,60 +1,25 @@
 #include "LanguageType.h"
 
+#include "LanguageRegistry.h"
+
 std::string languageTypeToString(LanguageType t)
 {
-	switch (t)
-	{
-	case LanguageType::C:
-		return "C";
-	case LanguageType::CXX:
-		return "C++";
+	const st::language::LanguageDescriptor* descriptor =
+		st::language::LanguageRegistry::instance().findByType(t);
+	return descriptor ? descriptor->displayName : "unknown";
+}
 
-	case LanguageType::JAVA:
-		return "Java";
-	case LanguageType::PYTHON:
-		return "Python";
-	case LanguageType::ODIN:
-		return "Odin";
-	case LanguageType::CUSTOM:
-		return "Custom";
-	case LanguageType::UNKNOWN:
-		break;
-	}
-	return "unknown";
+std::string languageTypeToId(LanguageType t)
+{
+	return st::language::LanguageRegistry::instance().idForType(t);
+}
+
+LanguageType languageTypeFromId(const std::string& id)
+{
+	return st::language::LanguageRegistry::instance().typeForId(id);
 }
 
 LanguageType getLanguageTypeForSourceGroupType(SourceGroupType t)
 {
-	switch (t)
-	{
-	case SourceGroupType::C_EMPTY:
-		return LanguageType::C;
-	case SourceGroupType::CXX_EMPTY:
-		return LanguageType::CXX;
-	case SourceGroupType::CXX_CDB:
-		return LanguageType::CXX;
-	case SourceGroupType::CXX_CODEBLOCKS:
-		return LanguageType::CXX;
-	case SourceGroupType::CXX_VS:
-		return LanguageType::CXX;
-
-	case SourceGroupType::JAVA_EMPTY:
-		return LanguageType::JAVA;
-	case SourceGroupType::JAVA_MAVEN:
-		return LanguageType::JAVA;
-	case SourceGroupType::JAVA_GRADLE:
-		return LanguageType::JAVA;
-
-	case SourceGroupType::PYTHON_EMPTY:
-		return LanguageType::PYTHON;
-	case SourceGroupType::ODIN_EMPTY:
-		return LanguageType::ODIN;
-
-	case SourceGroupType::CUSTOM_COMMAND:
-		return LanguageType::CUSTOM;
-	default:
-		break;
-	}
-
-	return LanguageType::UNKNOWN;
+	return st::language::LanguageRegistry::instance().languageForSourceGroup(t);
 }

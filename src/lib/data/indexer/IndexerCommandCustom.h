@@ -32,9 +32,14 @@ public:
 
 	IndexerCommandType getIndexerCommandType() const override;
 	size_t getByteSize(size_t stringSize) const override;
+	std::vector<FilePath> getSourceFilePaths() const override;
+	size_t getSourceFileCount() const override;
 
 	FilePath getDatabaseFilePath() const;
 	void setDatabaseFilePath(const FilePath& databaseFilePath);
+
+	// Batch mode: one process indexes every file in the list.
+	void setSourceFilePaths(const std::vector<FilePath>& sourceFilePaths);
 
 	std::string getCommand() const;
 	std::vector<std::string> getArguments() const;
@@ -53,6 +58,7 @@ private:
 	FilePath m_databaseFilePath;
 	std::string m_databaseVersion;
 	bool m_runInParallel;
+	std::vector<FilePath> m_sourceFilePaths;
 };
 
 #endif	  // INDEXER_COMMAND_CXXL_H

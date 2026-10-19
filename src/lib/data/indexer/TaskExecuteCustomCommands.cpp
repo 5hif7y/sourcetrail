@@ -236,9 +236,10 @@ void TaskExecuteCustomCommands::runIndexerCommand(
 		blackboard->get("indexed_source_file_count", indexedSourceFileCount);
 
 		const FilePath sourcePath = indexerCommand->getSourceFilePath();
+		const int sourceFileCount = static_cast<int>(indexerCommand->getSourceFileCount());
 
 		m_dialogView->updateCustomIndexingDialog(
-			indexedSourceFileCount + 1, indexedSourceFileCount, m_indexerCommandCount, {sourcePath});
+			indexedSourceFileCount + sourceFileCount, indexedSourceFileCount, m_indexerCommandCount, {sourcePath});
 		MessageIndexingStatus(true, indexedSourceFileCount * 100 / m_indexerCommandCount).dispatch();
 
 		const std::string command = indexerCommand->getCommand();
@@ -301,7 +302,8 @@ void TaskExecuteCustomCommands::runIndexerCommand(
 			MessageStatus(statusText, true, false, true).dispatch();
 		}
 
-		indexedSourceFileCount++;
-		blackboard->update<int>("indexed_source_file_count", [=](int count) { return count + 1; });
+		indexedSourceFileCount += sourceFileCount;
+		blackboard->update<int>(
+			"indexed_source_file_count", [=](int count) { return count + sourceFileCount; });
 	}
 }

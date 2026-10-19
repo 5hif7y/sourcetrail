@@ -1,5 +1,7 @@
 #include "MemoryIndexerCommandProvider.h"
 
+#include <algorithm>
+
 #include "IndexerCommand.h"
 
 MemoryIndexerCommandProvider::MemoryIndexerCommandProvider(
@@ -7,7 +9,13 @@ MemoryIndexerCommandProvider::MemoryIndexerCommandProvider(
 {
 	for (const std::shared_ptr<IndexerCommand>& command: commands)
 	{
-		m_commands[command->getSourceFilePath()] = command;
+		// A batch command covers several source files. Map every path to the
+		// same command so progress and refresh filtering still see all files;
+		// consuming any of them consumes the whole batch.
+		for (const FilePath& sourceFilePath: command->getSourceFilePaths())
+		{
+			m_commands[sourceFilePath] = command;
+		}
 	}
 }
 
@@ -32,7 +40,7 @@ std::shared_ptr<IndexerCommand> MemoryIndexerCommandProvider::consumeCommand()
 	{
 		std::map<FilePath, std::shared_ptr<IndexerCommand>>::const_iterator it = m_commands.begin();
 		std::shared_ptr<IndexerCommand> command = it->second;
-		m_commands.erase(it);
+		eraseCommand(command);
 		return command;
 	}
 	return std::shared_ptr<IndexerCommand>();
@@ -45,7 +53,7 @@ std::shared_ptr<IndexerCommand> MemoryIndexerCommandProvider::consumeCommandForS
 	if (it != m_commands.end())
 	{
 		std::shared_ptr<IndexerCommand> command = it->second;
-		m_commands.erase(it);
+		eraseCommand(command);
 		return command;
 	}
 	return std::shared_ptr<IndexerCommand>();
@@ -59,10 +67,30 @@ std::vector<std::shared_ptr<IndexerCommand>> MemoryIndexerCommandProvider::consu
 		 it != m_commands.end();
 		 it++)
 	{
-		commands.emplace_back(it->second);
+		if (std::find(commands.begin(), commands.end(), it->second) == commands.end())
+		{
+			commands.emplace_back(it->second);
+		}
 	}
 	m_commands.clear();
 	return commands;
+}
+
+void MemoryIndexerCommandProvider::eraseCommand(
+	const std::shared_ptr<IndexerCommand>& command)
+{
+	for (std::map<FilePath, std::shared_ptr<IndexerCommand>>::iterator it = m_commands.begin();
+		 it != m_commands.end();)
+	{
+		if (it->second == command)
+		{
+			it = m_commands.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
 }
 
 void MemoryIndexerCommandProvider::clear()

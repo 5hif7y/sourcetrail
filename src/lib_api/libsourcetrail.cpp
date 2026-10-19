@@ -15,7 +15,7 @@
 #include "SourceGroupFactory.h"
 #include "SourceGroupFactoryModuleCustom.h"
 #include "SourceGroupFactoryModulePython.h"
-#include "SourceGroupFactoryModuleOdin.h"
+#include "OdinPlugin.h"
 #include "SourceGroupFactoryModuleProxy.h"
 #include "PluginManager.h"
 #include <boost/dll.hpp>
@@ -77,7 +77,7 @@ void srctrl_init(void)
 	PluginManager::getInstance()->loadPlugins(FilePath(boost::dll::program_location().parent_path().string()).concatenate("plugins").str());
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleCustom>());
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModulePython>());
-	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleOdin>());
+	st::plugin::ensureOdinPluginLoaded();
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleProxy>());
 }
 

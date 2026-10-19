@@ -1,0 +1,164 @@
+param(
+	[string]$Indexer = "",
+	[string]$Python = "",
+	[string]$WorkDir = ""
+)
+
+$ErrorActionPreference = "Stop"
+
+$repo = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
+if (-not $Indexer) {
+	$Indexer = Join-Path $repo "build\odin_indexer\SourcetrailOdinIndexer.exe"
+}
+if (-not (Test-Path $Indexer)) {
+	throw "indexer not found: $Indexer (run src/odin_indexer/build.ps1 first)"
+}
+$Indexer = (Resolve-Path $Indexer).Path
+
+$writerDll = Join-Path $repo "build\odin_writer\bin\sourcetrail_odin_writer.dll"
+$indexerDll = Join-Path (Split-Path $Indexer -Parent) "sourcetrail_odin_writer.dll"
+if (-not (Test-Path $indexerDll) -and (Test-Path $writerDll)) {
+	Copy-Item $writerDll $indexerDll -Force
+}
+if (-not (Test-Path $indexerDll)) {
+	throw "sourcetrail_odin_writer.dll not found next to the indexer"
+}
+
+if ($Python) {
+	$pythonExe = $Python
+	$pythonArgs = @()
+}
+elseif (Get-Command python -ErrorAction SilentlyContinue) {
+	$pythonExe = "python"
+	$pythonArgs = @()
+}
+else {
+	$pythonExe = "py"
+	$pythonArgs = @("-3")
+}
+
+if (-not $WorkDir) {
+	$WorkDir = Join-Path $env:TEMP ("sourcetrail-odin-tests-" + [guid]::NewGuid().ToString("N"))
+}
+New-Item -ItemType Directory -Force -Path $WorkDir | Out-Null
+
+$checkScript = Join-Path $PSScriptRoot "check_db.py"
+$fixtures = Join-Path $PSScriptRoot "fixtures"
+$sample = Join-Path $repo "bin\app\user\projects\odin-sample\src"
+
+function Invoke-Index {
+	param(
+		[string]$Database,
+		[string[]]$Files,
+		[string[]]$Extra = @(),
+		[switch]$Keep
+	)
+
+	if ((Test-Path $Database) -and -not $Keep) {
+		Remove-Item $Database -Force
+	}
+	$arguments = @("index")
+	foreach ($file in $Files) {
+		$arguments += "--source-file-path=$file"
+	}
+	$arguments += "--database-file-path=$Database"
+	$arguments += $Extra
+
+	& $Indexer @arguments
+	if ($LASTEXITCODE -ne 0) {
+		throw "indexer failed with exit code $LASTEXITCODE for $Database"
+	}
+}
+
+function Invoke-Check {
+	param([string[]]$Arguments)
+
+	& $pythonExe @pythonArgs $checkScript @Arguments
+	if ($LASTEXITCODE -ne 0) {
+		throw "check failed: $($Arguments -join ' ')"
+	}
+}
+
+$script:failures = 0
+function Run-Test {
+	param([string]$Name, [scriptblock]$Body)
+
+	try {
+		& $Body
+		Write-Host "PASS $Name"
+	}
+	catch {
+		$script:failures++
+		Write-Host "FAIL $Name"
+		Write-Host "     $_"
+	}
+}
+
+$sampleFiles = @(
+	(Join-Path $sample "main.odin"),
+	(Join-Path $sample "model.odin"),
+	(Join-Path (Join-Path $sample "mathx") "mathx.odin")
+)
+
+Run-Test "sample batch equals per-file indexing" {
+	$batch = Join-Path $WorkDir "sample-batch.srctrldb"
+	$single = Join-Path $WorkDir "sample-single.srctrldb"
+	Invoke-Index $batch $sampleFiles
+	if (Test-Path $single) {
+		Remove-Item $single -Force
+	}
+	foreach ($file in $sampleFiles) {
+		Invoke-Index -Database $single -Files @($file) -Keep
+	}
+	Invoke-Check @("compare", $batch, $single)
+	Invoke-Check @(
+		"check", $batch,
+		"--require", "main.User,main.Color.Red,main.greet,mathx.add,mathx.mul",
+		"--unsolved", "0")
+}
+
+Run-Test "member chains resolve to declared symbols" {
+	$db = Join-Path $WorkDir "globals.srctrldb"
+	Invoke-Index $db @((Join-Path $fixtures "globals.odin"))
+	Invoke-Check @(
+		"check", $db,
+		"--require", "globals.g,globals.f,globals.count,globals.use_globals",
+		"--forbid", "globals.g.x,globals.f.p,globals.f.p.y",
+		"--require-edge", "globals.use_globals|4|globals.g",
+		"--require-edge", "globals.use_globals|4|globals.f",
+		"--require-edge", "globals.use_globals|4|globals.count")
+}
+
+Run-Test "unresolved references are opt-in" {
+	$without = Join-Path $WorkDir "unsolved-off.srctrldb"
+	$with = Join-Path $WorkDir "unsolved-on.srctrldb"
+	Invoke-Index $without @((Join-Path $fixtures "unsolved.odin"))
+	Invoke-Index $with @((Join-Path $fixtures "unsolved.odin")) @("--unsolved")
+	Invoke-Check @("check", $without, "--unsolved", "0")
+	Invoke-Check @("check", $with, "--unsolved", "1", "--min-edges", "1")
+}
+
+Run-Test "attributes, directives and foreign blocks declare symbols" {
+	$db = Join-Path $WorkDir "syntax.srctrldb"
+	Invoke-Index $db @((Join-Path $fixtures "syntax.odin"))
+	Invoke-Check @(
+		"check", $db,
+		"--require", "syntax.CF,syntax.cacos,syntax.PRIVATE_CONST,syntax.forced,syntax.Generic,syntax.Generic.value,syntax.platform",
+		"--forbid", "syntax.private",
+		"--unsolved", "0")
+}
+
+Run-Test "batch indexing is deterministic" {
+	$first = Join-Path $WorkDir "deterministic-a.srctrldb"
+	$second = Join-Path $WorkDir "deterministic-b.srctrldb"
+	Invoke-Index $first $sampleFiles
+	Invoke-Index $second $sampleFiles
+	Invoke-Check @("compare", $first, $second)
+}
+
+if ($script:failures -ne 0) {
+	Write-Host "$script:failures test(s) failed; artifacts in $WorkDir"
+	exit 1
+}
+
+Write-Host "All Odin indexer tests passed. Artifacts in $WorkDir"

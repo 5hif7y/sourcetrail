@@ -56,8 +56,31 @@ IndexerCommandType IndexerCommandCustom::getIndexerCommandType() const
 size_t IndexerCommandCustom::getByteSize(size_t stringSize) const
 {
 	size_t size = IndexerCommand::getByteSize(stringSize);
+	for (const FilePath& sourceFilePath: getSourceFilePaths())
+	{
+		size += sourceFilePath.str().size() + stringSize;
+	}
 
 	return size;
+}
+
+std::vector<FilePath> IndexerCommandCustom::getSourceFilePaths() const
+{
+	if (!m_sourceFilePaths.empty())
+	{
+		return m_sourceFilePaths;
+	}
+	return {getSourceFilePath()};
+}
+
+size_t IndexerCommandCustom::getSourceFileCount() const
+{
+	return getSourceFilePaths().size();
+}
+
+void IndexerCommandCustom::setSourceFilePaths(const std::vector<FilePath>& sourceFilePaths)
+{
+	m_sourceFilePaths = sourceFilePaths;
 }
 
 FilePath IndexerCommandCustom::getDatabaseFilePath() const
@@ -122,5 +145,18 @@ std::string IndexerCommandCustom::replaceVariables(std::string s) const
 	s = utility::replace(s, "%{DATABASE_FILE_PATH}", m_databaseFilePath.str());
 	s = utility::replace(s, "%{DATABASE_VERSION}", m_databaseVersion);
 	s = utility::replace(s, "%{SOURCE_FILE_PATH}", getSourceFilePath().str());
+
+	// Expand the whole list for batch commands:
+	//   %{SOURCE_FILE_PATH_ARGS} -> --source-file-path="a" --source-file-path="b"
+	std::string sourceFileArguments;
+	for (const FilePath& sourceFilePath: getSourceFilePaths())
+	{
+		if (!sourceFileArguments.empty())
+		{
+			sourceFileArguments += " ";
+		}
+		sourceFileArguments += "--source-file-path=\"" + sourceFilePath.str() + "\"";
+	}
+	s = utility::replace(s, "%{SOURCE_FILE_PATH_ARGS}", sourceFileArguments);
 	return s;
 }

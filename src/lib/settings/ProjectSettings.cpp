@@ -227,7 +227,7 @@ void ProjectSettings::setAllSourceGroupSettings(
 	{
 		const std::string key = SourceGroupSettings::s_keyPrefix + settings->getId();
 		const SourceGroupType type = settings->getType();
-		setValue(key + "/type", sourceGroupTypeToString(type));
+		setValue(key + "/type", sourceGroupTypeToId(type));
 
 		settings->saveSettings(m_config.get());
 	}

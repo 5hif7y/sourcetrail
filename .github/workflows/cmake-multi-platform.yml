@@ -1,13 +1,47 @@
-# This starter workflow is for a CMake project running on multiple platforms. There is a different starter workflow if you just want a single platform.
-# See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-single-platform.yml
-name: Sourcetrail on multiple platforms
+name: Plugin context
 
 on:
+  push:
+  pull_request:
   workflow_dispatch:
 
 jobs:
-  deploy:
-    runs-on: [ubuntu-latest, windows-latest, macos-latest]
+  plugin-context:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
     steps:
-      - run: echo "Success"
-    
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S src/lib/plugin/tests -B build/plugin-context -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build/plugin-context --config Release
+
+      - name: Test
+        run: ctest --test-dir build/plugin-context -C Release --output-on-failure
+
+  language-registry:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S src/lib/settings/tests -B build/language-registry -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build/language-registry --config Release
+
+      - name: Test
+        run: ctest --test-dir build/language-registry -C Release --output-on-failure

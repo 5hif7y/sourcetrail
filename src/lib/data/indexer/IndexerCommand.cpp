@@ -20,6 +20,16 @@ const FilePath& IndexerCommand::getSourceFilePath() const
 	return m_sourceFilePath;
 }
 
+std::vector<FilePath> IndexerCommand::getSourceFilePaths() const
+{
+	return {m_sourceFilePath};
+}
+
+size_t IndexerCommand::getSourceFileCount() const
+{
+	return 1;
+}
+
 std::string IndexerCommand::doSerialize() const
 {
 	std::string json = "{";

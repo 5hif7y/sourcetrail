@@ -5,6 +5,7 @@ import "core:fmt"
 import "core:os"
 import "core:path/filepath"
 import "core:strings"
+import "core:time"
 
 foreign import writer "sourcetrail_odin_writer.lib"
 
@@ -19,6 +20,7 @@ foreign writer {
 	sodb_symbol_scope_location :: proc(w: rawptr, id: c.int, file: c.int, sl: c.int, sc: c.int, el: c.int, ec: c.int) -> c.int ---
 	sodb_reference             :: proc(w: rawptr, source: c.int, target: c.int, kind: c.int) -> c.int ---
 	sodb_reference_location    :: proc(w: rawptr, ref: c.int, file: c.int, sl: c.int, sc: c.int, el: c.int, ec: c.int) -> c.int ---
+	sodb_unsolved_reference    :: proc(w: rawptr, source: c.int, kind: c.int, file: c.int, sl: c.int, sc: c.int, el: c.int, ec: c.int) -> c.int ---
 	sodb_file                  :: proc(w: rawptr, path: cstring) -> c.int ---
 	sodb_file_language         :: proc(w: rawptr, file: c.int, language: cstring) -> c.int ---
 	sodb_error                 :: proc(w: rawptr, message: cstring, fatal: c.int, file: c.int, sl: c.int, sc: c.int, el: c.int, ec: c.int) -> c.int ---
@@ -108,10 +110,11 @@ File_Info :: struct {
 }
 
 Parser :: struct {
-	tokens: []Token,
-	index:  int,
-	full:   bool,
-	file:   File_Info,
+	tokens:  []Token,
+	index:   int,
+	full:    bool,
+	file:    File_Info,
+	generic: map[string]bool,
 }
 
 MULTI_OPS := []string{"::", ":=", "->", "..<", "..=", "...", "==", "!=", "<=", ">=", "&&", "||", "<<", ">>", "&~", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^="}
@@ -130,15 +133,54 @@ is_keyword :: proc(s: string) -> bool {
 }
 
 is_builtin_type :: proc(s: string) -> bool {
+	if len(s) > 3 && (s[0] == 'u' || s[0] == 'i' || s[0] == 'f') &&
+		(strings.has_suffix(s, "le") || strings.has_suffix(s, "be")) {
+		digits := s[1:len(s) - 2]
+		all_digits := len(digits) > 0
+		for ch in digits {
+			if ch < '0' || ch > '9' {
+				all_digits = false
+				break
+			}
+		}
+		if all_digits {
+			return true
+		}
+	}
 	switch s {
-	case "int", "uint", "uintptr", "typeid", "rawptr", "string", "cstring", "bool",
+	case "int", "uint", "uintptr", "typeid", "rawptr", "string", "cstring", "cstring16", "bool",
 		"b8", "b16", "b32", "b64", "rune", "any", "byte", "u8", "u16", "u32",
 		"u64", "u128", "i8", "i16", "i32", "i64", "i128", "f16", "f32", "f64",
 		"f128", "complex32", "complex64", "complex128", "quaternion64",
-		"quaternion128", "quaternion256", "intle", "intbe", "uintle", "uintbe":
+		"quaternion128", "quaternion256", "intle", "intbe", "uintle", "uintbe",
+		"dynamic":
 		return true
 	}
 	return false
+}
+
+// Builtins that are procedures rather than types. They are not declared in the
+// indexed package, so treating them as unresolved would flood the database.
+is_builtin_proc :: proc(s: string) -> bool {
+	if strings.has_prefix(s, "ODIN_") {
+		return true
+	}
+	switch s {
+	case "len", "cap", "append", "make", "new", "delete", "clear", "copy",
+		"min", "max", "abs", "clamp", "real", "imag", "quat", "complex", "conj",
+		"expand_values", "raw_data", "auto_cast", "cast", "transmute", "type_of",
+		"type_info_of", "size_of", "align_of", "offset_of", "swizzle",
+		"is_nan", "is_inf", "is_finite", "nan", "inf", "soa_zip", "soa_unzip",
+		"assert", "panic", "ensure", "ensure_contextless", "unimplemented", "todo",
+		"resize", "unreachable":
+		return true
+	}
+	return false
+}
+
+is_external_import_path :: proc(path: string) -> bool {
+	return strings.has_prefix(path, "core:") || strings.has_prefix(path, "base:") ||
+		strings.has_prefix(path, "vendor:")
 }
 
 is_ident_start :: proc(b: byte) -> bool {
@@ -319,6 +361,12 @@ skip_to_nl :: proc(p: ^Parser) {
 	}
 }
 
+skip_until_body :: proc(p: ^Parser) {
+	for peek(p).kind != .Eof && !at(p, "{") {
+		advance(p)
+	}
+}
+
 skip_balanced :: proc(p: ^Parser, open: string, close: string) -> []Token {
 	inner := make([dynamic]Token, 0, 16)
 	if !at(p, open) {
@@ -367,9 +415,28 @@ skip_directive :: proc(p: ^Parser) {
 	skip_to_nl(p)
 }
 
+// Skip one directive token (#optional_ok, #align(...), ...) without consuming
+// the declaration that follows it on the same line.
+skip_token_directive :: proc(p: ^Parser) {
+	if !accept(p, "#") {
+		return
+	}
+	if peek(p).kind == .Ident || peek(p).kind == .Keyword {
+		advance(p)
+	}
+	if at(p, "(") {
+		skip_balanced(p, "(", ")")
+	}
+}
+
 skip_attribute :: proc(p: ^Parser) {
 	if !accept(p, "@") {
 		return
+	}
+	// Bare attributes (`@private`, `@export`, ...) carry a name; without this
+	// the name was parsed as a declaration and the real declaration was lost.
+	if peek(p).kind == .Ident || peek(p).kind == .Keyword {
+		advance(p)
 	}
 	if at(p, "(") {
 		skip_balanced(p, "(", ")")
@@ -377,7 +444,7 @@ skip_attribute :: proc(p: ^Parser) {
 }
 
 parse_file :: proc(path: string, source: string, full: bool) -> File_Info {
-	p := Parser{tokens = lex(source), index = 0, full = full}
+	p := Parser{tokens = lex(source), index = 0, full = full, generic = make(map[string]bool)}
 	p.file.imports = make([dynamic]Import)
 	p.file.decls = make([dynamic]Decl)
 	p.file.refs = make([dynamic]Ref)
@@ -515,7 +582,7 @@ parse_declaration_block :: proc(p: ^Parser) {
 			continue
 		}
 		if at(p, "#") {
-			skip_directive(p)
+			skip_token_directive(p)
 			continue
 		}
 		if at(p, "@") {
@@ -546,9 +613,28 @@ parse_declaration :: proc(p: ^Parser) {
 		}
 	}
 
+	p.generic = make(map[string]bool)
 	if accept(p, "::") {
 		for name in names {
 			parse_value(p, name)
+		}
+		return
+	}
+	if accept(p, ":=") {
+		if len(names) == 1 && at(p, "proc") {
+			// `handler := proc(...) { ... }` is a procedure value; parse the
+			// literal instead of scanning its parameters as references.
+			parse_proc(p, make_full_name(p.file.pkg, names[0].text), names[0])
+			return
+		}
+		// Package-level variable with inferred type: `X := ...`.
+		expr := collect_until(p, "=", ";", true)
+		for name in names {
+			full := make_full_name(p.file.pkg, name.text)
+			append(&p.file.decls, Decl{name = full, kind = .GLOBAL_VARIABLE, tok = name})
+			if p.full {
+				scan_expr_tokens(p, expr, full, make(map[string]bool))
+			}
 		}
 		return
 	}
@@ -584,7 +670,14 @@ parse_value :: proc(p: ^Parser, name: Token) {
 	if token.text == "struct" {
 		advance(p)
 		skip_directive_tokens(p)
+		if at(p, "(") {
+			generic_tokens := skip_balanced(p, "(", ")")
+			collect_generic_params(p, generic_tokens)
+		}
 		append(&p.file.decls, Decl{name = full, kind = .STRUCT, tok = name})
+		if at(p, "where") {
+			skip_until_body(p)
+		}
 		if at(p, "{") {
 			parse_struct_fields(p, full)
 		} else {
@@ -609,7 +702,14 @@ parse_value :: proc(p: ^Parser, name: Token) {
 	if token.text == "union" {
 		advance(p)
 		skip_directive_tokens(p)
+		if at(p, "(") {
+			generic_tokens := skip_balanced(p, "(", ")")
+			collect_generic_params(p, generic_tokens)
+		}
 		append(&p.file.decls, Decl{name = full, kind = .UNION, tok = name})
+		if at(p, "where") {
+			skip_until_body(p)
+		}
 		if at(p, "{") {
 			parse_union_variants(p, full)
 		} else {
@@ -636,6 +736,9 @@ parse_value :: proc(p: ^Parser, name: Token) {
 			scan_type_tokens(p, backing, full)
 		}
 		append(&p.file.decls, Decl{name = full, kind = .STRUCT, tok = name})
+		if at(p, "where") {
+			skip_until_body(p)
+		}
 		if at(p, "{") {
 			parse_bit_field_fields(p, full)
 		} else {
@@ -655,11 +758,32 @@ parse_value :: proc(p: ^Parser, name: Token) {
 	if token.text == "#" {
 		advance(p)
 		if peek(p).kind == .Ident || peek(p).kind == .Keyword {
-			if advance(p).text == "type" {
+			directive := advance(p).text
+			if at(p, "(") {
+				skip_balanced(p, "(", ")")
+			}
+			if directive == "type" {
 				append(&p.file.decls, Decl{name = full, kind = .TYPEDEF, tok = name})
 				skip_to_nl(p)
 				return
 			}
+			// `name :: #force_inline proc ...`, `name :: #config(...)`, etc.
+			next := peek(p)
+			if next.text == "proc" {
+				parse_proc(p, full, name)
+				return
+			}
+			if next.text == "struct" || next.text == "union" || next.text == "enum" ||
+				next.text == "bit_set" || next.text == "bit_field" || next.text == "distinct" {
+				parse_value(p, name)
+				return
+			}
+			expr := collect_until(p, "", ";", true)
+			append(&p.file.decls, Decl{name = full, kind = .GLOBAL_VARIABLE, tok = name})
+			if p.full {
+				scan_expr_tokens(p, expr, full, make(map[string]bool))
+			}
+			return
 		}
 		skip_to_nl(p)
 		return
@@ -692,7 +816,7 @@ parse_struct_fields :: proc(p: ^Parser, owner: string) {
 			continue
 		}
 		if at(p, "#") {
-			skip_directive(p)
+			skip_token_directive(p)
 			continue
 		}
 		if at(p, "@") {
@@ -718,6 +842,20 @@ parse_struct_fields :: proc(p: ^Parser, owner: string) {
 			continue
 		}
 		type_tokens := collect_until(p, ",", "}", true)
+		// `field: Type = default` keeps the default expression out of the type
+		// reference set (it used to be scanned as a TYPE_USAGE).
+		default_tokens: []Token
+		eq_index := -1
+		for token, index in type_tokens {
+			if token.text == "=" {
+				eq_index = index
+				break
+			}
+		}
+		if eq_index >= 0 {
+			default_tokens = type_tokens[eq_index + 1:]
+			type_tokens = type_tokens[:eq_index]
+		}
 		for field_tok in field_names {
 			full := make_full_name(owner, field_tok.text)
 			append(&p.file.decls, Decl{name = full, kind = .FIELD, tok = field_tok})
@@ -728,11 +866,8 @@ parse_struct_fields :: proc(p: ^Parser, owner: string) {
 				}
 			}
 		}
-		if accept(p, "=") {
-			expr := collect_until(p, ",", "}", true)
-			if p.full {
-				scan_expr_tokens(p, expr, owner, make(map[string]bool))
-			}
+		if eq_index >= 0 && p.full {
+			scan_expr_tokens(p, default_tokens, owner, make(map[string]bool))
 		}
 		accept(p, ",")
 	}
@@ -747,7 +882,7 @@ parse_bit_field_fields :: proc(p: ^Parser, owner: string) {
 			continue
 		}
 		if at(p, "#") {
-			skip_directive(p)
+			skip_token_directive(p)
 			continue
 		}
 		field_names := make([dynamic]Token, 0, 2)
@@ -787,7 +922,7 @@ parse_enum_variants :: proc(p: ^Parser, owner: string) {
 			continue
 		}
 		if at(p, "#") {
-			skip_directive(p)
+			skip_token_directive(p)
 			continue
 		}
 		if peek(p).kind == .Ident {
@@ -824,6 +959,39 @@ parse_union_variants :: proc(p: ^Parser, owner: string) {
 	accept(p, "}")
 }
 
+mark_generic_names :: proc(p: ^Parser, local_names: ^map[string]bool, tokens: []Token) {
+	for token, index in tokens {
+		if token.text == "$" && index + 1 < len(tokens) && tokens[index + 1].kind == .Ident {
+			name := tokens[index + 1].text
+			p.generic[name] = true
+			if local_names != nil {
+				local_names^[name] = true
+			}
+		}
+	}
+}
+
+collect_generic_params :: proc(p: ^Parser, tokens: []Token) {
+	for group in split_params(tokens) {
+		colon := -1
+		for token, index in group {
+			if token.text == ":" {
+				colon = index
+				break
+			}
+		}
+		limit := len(group)
+		if colon >= 0 {
+			limit = colon
+		}
+		for token in group[:limit] {
+			if token.kind == .Ident {
+				p.generic[token.text] = true
+			}
+		}
+	}
+}
+
 parse_proc :: proc(p: ^Parser, full: string, name: Token) {
 	advance(p) // proc
 	for peek(p).kind != .Eof && !at(p, "(") && !at(p, "{") {
@@ -845,24 +1013,36 @@ parse_proc :: proc(p: ^Parser, full: string, name: Token) {
 
 	param_tokens := skip_balanced(p, "(", ")")
 	local_names := make(map[string]bool)
+	mark_generic_names(p, &local_names, param_tokens)
 	groups := split_params(param_tokens)
 	for group in groups {
 		process_param_group(p, group, full, &local_names)
 	}
 
 	for at(p, "#") {
-		skip_directive(p)
+		skip_token_directive(p)
 	}
 	if accept(p, "->") {
-		result_tokens := collect_until(p, "{", "where", true)
+		result_tokens := collect_result_tokens(p)
 		if p.full {
-			scan_type_tokens(p, result_tokens, full)
+			scan_result_tokens(p, result_tokens, full, &local_names)
 		}
 	}
-	if at(p, "where") {
-		for peek(p).kind != .Eof && !at(p, "{") && peek(p).kind != .Newline {
+	// Results may be followed by directives (#optional_ok, ...) and newlines
+	// before the body or `where` clause.
+	for {
+		if peek(p).kind == .Newline {
 			advance(p)
+			continue
 		}
+		if at(p, "#") {
+			skip_token_directive(p)
+			continue
+		}
+		break
+	}
+	if at(p, "where") {
+		skip_until_body(p)
 	}
 
 	scope_tok: Token
@@ -905,13 +1085,25 @@ split_params :: proc(tokens: []Token) -> [] []Token {
 	pending := make([dynamic]Token, 0, 8)
 	for segment in segments {
 		has_colon := false
+		has_default := false
 		for token in segment {
 			if token.text == ":" {
 				has_colon = true
-				break
+			} else if token.text == ":=" || token.text == "=" {
+				has_default = true
 			}
 		}
 		if !has_colon {
+			if has_default {
+				// A complete defaulted parameter (`loc := #caller_location`)
+				// must not be merged with the next parameter's name list.
+				if len(pending) > 0 {
+					append(&merged, pending[:])
+					pending = make([dynamic]Token, 0, 8)
+				}
+				append(&merged, segment)
+				continue
+			}
 			for token in segment {
 				append(&pending, token)
 			}
@@ -950,6 +1142,27 @@ process_param_group :: proc(p: ^Parser, group: []Token, full: string, local_name
 		}
 	}
 	if colon < 0 {
+		// Parameters may omit the type when they only have a default
+		// (`allocator := context.allocator`); mark the names as locals.
+		eq := -1
+		for token, index in group {
+			if token.text == "=" || token.text == ":=" {
+				eq = index
+				break
+			}
+		}
+		if eq >= 0 {
+			for token in group[:eq] {
+				if token.kind == .Ident {
+					local_names^[token.text] = true
+				}
+			}
+			return
+		}
+		// Unnamed result type.
+		if p.full {
+			scan_tokens(p, group, full, local_names^, .TYPE_USAGE)
+		}
 		return
 	}
 	for token in group[:colon] {
@@ -965,12 +1178,22 @@ process_param_group :: proc(p: ^Parser, group: []Token, full: string, local_name
 		}
 	}
 	if p.full {
-		scan_type_tokens(p, type_tokens, full)
+		scan_tokens(p, type_tokens, full, local_names^, .TYPE_USAGE)
 	}
 }
 
 scan_type_tokens :: proc(p: ^Parser, tokens: []Token, context_name: string) {
-	scan_tokens(p, tokens, context_name, make(map[string]bool), .TYPE_USAGE)
+	scan_tokens(p, tokens, context_name, p.generic, .TYPE_USAGE)
+}
+
+scan_result_tokens :: proc(p: ^Parser, tokens: []Token, context_name: string, local_names: ^map[string]bool) {
+	inner := tokens
+	if len(inner) >= 2 && inner[0].text == "(" && inner[len(inner) - 1].text == ")" {
+		inner = inner[1:len(inner) - 1]
+	}
+	for group in split_params(inner) {
+		process_param_group(p, group, context_name, local_names)
+	}
 }
 
 scan_expr_tokens :: proc(p: ^Parser, tokens: []Token, context_name: string, local_names: map[string]bool) {
@@ -1020,6 +1243,22 @@ scan_tokens :: proc(p: ^Parser, tokens: []Token, context_name: string, local_nam
 			continue
 		}
 		if token.kind != .Ident {
+			index += 1
+			continue
+		}
+		if token.text == "_" || is_builtin_proc(token.text) {
+			index += 1
+			continue
+		}
+		// Generic parameters ($T, $N, ...) are not package symbols.
+		if index > 0 && tokens[index - 1].text == "$" {
+			index += 1
+			continue
+		}
+		// `.Red` enum shorthand: without type inference there is no owner to
+		// resolve, and inventing "package.Red" would create a phantom symbol.
+		if index > 0 && tokens[index - 1].text == "." &&
+			(index < 2 || tokens[index - 2].kind != .Ident) {
 			index += 1
 			continue
 		}
@@ -1073,14 +1312,51 @@ add_inheritance_refs :: proc(p: ^Parser, context_name: string, tokens: []Token, 
 
 add_body_locals :: proc(local_names: ^map[string]bool, tokens: []Token) {
 	for token, index in tokens {
+		if token.text == "for" {
+			// `for i, v in ...` introduces locals; `for` is a keyword, so this
+			// has to run before the identifier guard below.
+			cursor := index + 1
+			for cursor < len(tokens) && (tokens[cursor].text == "&" || tokens[cursor].text == "#") {
+				cursor += 1
+			}
+			for cursor < len(tokens) && tokens[cursor].kind == .Ident {
+				local_names^[tokens[cursor].text] = true
+				if cursor + 1 < len(tokens) && tokens[cursor + 1].text == "," {
+					cursor += 2
+					continue
+				}
+				break
+			}
+			continue
+		}
 		if token.kind != .Ident {
 			continue
 		}
 		if index + 1 < len(tokens) && (tokens[index + 1].text == ":=" || tokens[index + 1].text == ":") {
-			local_names^[token.text] = true
+			// Mark every name in `a, b, c := ...`, not just the last one.
+			cursor := index
+			for cursor >= 0 {
+				current := tokens[cursor]
+				if current.kind == .Ident {
+					local_names^[current.text] = true
+				} else if current.text != "," {
+					break
+				}
+				cursor -= 1
+			}
 		}
-		if token.text == "for" && index + 1 < len(tokens) && tokens[index + 1].kind == .Ident {
-			local_names^[tokens[index + 1].text] = true
+		if index + 1 < len(tokens) && tokens[index + 1].text == "::" {
+			// Local constants, types and procedures.
+			cursor := index
+			for cursor >= 0 {
+				current := tokens[cursor]
+				if current.kind == .Ident {
+					local_names^[current.text] = true
+				} else if current.text != "," {
+					break
+				}
+				cursor -= 1
+			}
 		}
 	}
 }
@@ -1096,6 +1372,11 @@ resolve :: proc(p: ^Parser, chain: []string) -> (string, bool) {
 		return make_full_name(p.file.pkg, chain[0]), true
 	}
 	first := chain[0]
+	// Pseudo-packages provided by the compiler, not by imports.
+	if first == "intrinsics" || first == "builtin" {
+		joined, _ := strings.join(chain, ".", context.allocator)
+		return joined, true
+	}
 	for imp in p.file.imports {
 		if first == imp.alias || (imp.alias == "" && first == imp.pkg) {
 			rest := chain[1:]
@@ -1117,6 +1398,39 @@ make_full_name :: proc(owner: string, name: string) -> string {
 	return fmt.tprintf("%s.%s", owner, name)
 }
 
+// Resolve a reference target against the declarations known for the package.
+// A member chain such as `global.struct_field.inner` is shortened to the
+// longest declared prefix (`global`) instead of inventing symbols for every
+// suffix. Targets in external collections are kept as opaque imported symbols.
+resolve_ref_target :: proc(
+	target: string,
+	table: map[string]Symbol_Kind,
+	external_pkgs: map[string]bool,
+) -> (resolved: string, ok: bool, external: bool) {
+	if target in table {
+		return target, true, false
+	}
+
+	parts, _ := strings.split(target, ".", context.temp_allocator)
+	if len(parts) == 0 {
+		return "", false, false
+	}
+	if len(parts) > 1 &&
+		(parts[0] == "intrinsics" || parts[0] == "builtin" || external_pkgs[parts[0]]) {
+		return target, true, true
+	}
+
+	// Do not shorten all the way to the package itself: a call like
+	// `unknown.member()` must not become a call to the package symbol.
+	for count := len(parts) - 1; count >= 2; count -= 1 {
+		prefix, _ := strings.join(parts[:count], ".", context.temp_allocator)
+		if prefix in table {
+			return prefix, true, false
+		}
+	}
+	return "", false, false
+}
+
 import_package_name :: proc(path: string) -> string {
 	p := path
 	if idx := strings.index_byte(p, ':'); idx >= 0 {
@@ -1133,6 +1447,32 @@ import_package_name :: proc(path: string) -> string {
 		p = p[idx + 1:]
 	}
 	return p
+}
+
+// Collect a proc result type, stopping before the body, a `where` clause, a
+// `---` foreign body marker, or a trailing directive such as #optional_ok.
+collect_result_tokens :: proc(p: ^Parser) -> []Token {
+	tokens := make([dynamic]Token, 0, 8)
+	depth := 0
+	for peek(p).kind != .Eof {
+		token := peek(p)
+		// `---` is lexed as three '-' tokens; the first one terminates a
+		// foreign procedure declaration.
+		if depth == 0 &&
+			(token.text == "{" || token.text == "where" || token.text == "-" || token.text == "#") {
+			break
+		}
+		advance(p)
+		if token.text == "(" || token.text == "[" {
+			depth += 1
+		} else if token.text == ")" || token.text == "]" {
+			if depth > 0 {
+				depth -= 1
+			}
+		}
+		append(&tokens, token)
+	}
+	return tokens[:]
 }
 
 collect_until :: proc(p: ^Parser, stop1: string, stop2: string, stop_at_nl: bool) -> []Token {
@@ -1222,10 +1562,15 @@ file_symbol_paths :: proc(source_path: string, imports: [dynamic]Import) -> []st
 	return paths[:]
 }
 
+Symbol_Info :: struct {
+	id:           c.int,
+	has_location: bool,
+}
+
 Writer :: struct {
 	handle:  rawptr,
 	file_id: c.int,
-	ids:     map[string]c.int,
+	ids:     map[string]Symbol_Info,
 	table:   map[string]Symbol_Kind,
 }
 
@@ -1238,15 +1583,26 @@ to_cstr :: proc(s: string) -> cstring {
 }
 
 writer_symbol :: proc(w: ^Writer, full: string, kind: Symbol_Kind, tok: Token, scope: Token, has_scope: bool, with_location: bool) -> c.int {
-	if id, ok := w.ids[full]; ok {
-		return id
+	if info, ok := w.ids[full]; ok {
+		// In batch mode a symbol can be referenced before its defining file is
+		// visited. Attach the location when the declaration finally arrives.
+		if with_location && !info.has_location && w.file_id != 0 {
+			sodb_symbol_location(w.handle, info.id, w.file_id, c.int(tok.line), c.int(tok.col), c.int(tok.end_line), c.int(tok.end_col))
+			if has_scope {
+				sodb_symbol_scope_location(w.handle, info.id, w.file_id, c.int(tok.line), c.int(tok.col), c.int(scope.end_line), c.int(scope.end_col))
+			}
+			info.has_location = true
+			w.ids[full] = info
+		}
+		return info.id
 	}
 	id := sodb_symbol(w.handle, to_cstr(full), ".", c.int(kind))
 	if id == 0 {
 		return 0
 	}
-	w.ids[full] = id
-	if with_location && w.file_id != 0 {
+	has_location := with_location && w.file_id != 0
+	w.ids[full] = Symbol_Info{id = id, has_location = has_location}
+	if has_location {
 		sodb_symbol_location(w.handle, id, w.file_id, c.int(tok.line), c.int(tok.col), c.int(tok.end_line), c.int(tok.end_col))
 		if has_scope {
 			sodb_symbol_scope_location(w.handle, id, w.file_id, c.int(tok.line), c.int(tok.col), c.int(scope.end_line), c.int(scope.end_col))
@@ -1255,12 +1611,12 @@ writer_symbol :: proc(w: ^Writer, full: string, kind: Symbol_Kind, tok: Token, s
 	return id
 }
 
-writer_reference :: proc(w: ^Writer, context_id: c.int, target: string, kind: Ref_Kind, tok: Token) {
+writer_reference :: proc(w: ^Writer, context_id: c.int, target: string, kind: Ref_Kind, tok: Token, external: bool) {
 	symbol_kind := w.table[target]
-	if symbol_kind == .TYPE && target not_in w.table {
-		symbol_kind = .GLOBAL_VARIABLE
+	if !external && target not_in w.table {
+		return
 	}
-	if _, ok := w.table[target]; !ok {
+	if external && target not_in w.table {
 		switch kind {
 		case .CALL:
 			symbol_kind = .FUNCTION
@@ -1284,67 +1640,173 @@ writer_reference :: proc(w: ^Writer, context_id: c.int, target: string, kind: Re
 	}
 }
 
-index_file :: proc(source_path: string, database_path: string, verbose: bool) -> int {
-	data, err := os.read_entire_file_from_path(source_path, context.allocator)
-	if err != nil {
-		fmt.eprintfln("cannot read %s: %s", source_path, err)
+Table_Cache :: struct {
+	tables: map[string]map[string]Symbol_Kind,
+}
+
+table_for_directory :: proc(cache: ^Table_Cache, directory: string) -> map[string]Symbol_Kind {
+	if table, exists := cache.tables[directory]; exists {
+		return table
+	}
+	table := collect_symbols(package_files(directory))
+	cache.tables[directory] = table
+	return table
+}
+
+merge_symbol_table :: proc(destination: ^map[string]Symbol_Kind, source: map[string]Symbol_Kind) {
+	for name, kind in source {
+		destination^[name] = kind
+	}
+}
+
+build_symbol_table :: proc(source_path: string, imports: [dynamic]Import, cache: ^Table_Cache) -> map[string]Symbol_Kind {
+	table := make(map[string]Symbol_Kind)
+	directory := filepath.dir(source_path)
+	merge_symbol_table(&table, table_for_directory(cache, directory))
+	for imp in imports {
+		if is_external_import_path(imp.path) {
+			continue
+		}
+		merge_symbol_table(&table, table_for_directory(cache, join_path(directory, imp.path)))
+	}
+	return table
+}
+
+index_files :: proc(source_paths: []string, database_path: string, verbose: bool, timing: bool, report_unsolved: bool, debug_refs: bool) -> int {
+	if len(source_paths) == 0 {
+		fmt.eprintln("no source files")
 		return 1
 	}
-	info := parse_file(source_path, string(data), true)
-	table := collect_symbols(file_symbol_paths(source_path, info.imports))
-	table[info.pkg] = .PACKAGE
-	for decl in info.decls {
-		if _, ok := table[decl.name]; !ok {
-			table[decl.name] = decl.kind
-		}
-	}
 
+	t_request := time.now()
 	handle := sodb_open(to_cstr(database_path))
 	if handle == nil {
 		fmt.eprintln("cannot open database")
 		return 1
 	}
 	defer sodb_close(handle)
+	t_open := time.now()
 	if sodb_begin(handle) == 0 {
 		fmt.eprintfln("begin failed: %s", string(sodb_last_error(handle)))
 		return 1
 	}
+	t_begin := time.now()
 
-	normalized := strings.replace_all(source_path, "\\", "/", context.allocator) or_else source_path
-	file_id := sodb_file(handle, to_cstr(normalized))
-	if file_id == 0 {
-		fmt.eprintfln("record file failed: %s", string(sodb_last_error(handle)))
-		return 1
-	}
-	sodb_file_language(handle, file_id, "odin")
+	cache := Table_Cache{tables = make(map[string]map[string]Symbol_Kind)}
+	w := Writer{handle = handle, ids = make(map[string]Symbol_Info)}
+	exit_code := 0
 
-	w := Writer{handle = handle, file_id = file_id, ids = make(map[string]c.int), table = table}
-	package_tok := info.pkg_tok
-	if !info.has_package {
-		package_tok = Token{line = 1, col = 1, end_line = 1, end_col = 1}
-	}
-	package_id := writer_symbol(&w, info.pkg, .PACKAGE, package_tok, Token{}, false, true)
-
-	for imp in info.imports {
-		target_id := writer_symbol(&w, imp.pkg, .PACKAGE, imp.tok, Token{}, false, false)
-		if target_id != 0 && package_id != 0 {
-			ref := sodb_reference(handle, package_id, target_id, c.int(Ref_Kind.IMPORT))
-			if ref != 0 {
-				sodb_reference_location(handle, ref, file_id, c.int(imp.tok.line), c.int(imp.tok.col), c.int(imp.tok.end_line), c.int(imp.tok.end_col))
+	for source_path in source_paths {
+		t_start := time.now()
+		data, err := os.read_entire_file_from_path(source_path, context.allocator)
+		if err != nil {
+			fmt.eprintfln("cannot read %s: %s", source_path, err)
+			exit_code = 1
+			continue
+		}
+		info := parse_file(source_path, string(data), true)
+		t_parse := time.now()
+		if debug_refs {
+			fmt.eprintfln("file %s package=%s imports=%d", source_path, info.pkg, len(info.imports))
+			for imp in info.imports {
+				fmt.eprintfln("  import alias=\"%s\" package=\"%s\" path=\"%s\"", imp.alias, imp.pkg, imp.path)
 			}
 		}
-	}
-
-	for decl in info.decls {
-		writer_symbol(&w, decl.name, decl.kind, decl.tok, decl.scope, decl.has_scope, true)
-	}
-	for ref in info.refs {
-		context_id, ok := w.ids[ref.ctx]
-		if !ok {
-			context_id = writer_symbol(&w, ref.ctx, w.table[ref.ctx], Token{line = 1, col = 1, end_line = 1, end_col = 1}, Token{}, false, false)
+		table := build_symbol_table(source_path, info.imports, &cache)
+		table[info.pkg] = .PACKAGE
+		for decl in info.decls {
+			if _, exists := table[decl.name]; !exists {
+				table[decl.name] = decl.kind
+			}
 		}
-		if context_id != 0 {
-			writer_reference(&w, context_id, ref.target, ref.kind, ref.tok)
+		t_symbols := time.now()
+
+		normalized := strings.replace_all(source_path, "\\", "/", context.allocator) or_else source_path
+		file_id := sodb_file(handle, to_cstr(normalized))
+		if file_id == 0 {
+			fmt.eprintfln("record file failed: %s", string(sodb_last_error(handle)))
+			exit_code = 1
+			continue
+		}
+		sodb_file_language(handle, file_id, "odin")
+		if debug_refs {
+			fmt.eprintfln("  file_id=%d", file_id)
+		}
+		t_file := time.now()
+
+		w.file_id = file_id
+		w.table = table
+		package_tok := info.pkg_tok
+		if !info.has_package {
+			package_tok = Token{line = 1, col = 1, end_line = 1, end_col = 1}
+		}
+		package_id := writer_symbol(&w, info.pkg, .PACKAGE, package_tok, Token{}, false, true)
+
+		for imp in info.imports {
+			target_id := writer_symbol(&w, imp.pkg, .PACKAGE, imp.tok, Token{}, false, false)
+			if target_id != 0 && package_id != 0 {
+				ref := sodb_reference(handle, package_id, target_id, c.int(Ref_Kind.IMPORT))
+				if ref != 0 {
+					sodb_reference_location(handle, ref, file_id, c.int(imp.tok.line), c.int(imp.tok.col), c.int(imp.tok.end_line), c.int(imp.tok.end_col))
+				}
+			}
+		}
+
+		for decl in info.decls {
+			writer_symbol(&w, decl.name, decl.kind, decl.tok, decl.scope, decl.has_scope, true)
+		}
+		t_decls := time.now()
+
+		external_pkgs := make(map[string]bool)
+		for imp in info.imports {
+			if is_external_import_path(imp.path) {
+				external_pkgs[imp.pkg] = true
+			}
+		}
+		for ref in info.refs {
+			context_id: c.int = 0
+			if context_info, exists := w.ids[ref.ctx]; exists {
+				context_id = context_info.id
+			} else {
+				context_id = package_id
+			}
+			if context_id == 0 {
+				continue
+			}
+			target, resolved, external := resolve_ref_target(ref.target, w.table, external_pkgs)
+			if debug_refs {
+				state := "unsolved"
+				if resolved {
+					state = external ? "external" : "resolved"
+				}
+				fmt.eprintfln("  ref %d:%d %s -> %s (%s)", ref.tok.line, ref.tok.col, ref.target, target, state)
+			}
+			if resolved {
+				writer_reference(&w, context_id, target, ref.kind, ref.tok, external)
+			} else if report_unsolved {
+				sodb_unsolved_reference(
+					w.handle, context_id, c.int(ref.kind), w.file_id,
+					c.int(ref.tok.line), c.int(ref.tok.col),
+					c.int(ref.tok.end_line), c.int(ref.tok.end_col),
+				)
+			}
+		}
+		t_refs := time.now()
+
+		if verbose {
+			fmt.printfln("indexed %s: %d declarations, %d references", source_path, len(info.decls), len(info.refs))
+		}
+		if timing {
+			fmt.eprintfln(
+				"timing %s: parse=%.1f symbols=%.1f file=%.1f decls=%.1f refs=%.1f total=%.1f (ms)",
+				filepath.base(source_path),
+				time.duration_milliseconds(time.diff(t_start, t_parse)),
+				time.duration_milliseconds(time.diff(t_parse, t_symbols)),
+				time.duration_milliseconds(time.diff(t_symbols, t_file)),
+				time.duration_milliseconds(time.diff(t_file, t_decls)),
+				time.duration_milliseconds(time.diff(t_decls, t_refs)),
+				time.duration_milliseconds(time.diff(t_start, t_refs)),
+			)
 		}
 	}
 
@@ -1352,10 +1814,18 @@ index_file :: proc(source_path: string, database_path: string, verbose: bool) ->
 		fmt.eprintfln("commit failed: %s", string(sodb_last_error(handle)))
 		return 1
 	}
-	if verbose {
-		fmt.printfln("indexed %s: %d declarations, %d references", source_path, len(info.decls), len(info.refs))
+	t_commit := time.now()
+	if timing {
+		fmt.eprintfln(
+			"timing total: files=%d open=%.1f begin=%.1f commit=%.1f total=%.1f (ms)",
+			len(source_paths),
+			time.duration_milliseconds(time.diff(t_request, t_open)),
+			time.duration_milliseconds(time.diff(t_open, t_begin)),
+			time.duration_milliseconds(time.diff(t_begin, t_commit)),
+			time.duration_milliseconds(time.diff(t_request, t_commit)),
+		)
 	}
-	return 0
+	return exit_code
 }
 
 arg_value :: proc(args: []string, prefix: string) -> string {
@@ -1367,20 +1837,48 @@ arg_value :: proc(args: []string, prefix: string) -> string {
 	return ""
 }
 
+arg_values :: proc(args: []string, prefix: string) -> []string {
+	values := make([dynamic]string, 0, 8)
+	for arg in args {
+		if strings.has_prefix(arg, prefix) {
+			append(&values, arg[len(prefix):])
+		}
+	}
+	return values[:]
+}
+
 main :: proc() {
 	args := os.args
-	source_path := arg_value(args, "--source-file-path=")
+	source_paths := arg_values(args, "--source-file-path=")
 	database_path := arg_value(args, "--database-file-path=")
 	verbose := false
+	timing := false
+	// Unresolved references are opt-in: by default the indexer omits them, like
+	// the Python PoC, instead of adding thousands of edges to one "unsolved"
+	// node. Use --unsolved when auditing parser coverage.
+	report_unsolved := false
+	debug_refs := false
 	for arg in args {
 		if arg == "--verbose" {
 			verbose = true
 		}
+		if arg == "--timing" {
+			timing = true
+		}
+		if arg == "--unsolved" {
+			report_unsolved = true
+		}
+		if arg == "--no-unsolved" {
+			report_unsolved = false
+		}
+		if arg == "--debug-refs" {
+			debug_refs = true
+		}
 	}
-	if source_path == "" || database_path == "" {
-		fmt.eprintln("usage: SourcetrailOdinIndexer index --source-file-path=... --database-file-path=...")
+	if len(source_paths) == 0 || database_path == "" {
+		fmt.eprintln("usage: SourcetrailOdinIndexer index --source-file-path=... [--source-file-path=...] --database-file-path=...")
 		os.exit(1)
 	}
-	code := index_file(source_path, database_path, verbose)
+	code := index_files(source_paths, database_path, verbose, timing, report_unsolved, debug_refs)
 	os.exit(code)
 }

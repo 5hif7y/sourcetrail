@@ -42,6 +42,7 @@ option(BUILD_CXX_LANGUAGE_PACKAGE "Build the C/C++ language package" OFF)
 option(BUILD_JAVA_LANGUAGE_PACKAGE "Build the Java language package" OFF)
 option(BUILD_PYTHON_LANGUAGE_PACKAGE "Build the Python language package" OFF)
 option(BUILD_UNIT_TESTS_PACKAGE "Build unit tests" OFF)
+option(BUILD_PLUGIN_CONTEXT_TESTS "Build the standalone plugin context tests" OFF)
 option(COPY_SAMPLE_PROJECTS "Copy the sample projects into the app data" OFF)
 option(SOURCETRAIL_EMBEDDED "Optimize for size (embedded profile)" ON)
 
@@ -661,6 +662,19 @@ endif()
 
 if (BUILD_UNIT_TESTS_PACKAGE AND NOT BUILD_GUI)
 	message(FATAL_ERROR "BUILD_UNIT_TESTS_PACKAGE requires BUILD_GUI=ON: the test suite uses Qt test suites.")
+endif()
+
+if (BUILD_PLUGIN_CONTEXT_TESTS)
+	enable_testing()
+	add_executable(plugin_context_test src/lib/plugin/tests/PluginContextTest.cpp)
+	target_include_directories(plugin_context_test PRIVATE src/lib/plugin)
+	target_compile_features(plugin_context_test PRIVATE cxx_std_17)
+	add_test(NAME plugin_context COMMAND plugin_context_test)
+
+	add_executable(plugin_host_test src/lib/plugin/tests/PluginHostTest.cpp)
+	target_include_directories(plugin_host_test PRIVATE src/lib/plugin)
+	target_compile_features(plugin_host_test PRIVATE cxx_std_17)
+	add_test(NAME plugin_host COMMAND plugin_host_test)
 endif()
 
 if (BUILD_UNIT_TESTS_PACKAGE)

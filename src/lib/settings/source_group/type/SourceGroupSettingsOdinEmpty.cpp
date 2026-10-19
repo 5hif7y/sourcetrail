@@ -1,6 +1,7 @@
 #include "SourceGroupSettingsOdinEmpty.h"
 
 #include "AppPath.h"
+#include "LanguageRegistry.h"
 #include "utility/file/FilePath.h"
 #include "utility/logging/logging.h"
 
@@ -8,6 +9,13 @@
 
 namespace
 {
+std::vector<std::string> odinSourceExtensions()
+{
+	const st::language::LanguageDescriptor* descriptor =
+		st::language::LanguageRegistry::instance().findByType(LanguageType::ODIN);
+	return descriptor ? descriptor->sourceExtensions : std::vector<std::string>{".odin"};
+}
+
 // The native Odin indexer is an Odin executable deployed at
 // <app>/data/odin/SourcetrailOdinIndexer.exe. The Python/numbat indexer remains
 // as a fallback for development and for installations that do not have the
@@ -114,12 +122,30 @@ FilePath findPythonOdinIndexerFilePath()
 	return deployed;
 }
 
+bool envFlag(const char* name)
+{
+	const char* value = std::getenv(name);
+	return value && value[0] != '\0' && value[0] != '0';
+}
+
 std::string makeOdinIndexerCommand(const FilePath& nativeIndexer, const FilePath& pythonIndexer)
 {
 	if (nativeIndexer.exists())
 	{
+		// The native indexer accepts the whole batch in one process, which
+		// amortizes the SourcetrailDB open/commit cost over many files.
+		std::string extraFlags;
+		if (envFlag("SOURCETRAIL_ODIN_UNSOLVED"))
+		{
+			extraFlags += " --unsolved";
+		}
+		if (envFlag("SOURCETRAIL_ODIN_TIMING"))
+		{
+			extraFlags += " --timing";
+		}
 		return "\"" + nativeIndexer.str() +
-			"\" index --source-file-path=\"%{SOURCE_FILE_PATH}\" --database-file-path=\"%{DATABASE_FILE_PATH}\"";
+			"\" index %{SOURCE_FILE_PATH_ARGS} --database-file-path=\"%{DATABASE_FILE_PATH}\"" +
+			extraFlags;
 	}
 	return "python -X utf8 \"" + pythonIndexer.str() +
 		"\" index --source-file-path=\"%{SOURCE_FILE_PATH}\" --database-file-path=\"%{DATABASE_FILE_PATH}\"";
@@ -133,8 +159,9 @@ SourceGroupSettingsOdinEmpty::SourceGroupSettingsOdinEmpty(
 	const FilePath nativeIndexer = findNativeOdinIndexerFilePath();
 	const FilePath pythonIndexer = findPythonOdinIndexerFilePath();
 	setCustomCommand(makeOdinIndexerCommand(nativeIndexer, pythonIndexer));
+	setRunInBatch(nativeIndexer.exists());
 	setRunInParallel(true);
-	setSourceExtensions({".odin"});
+	setSourceExtensions(odinSourceExtensions());
 
 	if (!nativeIndexer.exists() && !pythonIndexer.exists())
 	{
@@ -155,12 +182,13 @@ void SourceGroupSettingsOdinEmpty::loadSettings(const ConfigManager* config)
 
 	// Enforce the Odin extension and command even if the project file tries to
 	// change them. This mirrors the Python source group.
-	setSourceExtensions({".odin"});
+	setSourceExtensions(odinSourceExtensions());
 	setRunInParallel(true);
 
 	const FilePath nativeIndexer = findNativeOdinIndexerFilePath();
 	const FilePath pythonIndexer = findPythonOdinIndexerFilePath();
 	setCustomCommand(makeOdinIndexerCommand(nativeIndexer, pythonIndexer));
+	setRunInBatch(nativeIndexer.exists());
 
 	if (!nativeIndexer.exists() && !pythonIndexer.exists())
 	{
