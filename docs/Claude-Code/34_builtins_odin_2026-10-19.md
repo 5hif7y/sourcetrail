@@ -87,6 +87,11 @@ Suite completa: **10/10**.
 Las 2 restantes son las dos apariciones de `matrix_inverse_generic` en
 `math/linalg/general.odin`; no se corrigen desde el indexador.
 
+Desglose con `--timing` (11 lotes): **7,7 s de parseo, 4,9 s de referencias y
+30,6 s de commit** sobre 34,5 s de suma por lote. El commit del writer es
+~89 % del tiempo; la lista de builtins no mueve la aguja y el coste sigue en
+el volumen de filas.
+
 > Los números de nodos/aristas no son comparables con el corte de 1.288
 > archivos del doc 32 porque cambió el conjunto de archivos del checkout.
 
