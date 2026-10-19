@@ -141,7 +141,9 @@ contra `External_lib_cppsqlite3`/`AidKit_lib` sin `-fPIC`, corregido con
 
 **Verde:** el run `39289862684` (commit `2afb7506`) terminó con **15/15 jobs
 success**, incluidos los tres `root-ctest`. También se añadieron `paths-ignore`
-para docs y `concurrency` para cancelar runs viejos.
+para docs y `concurrency` para cancelar runs viejos. El run `39315008341`
+(commit `eca6b558`, con el fix del crash) repitió **15/15 jobs success**,
+incluidos los tres `root-ctest`.
 
 ### 2.2 Páginas de preferencias sin refresco vivo
 
