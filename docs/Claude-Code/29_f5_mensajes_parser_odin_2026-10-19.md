@@ -99,10 +99,12 @@ superlineal con el tamaño del lote:
 | 1.288 | **29,91 s** | **29,92 s** |
 
 El core completo con un solo proceso tardó **37,6 s de pared**, frente a
-**~19 s** con lotes de 128. Conclusión: los 11 lotes de 128 ya están cerca del
-óptimo; eliminar los commits empeora el tiempo. El siguiente paso, si se
-retoma, es reducir índices/escrituras durante el indexado o tantear 64/128/256,
-no un proceso único. El código del experimento no quedó en el árbol.
+**~19 s** con lotes de 128. También se probó un lote de **256** en el core
+completo: **18,8 s** frente a **18,7 s** con 128, sin mejora medible. Conclusión:
+los lotes de 128 ya están en el óptimo práctico; eliminar los commits empeora el
+tiempo y duplicar el lote no aporta. El siguiente paso, si se retoma, es reducir
+índices/escrituras durante el indexado, no cambiar el tamaño del lote. El código
+del experimento no quedó en el árbol.
 
 ---
 
