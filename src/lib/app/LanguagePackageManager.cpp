@@ -35,6 +35,11 @@ bool LanguagePackageManager::removePackage(const std::shared_ptr<LanguagePackage
 	return true;
 }
 
+size_t LanguagePackageManager::packageCount() const
+{
+	return m_packages.size();
+}
+
 std::shared_ptr<IndexerComposite> LanguagePackageManager::instantiateSupportedIndexers()
 {
 	std::shared_ptr<IndexerComposite> composite = std::make_shared<IndexerComposite>();

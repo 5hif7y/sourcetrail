@@ -694,6 +694,27 @@ if (BUILD_PLUGIN_CONTEXT_TESTS)
 		$<TARGET_FILE:dynamic_test_plugin>
 		$<TARGET_FILE:sticky_test_plugin>)
 
+	add_executable(language_registration_test
+		src/lib/plugin/tests/LanguageRegistrationTest.cpp)
+	target_include_directories(language_registration_test PRIVATE
+		src/lib/plugin
+		src/lib/app
+		src/lib/project
+		src/lib/settings
+		src/lib/settings/source_group
+		src/lib/data/indexer)
+	target_compile_features(language_registration_test PRIVATE cxx_std_17)
+	target_link_libraries(language_registration_test PRIVATE Sourcetrail_lib)
+	if (WIN32)
+		# Sourcetrail_lib.dll lives in its own output directory; put it on the
+		# test's PATH so ctest does not block on a missing-DLL dialog.
+		add_test(NAME language_registration COMMAND ${CMAKE_COMMAND} -E env
+			"PATH=$<TARGET_FILE_DIR:Sourcetrail_lib>;$ENV{PATH}"
+			$<TARGET_FILE:language_registration_test>)
+	else()
+		add_test(NAME language_registration COMMAND language_registration_test)
+	endif()
+
 	add_executable(cli_options_test
 		src/lib/utility/commandline/tests/CliOptionRegistryTest.cpp
 		src/lib/utility/commandline/CliOptionRegistry.cpp

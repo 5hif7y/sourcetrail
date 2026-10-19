@@ -32,6 +32,11 @@ bool SourceGroupFactory::removeModule(
 	return true;
 }
 
+size_t SourceGroupFactory::moduleCount() const
+{
+	return m_modules.size();
+}
+
 std::vector<std::shared_ptr<SourceGroup>> SourceGroupFactory::createSourceGroups(
 	std::vector<std::shared_ptr<SourceGroupSettings>> allSourceGroupSettings)
 {
