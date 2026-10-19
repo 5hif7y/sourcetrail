@@ -68,11 +68,15 @@ Después de los cambios se compilaron y ejecutaron:
 ### 1.6 macOS: segfault de `plugin_abi`
 
 El job `plugin-context (macos-latest)` fallaba con `plugin_abi` en SEGFAULT
-desde `9b52fd5`. Causa: `PluginHost` destruía `m_log` antes que `m_plugins`
-(orden de declaración); el dispose del plugin sticky llamaba a `host->log()` y
-accedía a un `std::function` ya destruido. Ahora `~PluginHost()` hace
-`m_plugins.clear()` en el cuerpo, con todos los miembros todavía vivos. El test
-sticky sigue cubriendo ese camino (`f8d93676`).
+desde `9b52fd5`. La causa real era el test: `PluginABITest` declaraba `host`
+antes que `logs`; al final de `main` se destruía `logs` primero y el destructor
+de `host` disponía el plugin sticky, cuyo dispose llamaba a `host->log()` y
+escribía en el vector ya destruido. Se corrigió el orden de declaración y se
+documentó (`30dfcf17`).
+
+Además se endureció `~PluginHost()` para vaciar `m_plugins` antes de que se
+destruya `m_log` (`f8d93676`), que era un problema latente del orden de
+miembros aunque no la causa de este segfault.
 
 ---
 
@@ -147,9 +151,10 @@ offscreen.
 |---|---|
 | `5425963c` | ownership de acciones de menú y `removeView` |
 | `c907eb1b` | activación de perfiles por `SOURCETRAIL_DISABLE_PLUGINS` |
-| `f8d93676` | orden de destrucción de `PluginHost` (segfault macOS) |
+| `f8d93676` | orden de destrucción de `PluginHost` (endurecimiento) |
 | `8b65c7db` | job `root-ctest` con vcpkg y shared core |
 | `70fce0a5` | `paths-ignore` para docs y `concurrency` |
+| `30dfcf17` | orden de vida del log sink en `PluginABITest` (segfault macOS) |
 | commit de este documento | doc 36 y actualización de docs 27/35 |
 
 ---
