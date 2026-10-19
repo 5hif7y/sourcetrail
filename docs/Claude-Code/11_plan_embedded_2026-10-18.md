@@ -226,8 +226,15 @@ huérfanos tras cerrar; fallback probado matando el daemon a mitad de indexado.
 
 - [x] Comparación con la copia original: **0 archivos faltantes**.
 - [x] Spikes I6/I1‑I2 medidos y documentados (`10_...`, `spikes/`).
-- [ ] E1 perfil de build.
-- [ ] E2 límites de recursos.
+- [x] **E1 perfil de build** — embedded por defecto (CLI, sin Qt/LLVM/Java), desktop
+  opt‑in. Verificado: embedded 311,9 s / 0,6 GB / CLI 2 MB; CLI+Java y CLI+CXX sin GUI
+  compilan y funcionan; desktop 328,4 s / 0 errores. Detalle en `13_...`.
+- [ ] E2 límites de recursos (hilos, heap JVM, refresh incremental, shallow, FTS).
 - [ ] E3 daemon Python.
 - [ ] E4 tamaño/RAM.
 - [ ] E5 cross‑compilación y docs.
+
+**Bugs encontrados y corregidos durante E1:** `find_package(Qt6)` y `AidKit_qt`
+incondicionales; `ApplicationSettingsPrefiller` llamando detectores Java/CXX ausentes;
+`SourcetrailLibExport.h` marcando `dllimport` en el core static; `sourcetrail_indexer`
+como `WIN32` sin `WinMain`; deploy incompleto de DLLs del core en shared‑core sin GUI.
