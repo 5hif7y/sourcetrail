@@ -81,6 +81,42 @@ miembros aunque no la causa de este segfault.
 Verificado en CI: `plugin-context (macos-latest)` pasó en el run
 `39285491944` (commit `30dfcf17`).
 
+### 1.7 Crash de GUI al abrir `main.greet`
+
+**Síntoma:** en el proyecto `odin-sample`, al navegar y abrir la función
+`main.greet`, Sourcetrail.exe se cerraba solo. Windows registró
+`0xc0000409` (fail-fast) en `ucrtbase.dll`.
+
+**Reproducción:** activar repetidamente la source location 12 (el token
+`greet` en `main.odin`) → nodo 29 (`main.greet`). El crash aparecía a las
+~10–12 activaciones.
+
+**Stack (cdb):**
+
+```text
+ucrtbase!abort
+VCRUNTIME140!_purecall
+MessageQueue::sendMessageAsTask
+MessageQueue::processMessage
+MessageQueue::doThreadLoop
+```
+
+**Causa:** `sendMessageAsTask`/`sendMessage` guardan punteros a los listeners.
+`QtThreadedFunctorHelper` se destruye y su vtable cambia, pero
+`MessageListenerBase::~` recién desregistra al final; una tarea encolada todavía
+llama `getType()`/`handleMessageBase()` sobre el objeto en destrucción →
+llamada a función virtual pura → `abort`. **No es un defecto de los datos
+Odin**: el sample valida (32/42/0, rangos dentro del contenido, sin duplicados
+de ocurrencia).
+
+**Fix (`eca6b558`):** `MessageListenerBase::unregister()` es idempotente y
+`~QtThreadedFunctorHelper()` libera el semáforo y desregistra al inicio del
+destructor, antes de que cambie la vtable.
+
+**Verificación:** sin el fix, crash a las ~10–12 activaciones; con el fix,
+**76 activaciones bajo cdb** y **25 más en el build final** sin crash. ctest
+raíz 7/7.
+
 ---
 
 ## 2. Hallazgos abiertos
@@ -149,6 +185,7 @@ offscreen.
 | CLI core `--threads=1` | **28,9 s** (antes 30,4 s) |
 | Base final, ocurrencias duplicadas | **0** |
 | GUI offscreen | 5–8 s sin crash |
+| GUI `main.greet`, 25/76 activaciones | sin crash tras `eca6b558` |
 | Binarios rastreados | **0** |
 | Identificadores personales en archivos nuevos | **0** |
 
@@ -166,6 +203,7 @@ offscreen.
 | `30dfcf17` | orden de vida del log sink en `PluginABITest` (segfault macOS) |
 | `a4f386fd` | baseline de vcpkg para `run-vcpkg` |
 | `2afb7506` | PIC en los estáticos para el core compartido en Linux |
+| `eca6b558` | crash de GUI por listener destruido (purecall) |
 | commit de este documento | doc 36 y actualización de docs 27/35 |
 
 ---
@@ -173,5 +211,6 @@ offscreen.
 ## 5. Conclusión
 
 No quedan pendientes funcionales. El root ctest corre en CI y está verde en las
-tres OS (run `39289862684`, 15/15 jobs). Todo lo demás es externo (E5, defecto
-upstream de Odin) o validación manual de la GUI.
+tres OS (run `39289862684`, 15/15 jobs). El crash de GUI al abrir
+`main.greet` quedó corregido y verificado (`eca6b558`). Todo lo demás es
+externo (E5, defecto upstream de Odin) o validación manual de la GUI.
