@@ -110,7 +110,8 @@ bloqueados con un error explícito; el perfil vacío mantiene todo habilitado.
 limpiar el perfil.
 
 Esto complementa la composición de CMake (`embedded`/`desktop`): no cambia
-qué se compila, sólo qué manifiestos se cargan.
+qué se compila, sólo qué manifiestos se cargan. Se activa desde el entorno con
+`SOURCETRAIL_DISABLE_PLUGINS=ui,cxx` (coma, punto y coma o espacio).
 
 ---
 
@@ -159,8 +160,9 @@ revisar los menús. El usuario lo hará una vez cerrados los demás pendientes.
 | GUI offscreen | 8 s sin crash |
 | Parser, no resueltas | **2** (defecto de `core`) |
 
-Pendientes para este proyecto: **ninguno**. Quedan sólo la validación manual
-de la GUI (usuario), el defecto de `core` de Odin (upstream) y E5 (otro
+Pendientes funcionales: **ninguno**. Queda un pendiente de ingeniería
+—llevar el root ctest al CI— documentado en el doc 36; además de la validación
+manual de la GUI (usuario), el defecto de `core` de Odin (upstream) y E5 (otro
 desarrollador con ARM64).
 
 ---
@@ -174,6 +176,8 @@ desarrollador con ARM64).
 | `cf795f0b` | refresco de menús al cambiar contribuyentes |
 | `c0cc4d87` | perfiles de composición en runtime |
 | `d428bb4b` | plugin de lenguaje dinámico con módulo/paquete reales |
+| `5425963c` | ownership de acciones de menú y `removeView` |
+| `c907eb1b` | perfiles activables por `SOURCETRAIL_DISABLE_PLUGINS` |
 | commit de este documento | doc 35 y actualización del doc 27 |
 
 ---
