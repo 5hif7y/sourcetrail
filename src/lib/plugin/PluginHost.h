@@ -25,6 +25,14 @@
 #    define WIN32_LEAN_AND_MEAN
 #  endif
 #  include <windows.h>
+// windows.h defines ERROR and IGNORE as macros; Sourcetrail has enums with
+// those names (LocationType::ERROR, TabId::IGNORE).
+#  ifdef ERROR
+#    undef ERROR
+#  endif
+#  ifdef IGNORE
+#    undef IGNORE
+#  endif
 #else
 #  include <dlfcn.h>
 #endif

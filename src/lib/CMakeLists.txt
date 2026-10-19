@@ -1462,6 +1462,8 @@ target_include_directories(Sourcetrail_lib
 		project/SourceGroupFactoryModuleOdin.h
 		project/OdinPlugin.cpp
 		project/OdinPlugin.h
+		project/CorePlugin.cpp
+		project/CorePlugin.h
 		settings/source_group/type/SourceGroupSettingsPythonEmpty.cpp
 		settings/source_group/type/SourceGroupSettingsPythonEmpty.h
 		settings/source_group/type/SourceGroupSettingsOdinEmpty.cpp

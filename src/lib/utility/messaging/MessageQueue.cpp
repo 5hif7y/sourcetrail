@@ -10,6 +10,7 @@
 
 #include <boost/container/small_vector.hpp>
 
+#include <algorithm>
 #include <chrono>
 #include <thread>
 
@@ -61,6 +62,18 @@ bool MessageQueue::isListenerRegistered(const MessageListenerBase *listener) con
 void MessageQueue::addMessageFilter(std::shared_ptr<MessageFilter> filter)
 {
 	m_filters.access()->push_back(filter);
+}
+
+bool MessageQueue::removeMessageFilter(const std::shared_ptr<MessageFilter>& filter)
+{
+	auto filters = m_filters.access();
+	const auto it = std::find(filters->begin(), filters->end(), filter);
+	if (it == filters->end())
+	{
+		return false;
+	}
+	filters->erase(it);
+	return true;
 }
 
 void MessageQueue::pushMessage(std::shared_ptr<MessageBase> message)

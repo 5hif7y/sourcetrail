@@ -33,6 +33,7 @@ public:
 	void unregisterListener(MessageListenerBase* listener);
 
 	void addMessageFilter(std::shared_ptr<MessageFilter> filter);
+	bool removeMessageFilter(const std::shared_ptr<MessageFilter>& filter);
 
 	void pushMessage(std::shared_ptr<MessageBase> message);
 	void processMessage(std::shared_ptr<MessageBase> message, bool asNextTask);

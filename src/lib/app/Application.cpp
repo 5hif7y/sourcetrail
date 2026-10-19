@@ -4,13 +4,11 @@
 
 #include "ApplicationSettings.h"
 #include "ColorScheme.h"
+#include "CorePlugin.h"
 #include "DialogView.h"
 #include "GraphViewStyle.h"
 #include "IDECommunicationController.h"
 #include "MainView.h"
-#include "MessageFilterErrorCountUpdate.h"
-#include "MessageFilterFocusInOut.h"
-#include "MessageFilterSearchAutocomplete.h"
 #include "MessageQueue.h"
 #include "MessageQuitApplication.h"
 #include "MessageStatus.h"
@@ -95,9 +93,7 @@ void Application::startMessagingAndScheduling()
 	TaskManager::getScheduler(TabIds::background())->startLoopThread();
 
 	std::shared_ptr<MessageQueue> queue = MessageQueue::getInstance();
-	queue->addMessageFilter(std::make_shared<MessageFilterErrorCountUpdate>());
-	queue->addMessageFilter(std::make_shared<MessageFilterFocusInOut>());
-	queue->addMessageFilter(std::make_shared<MessageFilterSearchAutocomplete>());
+	st::plugin::ensureCorePluginLoaded();
 
 	s_previousSendMessagesAsTasks = queue->setSendMessagesAsTasks(true);
 	queue->startLoopThread();
