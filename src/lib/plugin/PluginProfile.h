@@ -6,10 +6,12 @@
 // to run the embedded composition without optional UI or language plugins).
 // An empty active profile allows every plugin, preserving the default.
 
+#include <cstdlib>
 #include <map>
 #include <set>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace st
 {
@@ -40,6 +42,47 @@ public:
 		if (!profile.name.empty())
 		{
 			m_profiles[profile.name] = std::move(profile);
+		}
+	}
+
+	// Convenience activation for the CLI and API:
+	// SOURCETRAIL_DISABLE_PLUGINS=ui,cxx,...
+	void loadFromEnvironment()
+	{
+		const char* value = std::getenv("SOURCETRAIL_DISABLE_PLUGINS");
+		if (!value || !value[0])
+		{
+			return;
+		}
+
+		PluginProfile profile;
+		profile.name = "environment";
+		std::string id;
+		for (const char* cursor = value;; ++cursor)
+		{
+			const char character = *cursor;
+			const bool separator = character == ',' || character == ';' ||
+				character == ' ' || character == '\t' || character == '\0';
+			if (!separator)
+			{
+				id.push_back(character);
+				continue;
+			}
+			if (!id.empty())
+			{
+				profile.disabled.insert(id);
+				id.clear();
+			}
+			if (character == '\0')
+			{
+				break;
+			}
+		}
+
+		if (!profile.disabled.empty())
+		{
+			define(std::move(profile));
+			setActive("environment");
 		}
 	}
 

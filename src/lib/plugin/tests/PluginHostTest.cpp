@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -101,6 +102,25 @@ int main()
 	profiles.clearActive();
 	check(host.load(blocked), "plugin loads after clearing the profile");
 	check(host.unload("profile-disabled"), "clean up profile-disabled plugin");
+
+#if defined(_WIN32)
+	_putenv_s("SOURCETRAIL_DISABLE_PLUGINS", "env-disabled");
+#else
+	setenv("SOURCETRAIL_DISABLE_PLUGINS", "env-disabled", 1);
+#endif
+	PluginHost environmentHost;
+	PluginManifest environmentBlocked = manifest;
+	environmentBlocked.id = "env-disabled";
+	check(!environmentHost.load(environmentBlocked), "environment profile blocks a plugin");
+	check(
+		environmentHost.lastError().find("profile") != std::string::npos,
+		"environment profile reports the reason");
+#if defined(_WIN32)
+	_putenv_s("SOURCETRAIL_DISABLE_PLUGINS", "");
+#else
+	unsetenv("SOURCETRAIL_DISABLE_PLUGINS");
+#endif
+	profiles.clearActive();
 
 	if (s_failures != 0)
 	{

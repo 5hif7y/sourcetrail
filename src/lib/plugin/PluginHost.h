@@ -100,7 +100,10 @@ class PluginHost
 public:
 	using LogSink = std::function<void(const std::string&)>;
 
-	PluginHost() = default;
+	PluginHost()
+	{
+		PluginProfileRegistry::instance().loadFromEnvironment();
+	}
 
 	PluginHost(const PluginHost&) = delete;
 	PluginHost& operator=(const PluginHost&) = delete;
