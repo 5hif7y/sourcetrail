@@ -33,17 +33,7 @@ jobs:
       - name: Build
         run: cmake --build build/plugin-context --config Release
 
-      - name: Test (macOS backtrace)
-        if: runner.os == 'macOS'
-        continue-on-error: true
-        run: |
-          cd build/plugin-context
-          lldb --batch -o run -o "thread backtrace all" -- \
-            ./plugin_abi_test ./dynamic_test_plugin.dylib ./sticky_test_plugin.dylib \
-            2>&1 | tail -200
-
       - name: Test
-        if: runner.os != 'macOS'
         run: ctest --test-dir build/plugin-context -C Release --output-on-failure
 
   language-registry:

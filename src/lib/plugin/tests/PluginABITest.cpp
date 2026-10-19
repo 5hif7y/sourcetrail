@@ -32,8 +32,11 @@ int main(int argc, char** argv)
 		return 2;
 	}
 
-	st::plugin::PluginHost host;
+	// Declare the sink target before the host: the host destructor disposes the
+	// sticky plugin, whose dispose callback logs. The host (and its sink) must
+	// be destroyed before the vector it writes to.
 	std::vector<std::string> logs;
+	st::plugin::PluginHost host;
 	host.setLogSink([&logs](const std::string& message) { logs.push_back(message); });
 
 	const bool loaded = host.loadDynamic(argv[1]);
