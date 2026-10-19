@@ -180,7 +180,8 @@ is_builtin_proc :: proc(s: string) -> bool {
 		"ordered_remove", "unordered_remove", "pop", "shrink", "quaternion",
 		"jmag", "kmag", "non_zero_resize", "map_entry", "simd_shuffle",
 		"free_all", "container_of", "inject_at",
-		"offset_of_by_string", "typeid_of", "assert_contextless", "unreachable":
+		"offset_of_by_string", "typeid_of", "assert_contextless", "unreachable",
+		"card", "make_slice":
 		return true
 	}
 	return false
@@ -980,8 +981,13 @@ parse_struct_fields :: proc(p: ^Parser, owner: string) {
 		// reference set (it used to be scanned as a TYPE_USAGE).
 		default_tokens: []Token
 		eq_index := -1
+		depth := 0
 		for token, index in type_tokens {
-			if token.text == "=" {
+			if token.text == "(" || token.text == "[" || token.text == "{" {
+				depth += 1
+			} else if token.text == ")" || token.text == "]" || token.text == "}" {
+				depth -= 1
+			} else if token.text == "=" && depth == 0 {
 				eq_index = index
 				break
 			}
@@ -1717,15 +1723,22 @@ add_inheritance_refs :: proc(p: ^Parser, context_name: string, tokens: []Token, 
 		tokens[0].text == "_" {
 		return
 	}
-	for token in tokens {
+	for token, index in tokens {
 		if token.kind != .Ident {
 			continue
 		}
 		if is_builtin_type(token.text) {
 			continue
 		}
-		chain := []string{token.text}
-		if target, ok := resolve(p, chain); ok {
+		chain := make([dynamic]string, 0, 4)
+		append(&chain, token.text)
+		cursor := index + 1
+		for cursor + 1 < len(tokens) && tokens[cursor].text == "." &&
+			tokens[cursor + 1].kind == .Ident {
+			append(&chain, tokens[cursor + 1].text)
+			cursor += 2
+		}
+		if target, ok := resolve(p, chain[:]); ok {
 			append(&p.file.refs, Ref{ctx = context_name, target = target, kind = .INHERITANCE, tok = tok})
 			break
 		}
