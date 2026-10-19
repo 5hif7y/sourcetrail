@@ -78,6 +78,9 @@ Además se endureció `~PluginHost()` para vaciar `m_plugins` antes de que se
 destruya `m_log` (`f8d93676`), que era un problema latente del orden de
 miembros aunque no la causa de este segfault.
 
+Verificado en CI: `plugin-context (macos-latest)` pasó en el run
+`39285491944` (commit `30dfcf17`).
+
 ---
 
 ## 2. Hallazgos abiertos
@@ -93,10 +96,13 @@ Se añadió el job `root-ctest` al workflow, en las tres OS:
   `language_registration` y `language_plugin_abi`.
 
 Validación local con el mismo perfil (reusando el vcpkg ya instalado): build
-limpio y **ctest 7/7**. El 2026-10-19 GitHub Actions está en
-`degraded_performance` (status.github.com) y los runs quedaron encolados; queda
-confirmar el primer run verde en GitHub. También se añadieron `paths-ignore`
-para docs y `concurrency` para cancelar runs viejos.
+limpio y **ctest 7/7**. En el primer run real, Windows falló antes de
+configurar porque `run-vcpkg@v11` exige un baseline y `vcpkg.json` no lo tenía;
+se fijó `vcpkgGitCommitId` al commit usado en el build local (`a4f386fd`). El
+2026-10-19 GitHub Actions estuvo en `degraded_performance` y los runs se
+encolaron; el primer run verde del `root-ctest` queda pendiente de confirmar.
+También se añadieron `paths-ignore` para docs y `concurrency` para cancelar
+runs viejos.
 
 ### 2.2 Páginas de preferencias sin refresco vivo
 
@@ -155,6 +161,7 @@ offscreen.
 | `8b65c7db` | job `root-ctest` con vcpkg y shared core |
 | `70fce0a5` | `paths-ignore` para docs y `concurrency` |
 | `30dfcf17` | orden de vida del log sink en `PluginABITest` (segfault macOS) |
+| `a4f386fd` | baseline de vcpkg para `run-vcpkg` |
 | commit de este documento | doc 36 y actualización de docs 27/35 |
 
 ---
