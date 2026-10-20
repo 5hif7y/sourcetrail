@@ -334,7 +334,7 @@ if (isVcpkgBuild)
 endif()
 
 set(BOOST_MIN_VERSION 1.83)
-set(BOOST_MAX_VERSION 1.92)
+set(BOOST_MAX_VERSION 1.93)
 
 find_package(Boost CONFIG REQUIRED 
 	COMPONENTS
@@ -514,7 +514,8 @@ if (BUILD_CXX_LANGUAGE_PACKAGE)
 	set(CLANG_MIN_VERSION 21)
 	set(CLANG_MAX_VERSION 22)
 
-	if (isVcpkgBuild)
+	# An explicit -DClang_DIR (e.g. a system LLVM installed outside vcpkg) wins over the vcpkg path.
+	if (isVcpkgBuild AND NOT DEFINED Clang_DIR)
 		# Force Clang_DIR to the Release configuration directory to prevent CMake
 		# from picking up debug/lib/cmake/clang (which imports Debug LLVM libraries).
 		# Use VCPKG_INSTALLED_DIR instead of assuming <binary-dir>/vcpkg_installed:

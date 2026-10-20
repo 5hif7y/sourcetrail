@@ -78,6 +78,27 @@ Other useful options:
 The `gui` feature keeps Qt out of the dependency tree in embedded builds; the `cxx`
 feature keeps LLVM out. This is what makes a fresh embedded configure fast.
 
+#### Using an LLVM from outside the vcpkg tree
+
+Building LLVM through vcpkg takes hours. An LLVM/Clang that is already built can be passed
+explicitly, and it then takes precedence over the vcpkg path:
+
+```cmd
+cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE="[path_to_vcpkg]/scripts/buildsystems/vcpkg.cmake" ^
+  -DBUILD_CXX_LANGUAGE_PACKAGE=ON ^
+  -DLLVM_DIR="[llvm]/share/llvm" -DClang_DIR="[llvm]/lib/cmake/clang"
+```
+
+That LLVM must use the dynamic CRT (`/MD`), like the rest of the build; the overlay port in
+`vcpkg-overlay-ports/llvm` enforces this with `ONLY_DYNAMIC_CRT`. The official LLVM release
+archives for Windows are built with the static CRT (`/MT`): they link, but the CLI crashes while
+indexing. A package built earlier by the overlay port can be reused from the vcpkg binary cache
+(`%LOCALAPPDATA%\vcpkg\archives`) by extracting it; changing the triplet changes the package ABI
+and makes vcpkg rebuild LLVM from source.
+
+The C++ indexer runs in a child process: build the `Sourcetrail_indexer` target too, or indexing
+reports `0/N source files indexed`.
+
 ### 4. Build the Project
 
 ```cmd
