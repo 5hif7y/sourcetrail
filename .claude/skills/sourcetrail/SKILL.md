@@ -19,7 +19,10 @@ Dos responsabilidades separadas:
 - **Esta skill** consulta la base. El esquema es el mismo para todos los lenguajes, así que las
   consultas no saben de qué lenguaje vino cada símbolo: solo leen nodos, aristas y ubicaciones.
 
-`<skill>` abajo es la carpeta de esta skill (`~/.claude/skills/sourcetrail`). Scripts en Git Bash:
+`<skill>` abajo es la carpeta de esta skill: `.claude/skills/sourcetrail` en el repo de
+Sourcetrail, o `~/.claude/skills/sourcetrail` si se copió para usarla en otros proyectos. Los
+scripts buscan lo que necesitan junto a ellos o en el PATH, así que funcionan desde las dos.
+Scripts en Git Bash:
 
 - `scripts/srctrl <base> <consulta> [nombre]`: las consultas de relación, con los nombres
   decodificados. Usa `SRCTRL_SQLITE`, un `sqlite3.exe` copiado al lado o el `sqlite3` del PATH.
