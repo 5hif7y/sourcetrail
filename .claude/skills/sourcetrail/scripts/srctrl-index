@@ -91,4 +91,13 @@ EOF
 echo "proyecto: $project"
 "$cli" --refresh=all --threads="$threads" "$(win "$(abs "$project")")"
 db="$out/$name.srctrldb"
-[ -f "$db" ] && echo "base: $db" || { echo "el CLI no dejó la base" >&2; exit 1; }
+[ -f "$db" ] || { echo "el CLI no dejó la base" >&2; exit 1; }
+# El CLI deja una base vacía y sale bien si no pudo indexar (falta Sourcetrail_indexer, el
+# proyecto no se leyó, no hay fuentes): contar los archivos indexados con srctrl, si hay sqlite3.
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if indexed=$("$here/srctrl" "$db" sql "SELECT count(*) FROM file WHERE indexed = 1" 2> /dev/null); then
+	[ "$indexed" -gt 0 ] || { echo "la base no tiene archivos indexados: $db (ver el log del CLI)" >&2; exit 1; }
+	echo "base: $db ($indexed archivos indexados)"
+else
+	echo "base: $db (sin sqlite3 para contar los archivos indexados)"
+fi

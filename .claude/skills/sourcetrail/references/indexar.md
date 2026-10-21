@@ -48,7 +48,9 @@ Sourcetrail indexa C y C++ con Clang, con los mismos flags con los que se compil
 <skill>/scripts/srctrl <carpeta>/<nombre>.srctrldb sql "SELECT message, translation_unit FROM error WHERE fatal = 1 LIMIT 20"
 ```
 
-- `0/N source files indexed` y "Cannot start indexer process because executable is missing" en
-  el log: falta `Sourcetrail_indexer.exe` junto al CLI ([compilar](compilar.md)).
+- `srctrl-index` falla con "la base no tiene archivos indexados" si el CLI dejó una base vacía
+  (necesita `sqlite3` para contarlos). Con `0/N source files indexed` y "Cannot start indexer
+  process because executable is missing" en el log, falta `Sourcetrail_indexer.exe` junto al CLI
+  ([compilar](compilar.md)). Con `0/0`, el proyecto no tenía fuentes o no se pudo leer.
 - Errores fatales de includes en C/C++: falta un `-I` o un encabezado generado. Las relaciones de
   las unidades que sí compilaron quedan igual.
