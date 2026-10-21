@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Consultas de relación sobre una base .srctrldb hecha por Sourcetrail (C/C++ indexado con Clang).
+# Consultas de relación sobre una base .srctrldb hecha por Sourcetrail, de cualquier lenguaje.
 # Uso: srctrl <base.srctrldb> <consulta> [nombre] [--limit N] [--in <ruta>]
-#   stats                 archivos, nodos, aristas por tipo y errores de Clang
+#   stats                 archivos, nodos, aristas por tipo y errores del indexador
 #   find <patrón>         símbolos cuyo nombre calificado contiene el patrón
 #   callers <nombre>      quién llama a la función (arista CALL), con archivo:línea de la llamada
 #   callees <nombre>      a quién llama la función
@@ -39,7 +39,7 @@ within="${within//\'/\'\'}"
 # Nombres de Sourcetrail: <delim>\tm<nombre>\ts<prefijo>\tp<postfijo>[\tn<nombre>...]; cada nivel
 # trae siempre \ts y \tp (NameHierarchy::serializeRange).
 # sym deja de cada nivel solo el nombre, une los niveles con el separador del lenguaje (el que va
-# antes de \tm: :: en C++ y Odin, . en Python y Java) y pone en sig el postfijo (la firma) del
+# antes de \tm: :: en C++, . en Python, Java y Odin) y pone en sig el postfijo (la firma) del
 # último nivel. Cada main viene como .:main:.<archivo> (uno por ejecutable) y queda main.
 # Camino rápido: si después de quitar los \ts\tp vacíos solo queda la firma del último nivel,
 # basta reemplazar \tn por el separador. Si no (la clase local de una función, el tipo dentro de

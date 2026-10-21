@@ -11,7 +11,7 @@ Tablas de Sourcetrail, verificadas en `src/lib/data/storage/sqlite/SqliteIndexSt
 | `file` | `id, path, language, modification_time, indexed, complete, line_count` | `path` absoluto |
 | `source_location` | `id, file_node_id, start_line, start_column, end_line, end_column, type` | rangos |
 | `occurrence` | `element_id, source_location_id` | qué nodo o arista ocurre dónde |
-| `error` | `id, message, fatal, indexed, translation_unit` | diagnósticos de Clang |
+| `error` | `id, message, fatal, indexed, translation_unit` | diagnósticos del indexador (Clang en C/C++) |
 | `filecontent`, `local_symbol`, `component_access`, `meta`, `element`, `element_component` | | |
 
 - `edge.type` (bits de `src/lib/data/graph/Edge.h`): 1 member, 2 type_usage, 4 usage, 8 call,
