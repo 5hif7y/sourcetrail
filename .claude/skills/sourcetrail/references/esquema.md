@@ -17,15 +17,19 @@ Tablas de Sourcetrail, verificadas en `src/lib/data/storage/sqlite/SqliteIndexSt
 - `edge.type` (bits de `src/lib/data/graph/Edge.h`): 1 member, 2 type_usage, 4 usage, 8 call,
   16 inheritance, 32 override, 64 type_argument, 128 template_specialization, 256 include,
   512 import, 1024 bundled, 2048 macro_usage, 4096 annotation_usage.
-- `node.type` (bits de `src/lib/data/NodeKind.h`): 1 symbol, 2 type, 4 builtin, 16 namespace,
-  64 struct, 128 class, 1024 global, 2048 field, 4096 function, 8192 method, 16384 enum,
-  32768 enum_constant, 65536 typedef, 131072 type_param, 262144 file, 524288 macro, 1048576 union.
+- `node.type` (bits de `src/lib/data/NodeKind.h`): 1 symbol, 2 type, 4 builtin, 8 module,
+  16 namespace, 32 package, 64 struct, 128 class, 256 interface, 512 annotation, 1024 global,
+  2048 field, 4096 function, 8192 method, 16384 enum, 32768 enum_constant, 65536 typedef,
+  131072 type_param, 262144 file, 524288 macro, 1048576 union, 2097152 record, 4194304 concept,
+  8388608 c_cast.
 - `source_location.type` (`src/lib/data/location/LocationType.h`): 0 token, 1 scope,
   2 qualifier, 3 local_symbol, 4 signature, 5 comment, 6 error, 9 unsolved.
 - `serialized_name` (`src/lib/data/name/NameHierarchy.cpp`): `<delim>\tm` y por cada nivel
-  `<nombre>\ts<prefijo>\tp<postfijo>`, niveles unidos por `\tn`. El prefijo es el tipo de
-  retorno y el postfijo la lista de parámetros. `srctrl` lo traduce en la vista temporal
-  `sym(id, kind, qname, sig)`, disponible también en `sql`.
+  `<nombre>\ts<prefijo>\tp<postfijo>`, niveles unidos por `\tn`. `<delim>` es el separador del
+  lenguaje: `::` en C++, `.` en Python, Java y Odin. El prefijo es el tipo de retorno y el
+  postfijo la lista de parámetros; un `main` de C/C++ viene como `.:main:.<archivo>`. `srctrl` lo
+  traduce, uniendo los niveles con ese separador, en la vista temporal `sym(id, kind, qname, sig)`,
+  disponible también en `sql`.
 - El sitio de una relación es la `occurrence` de la arista: `occurrence.element_id = edge.id`.
 
 Ejemplo de SQL libre, quién usa un campo:

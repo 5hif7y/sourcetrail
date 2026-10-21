@@ -8,8 +8,8 @@
 #   refs <nombre>         todo lo que apunta al símbolo (llamada, uso, tipo, herencia, override)
 #   members <nombre>      miembros de una clase, struct o namespace
 #   sql "<SQL>"           SQL libre; la vista temporal sym(id, kind, qname, sig) ya está creada
-# <nombre> es el nombre calificado sin firma (FLumenWorldCache::Update) o su final (Update):
-# coincide con "=nombre" o con "...::nombre".
+# <nombre> es el nombre calificado sin firma (FLumenWorldCache::Update, pkg.Clase.metodo) o su final:
+# coincide con "=nombre", con "...::nombre" o con "....nombre".
 # --in <ruta>: en callers, callees, refs y find, solo el otro extremo definido en un archivo cuya
 # ruta contiene <ruta> (p. ej. Renderer/Private): saca matemática inline, STL y macros.
 set -euo pipefail
@@ -37,18 +37,22 @@ within="${within//\'/\'\'}"
 
 # loc en site: 0 token, 1 scope (cuerpo de la definición), 2 qualifier.
 # Nombres de Sourcetrail: <delim>\tm<nombre>\ts<prefijo>\tp<postfijo>[\tn<nombre>...].
-# sym quita los prefijos vacíos, une los niveles con :: y separa la firma del último nivel;
+# sym quita los prefijos vacíos, une los niveles con el separador del lenguaje (el que va antes
+# de 	m: :: en C++ y Odin, . en Python y Java) y separa la firma del último nivel;
 # cada main viene como .:main:.<archivo> (uno por ejecutable) y queda main.
 prelude="
 CREATE TEMP VIEW nm AS SELECT id, type,
   replace(replace(substr(serialized_name, instr(serialized_name, char(9)||'m') + 2),
-    char(9)||'s'||char(9)||'p', ''), char(9)||'n', '::') AS s FROM node;
+    char(9)||'s'||char(9)||'p', ''), char(9)||'n',
+    substr(serialized_name, 1, instr(serialized_name, char(9)||'m') - 1)) AS s FROM node;
 CREATE TEMP VIEW sym AS SELECT id,
-  CASE type WHEN 1 THEN 'symbol' WHEN 2 THEN 'type' WHEN 4 THEN 'builtin' WHEN 16 THEN 'namespace'
-    WHEN 64 THEN 'struct' WHEN 128 THEN 'class' WHEN 1024 THEN 'global' WHEN 2048 THEN 'field'
+  CASE type WHEN 1 THEN 'symbol' WHEN 2 THEN 'type' WHEN 4 THEN 'builtin' WHEN 8 THEN 'module'
+    WHEN 16 THEN 'namespace' WHEN 32 THEN 'package' WHEN 64 THEN 'struct' WHEN 128 THEN 'class'
+    WHEN 256 THEN 'interface' WHEN 512 THEN 'annotation' WHEN 1024 THEN 'global' WHEN 2048 THEN 'field'
     WHEN 4096 THEN 'function' WHEN 8192 THEN 'method' WHEN 16384 THEN 'enum'
     WHEN 32768 THEN 'enum_constant' WHEN 65536 THEN 'typedef' WHEN 131072 THEN 'type_param'
     WHEN 262144 THEN 'file' WHEN 524288 THEN 'macro' WHEN 1048576 THEN 'union'
+    WHEN 2097152 THEN 'record' WHEN 4194304 THEN 'concept' WHEN 8388608 THEN 'c_cast'
     ELSE 'kind_'||type END AS kind,
   CASE WHEN s LIKE '.:main:.%' THEN 'main'
     WHEN instr(s, char(9)||'s') > 0 THEN substr(s, 1, instr(s, char(9)||'s') - 1) ELSE s END AS qname,
@@ -64,7 +68,7 @@ CREATE TEMP VIEW site AS SELECT o.element_id AS element_id, f.path AS path, l.st
   l.type AS loc FROM occurrence o JOIN source_location l ON l.id = o.source_location_id
   JOIN file f ON f.id = l.file_node_id;
 "
-match="(t.qname = '$esc' OR t.qname LIKE '%::$esc')"
+match="(t.qname = '$esc' OR t.qname LIKE '%::$esc' OR t.qname LIKE '%.$esc')"
 # Filtro --in sobre el nodo "otro" (alias o): su definición (token o scope) cae en la ruta.
 in_other() { [ -z "$within" ] && echo "1" || echo "EXISTS (SELECT 1 FROM site WHERE element_id = $1.id AND loc IN (0, 1) AND path LIKE '%$within%')"; }
 
@@ -93,7 +97,7 @@ WHERE e.type = 8 AND $match AND $(in_other t2) ORDER BY w.line, t2.qname LIMIT $
 SELECT e.kind, s.qname||s.sig, w.path||':'||w.line FROM edge_kind e
 JOIN sym t ON t.id = e.target_node_id JOIN sym s ON s.id = e.source_node_id
 LEFT JOIN site w ON w.element_id = e.id
-WHERE e.type NOT IN (1, 256) AND $match AND $(in_other s) ORDER BY e.kind, s.qname, w.line LIMIT $limit;" ;;
+WHERE e.type NOT IN (1, 256, 512) AND $match AND $(in_other s) ORDER BY e.kind, s.qname, w.line LIMIT $limit;" ;;
 	members) sql="
 SELECT m.kind, m.qname||m.sig FROM edge_kind e
 JOIN sym t ON t.id = e.source_node_id JOIN sym m ON m.id = e.target_node_id

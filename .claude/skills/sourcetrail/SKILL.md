@@ -1,32 +1,38 @@
 ---
 name: sourcetrail
-description: Relaciones del código C y C++ desde una base .srctrldb de Sourcetrail (indexada con
-  Clang, con tipos). Usar para preguntas de relación entre símbolos que pedirían recorrer muchos
-  archivos con Grep - quién llama a una función, a quién llama, quién usa un campo o un tipo, quién
-  hereda o sobrescribe, qué miembros tiene una clase - y para consultar la base con SQL. También
-  para armar la base de un proyecto desde su compile_commands.json (CMake, Ninja, Bear, Unreal sin
-  UBT). No usar para ubicar una declaración, buscar texto ni entender un flujo: ahí Grep y Read.
+description: Relaciones del código desde una base .srctrldb de Sourcetrail, sea cual sea el
+  lenguaje que se indexó (C, C++, Python, Odin, Java). Usar para preguntas de relación entre
+  símbolos que pedirían recorrer muchos archivos con Grep - quién llama a una función, a quién
+  llama, quién usa un campo o un tipo, quién hereda o sobrescribe, qué miembros tiene una clase -
+  y para consultar la base con SQL. Si el proyecto no tiene base, armarla con el indexador de
+  Sourcetrail. No usar para ubicar una declaración, buscar texto ni entender un flujo: ahí Grep y
+  Read.
 ---
 
 # Sourcetrail
 
-Una base `.srctrldb` es una SQLite con los símbolos y las relaciones que Clang resolvió. Esta skill
-trae los dos scripts para usarla en cualquier proyecto, en Git Bash:
+Dos responsabilidades separadas:
 
-- `scripts/srctrl <base> <consulta> [nombre]`: consultas de relación ya hechas, con los nombres de
-  Sourcetrail decodificados. Usa `SRCTRL_SQLITE`, un `sqlite3.exe` copiado al lado del script o el `sqlite3` del PATH.
-- `scripts/srctrl-index <compile_commands.json> <carpeta> <nombre>`: escribe el `.srctrlprj` y corre
-  el CLI de Sourcetrail. El CLI sale de `SOURCETRAIL_CLI` o del PATH (`sourcetrail_cli`):
-  `<build>/Release/app/sourcetrail_cli.exe` al compilar este repo ([compilar](references/compilar.md)).
+- **El indexador** (el CLI de Sourcetrail) resuelve el lenguaje: parsea el código y escribe una
+  base `.srctrldb`. Qué lenguajes hay depende de cómo se compiló el fork (C y C++ con Clang,
+  Python, Odin, Java).
+- **Esta skill** consulta la base. El esquema es el mismo para todos los lenguajes, así que las
+  consultas no saben de qué lenguaje vino cada símbolo: solo leen nodos, aristas y ubicaciones.
 
-`<skill>` abajo es la carpeta de esta skill (`~/.claude/skills/sourcetrail`).
+`<skill>` abajo es la carpeta de esta skill (`~/.claude/skills/sourcetrail`). Scripts en Git Bash:
+
+- `scripts/srctrl <base> <consulta> [nombre]`: las consultas de relación, con los nombres
+  decodificados. Usa `SRCTRL_SQLITE`, un `sqlite3.exe` copiado al lado o el `sqlite3` del PATH.
+- `scripts/srctrl-index`: un atajo para correr el indexador sin la interfaz; escribe el
+  `.srctrlprj` y llama al CLI, que sale de `SOURCETRAIL_CLI` o del PATH
+  (`<build>/Release/app/sourcetrail_cli.exe` al compilar este repo; [armar la base](references/indexar.md)).
 
 ## Flujo
 
 1. **¿Hay base?** Buscar un `*.srctrldb` del proyecto. Si no hay, armarla
-   ([armar la base](references/indexar.md)); para Unreal Engine, [unreal](references/unreal.md).
+   ([indexar](references/indexar.md); Unreal Engine: [unreal](references/unreal.md)).
 2. **Comprobarla:** `<skill>/scripts/srctrl <base> stats` da archivos, nodos, aristas por tipo y
-   errores de Clang. Muchos errores fatales o pocas aristas `call` = la base está incompleta.
+   errores del indexador. Muchos errores fatales o pocas aristas `call` = base incompleta.
 3. **Una consulta por relación**, con `--limit` si la lista puede ser larga y `--in <ruta>` para
    quedarse con el código propio. La fila trae símbolo y `archivo:línea`: no abrir el archivo
    para confirmarla.
@@ -44,32 +50,32 @@ trae los dos scripts para usarla en cualquier proyecto, en Git Bash:
 <skill>/scripts/srctrl <base> sql "<SQL>"
 ```
 
-- `<nombre>`: el nombre calificado sin firma (`Box::grow`) o su final (`grow`); coincide exacto o
-  como `...::<nombre>`. Un final corto trae homónimos: la columna del nombre calificado los separa.
+- `<nombre>`: el nombre calificado sin firma o su final. Los niveles se unen con el separador que
+  el indexador guardó para ese lenguaje: `Box::grow` en C++, `app.Box.grow` en Python,
+  `demo.grow` en Odin. Coincide exacto, como `...::<nombre>` o como `....<nombre>`; un final corto
+  trae homónimos, que la columna del nombre calificado separa.
 - `find`: por subcadena; da la definición (el cuerpo si existe, si no el token).
 - `callers` / `callees`: una fila por sitio de llamada, con el `archivo:línea` de la llamada.
-- `refs`: llamadas, usos, uso como tipo, herencia y override (no `member` ni `include`).
-- `members`: campos y métodos de una clase, struct o namespace.
+- `refs`: llamadas, usos, uso como tipo, herencia y override (no `member`, `include` ni `import`).
+- `members`: campos y métodos de una clase, struct, módulo o namespace.
 - `--in <ruta>`: solo el otro extremo definido en un archivo cuya ruta contiene `<ruta>`. Saca la
-  matemática inline, la STL y las macros de los `callees`.
+  biblioteca estándar, las funciones inline y las macros de los `callees`.
 - `sql`: SQL libre con las vistas `sym(id, kind, qname, sig)`, `edge_kind` y `site`
   ([esquema](references/esquema.md)).
 - Salida con columnas separadas por ` | `, cortada en 50 filas sin `--limit`.
 
 ## Cómo leer los resultados
 
+- Lo que el indexador no resolvió no está: en lenguajes dinámicos (Python) una llamada a través
+  de una variable sin tipo conocido puede faltar, y un llamador en un archivo no indexado tampoco
+  aparece. Confirmar con Grep antes de afirmar que algo no tiene llamadores.
 - Una función que "se llama a sí misma" en la línea de una macro es la expansión, no recursión.
-- Un llamador en una unidad que no se indexó no aparece: confirmar con Grep antes de afirmar que
-  algo no tiene llamadores.
-- Las funciones `static` llevan el archivo en la firma (`helper(Box &) (a.cpp)`); cada `main`
-  queda como `main`.
-- Los encabezados fuera de `--headers` se parsean pero no se guardan: sus símbolos aparecen solo
-  como extremos de relaciones del código indexado.
+- En C y C++ las funciones `static` llevan el archivo en la firma (`helper(Box &) (a.cpp)`) y
+  cada `main` queda como `main`.
 
 ## Mapa
 
-- Armar una base desde `compile_commands.json`, y cómo obtenerlo en cada sistema de build:
-  [indexar](references/indexar.md).
+- Armar una base por lenguaje, y cómo obtener un `compile_commands.json`: [indexar](references/indexar.md).
 - Unreal Engine sin UBT ni UHT: [unreal](references/unreal.md).
 - Tablas, tipos de nodo y arista, formato de los nombres, SQL de ejemplo: [esquema](references/esquema.md).
 - Compilar el fork rápido (LLVM `/MD` de la caché de vcpkg): [compilar](references/compilar.md).
