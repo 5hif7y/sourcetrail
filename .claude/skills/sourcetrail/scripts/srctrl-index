@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# Arma una base .srctrldb de Sourcetrail desde un compile_commands.json.
+# Uso: srctrl-index <compile_commands.json> <carpeta> <nombre> [--headers <ruta>]... [--threads N]
+#   Escribe <carpeta>/<nombre>.srctrlprj y corre el CLI; la base queda en <carpeta>/<nombre>.srctrldb.
+#   --headers <ruta>  encabezados que se guardan en la base (repetible). Sin --headers, los de la
+#                     carpeta del compile_commands.json. Los de afuera se parsean pero no se guardan.
+#   --threads N       hilos del indexador (4 por defecto).
+# El CLI sale de SOURCETRAIL_CLI o del PATH (sourcetrail_cli).
+set -euo pipefail
+
+[ $# -ge 3 ] || { sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
+cdb="$1"; out="$2"; name="$3"; shift 3
+headers=(); threads=4
+while [ $# -gt 0 ]; do
+	case "$1" in
+		--headers) headers+=("$2"); shift 2 ;;
+		--threads) threads="$2"; shift 2 ;;
+		*) echo "opción desconocida: $1" >&2; exit 2 ;;
+	esac
+done
+[ -f "$cdb" ] || { echo "no existe: $cdb" >&2; exit 1; }
+cli="${SOURCETRAIL_CLI:-$(command -v sourcetrail_cli || true)}"
+[ -x "$cli" ] || { echo "no está el CLI de Sourcetrail: $cli (poné SOURCETRAIL_CLI)" >&2; exit 1; }
+
+# Rutas en el formato de Windows que lee Sourcetrail (C:/...).
+win() { if command -v cygpath > /dev/null; then cygpath -m "$1"; else echo "$1"; fi; }
+mkdir -p "$out"
+cdb_abs="$(cd "$(dirname "$cdb")" && pwd)/$(basename "$cdb")"
+[ ${#headers[@]} -gt 0 ] || headers=("$(dirname "$cdb_abs")")
+header_xml=""
+for h in "${headers[@]}"; do
+	header_xml+="                <indexed_header_path>$(win "$(cd "$h" && pwd)")</indexed_header_path>"$'\n'
+done
+
+project="$out/$name.srctrlprj"
+cat > "$project" <<EOF
+<?xml version="1.0" encoding="utf-8" ?>
+<config>
+    <source_groups>
+        <source_group_$(printf '%08x' $RANDOM$RANDOM)-0000-4000-8000-000000000000>
+            <build_file_path>
+                <compilation_db_path>$(win "$cdb_abs")</compilation_db_path>
+            </build_file_path>
+            <indexed_header_paths>
+$header_xml            </indexed_header_paths>
+            <name>$name</name>
+            <pch_flags>
+                <use_compiler_flags>0</use_compiler_flags>
+            </pch_flags>
+            <status>enabled</status>
+            <type>C/C++ from Compilation Database</type>
+        </source_group_$(printf '%08x' $RANDOM$RANDOM)-0000-4000-8000-000000000000>
+    </source_groups>
+    <version>8</version>
+</config>
+EOF
+# La etiqueta de cierre tiene que repetir la de apertura.
+open_tag="$(grep -o '<source_group_[^>]*>' "$project" | head -1)"
+sed -i "s#</source_group_[^>]*>#</${open_tag#<}#" "$project"
+
+echo "proyecto: $project"
+"$cli" --refresh=all --threads="$threads" "$(win "$(cd "$out" && pwd)/$name.srctrlprj")"
+db="$out/$name.srctrldb"
+[ -f "$db" ] && echo "base: $db" || { echo "el CLI no dejó la base" >&2; exit 1; }

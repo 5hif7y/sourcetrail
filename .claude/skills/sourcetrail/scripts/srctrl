@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# Consultas de relación sobre una base .srctrldb hecha por Sourcetrail (C/C++ indexado con Clang).
+# Uso: srctrl <base.srctrldb> <consulta> [nombre] [--limit N] [--in <ruta>]
+#   stats                 archivos, nodos, aristas por tipo y errores de Clang
+#   find <patrón>         símbolos cuyo nombre calificado contiene el patrón
+#   callers <nombre>      quién llama a la función (arista CALL), con archivo:línea de la llamada
+#   callees <nombre>      a quién llama la función
+#   refs <nombre>         todo lo que apunta al símbolo (llamada, uso, tipo, herencia, override)
+#   members <nombre>      miembros de una clase, struct o namespace
+#   sql "<SQL>"           SQL libre; la vista temporal sym(id, kind, qname, sig) ya está creada
+# <nombre> es el nombre calificado sin firma (FLumenWorldCache::Update) o su final (Update):
+# coincide con "=nombre" o con "...::nombre".
+# --in <ruta>: en callers, callees, refs y find, solo el otro extremo definido en un archivo cuya
+# ruta contiene <ruta> (p. ej. Renderer/Private): saca matemática inline, STL y macros.
+set -euo pipefail
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+sqlite="${SRCTRL_SQLITE:-}"
+if [ -z "$sqlite" ]; then
+	if [ -x "$here/sqlite3.exe" ]; then sqlite="$here/sqlite3.exe"; else sqlite="$(command -v sqlite3 || true)"; fi
+fi
+[ -n "$sqlite" ] || { echo "falta sqlite3: poné SRCTRL_SQLITE o sqlite3 en el PATH" >&2; exit 1; }
+
+[ $# -ge 2 ] || { sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
+db="$1"; query="$2"; shift 2
+name=""; limit=50; within=
+while [ $# -gt 0 ]; do
+	case "$1" in
+		--limit) limit="$2"; shift 2 ;;
+		--in) within="$2"; shift 2 ;;
+		*) name="$1"; shift ;;
+	esac
+done
+[ -f "$db" ] || { echo "no existe la base: $db" >&2; exit 1; }
+esc="${name//\'/\'\'}"
+within="${within//\'/\'\'}"
+
+# loc en site: 0 token, 1 scope (cuerpo de la definición), 2 qualifier.
+# Nombres de Sourcetrail: <delim>\tm<nombre>\ts<prefijo>\tp<postfijo>[\tn<nombre>...].
+# sym quita los prefijos vacíos, une los niveles con :: y separa la firma del último nivel;
+# cada main viene como .:main:.<archivo> (uno por ejecutable) y queda main.
+prelude="
+CREATE TEMP VIEW nm AS SELECT id, type,
+  replace(replace(substr(serialized_name, instr(serialized_name, char(9)||'m') + 2),
+    char(9)||'s'||char(9)||'p', ''), char(9)||'n', '::') AS s FROM node;
+CREATE TEMP VIEW sym AS SELECT id,
+  CASE type WHEN 1 THEN 'symbol' WHEN 2 THEN 'type' WHEN 4 THEN 'builtin' WHEN 16 THEN 'namespace'
+    WHEN 64 THEN 'struct' WHEN 128 THEN 'class' WHEN 1024 THEN 'global' WHEN 2048 THEN 'field'
+    WHEN 4096 THEN 'function' WHEN 8192 THEN 'method' WHEN 16384 THEN 'enum'
+    WHEN 32768 THEN 'enum_constant' WHEN 65536 THEN 'typedef' WHEN 131072 THEN 'type_param'
+    WHEN 262144 THEN 'file' WHEN 524288 THEN 'macro' WHEN 1048576 THEN 'union'
+    ELSE 'kind_'||type END AS kind,
+  CASE WHEN s LIKE '.:main:.%' THEN 'main'
+    WHEN instr(s, char(9)||'s') > 0 THEN substr(s, 1, instr(s, char(9)||'s') - 1) ELSE s END AS qname,
+  CASE WHEN instr(s, char(9)||'p') > 0 THEN substr(s, instr(s, char(9)||'p') + 2) ELSE '' END AS sig
+FROM nm;
+CREATE TEMP VIEW edge_kind AS SELECT id, source_node_id, target_node_id,
+  CASE type WHEN 1 THEN 'member' WHEN 2 THEN 'type_usage' WHEN 4 THEN 'usage' WHEN 8 THEN 'call'
+    WHEN 16 THEN 'inheritance' WHEN 32 THEN 'override' WHEN 64 THEN 'type_argument'
+    WHEN 128 THEN 'template_specialization' WHEN 256 THEN 'include' WHEN 512 THEN 'import'
+    WHEN 1024 THEN 'bundled' WHEN 2048 THEN 'macro_usage' WHEN 4096 THEN 'annotation_usage'
+    ELSE 'type_'||type END AS kind, type FROM edge;
+CREATE TEMP VIEW site AS SELECT o.element_id AS element_id, f.path AS path, l.start_line AS line,
+  l.type AS loc FROM occurrence o JOIN source_location l ON l.id = o.source_location_id
+  JOIN file f ON f.id = l.file_node_id;
+"
+match="(t.qname = '$esc' OR t.qname LIKE '%::$esc')"
+# Filtro --in sobre el nodo "otro" (alias o): su definición (token o scope) cae en la ruta.
+in_other() { [ -z "$within" ] && echo "1" || echo "EXISTS (SELECT 1 FROM site WHERE element_id = $1.id AND loc IN (0, 1) AND path LIKE '%$within%')"; }
+
+case "$query" in
+	stats) sql="
+SELECT 'archivos', count(*) FROM file;
+SELECT 'archivos indexados', count(*) FROM file WHERE indexed = 1;
+SELECT 'nodos', count(*) FROM node;
+SELECT 'arista '||kind, count(*) FROM edge_kind GROUP BY kind ORDER BY 2 DESC;
+SELECT 'errores (fatales)', count(*)||' ('||coalesce(sum(fatal), 0)||')' FROM error;" ;;
+	find) sql="
+SELECT t.kind, t.qname||t.sig, (SELECT path||':'||line FROM site
+  WHERE element_id = t.id AND loc IN (0, 1) ORDER BY loc DESC, line LIMIT 1)
+FROM sym t WHERE t.qname LIKE '%$esc%' AND t.kind <> 'file' AND $(in_other t) ORDER BY t.qname LIMIT $limit;" ;;
+	callers) sql="
+SELECT s.qname||s.sig, w.path||':'||w.line FROM edge_kind e
+JOIN sym t ON t.id = e.target_node_id JOIN sym s ON s.id = e.source_node_id
+LEFT JOIN site w ON w.element_id = e.id
+WHERE e.type = 8 AND $match AND $(in_other s) ORDER BY s.qname, w.line LIMIT $limit;" ;;
+	callees) sql="
+SELECT t2.qname||t2.sig, w.path||':'||w.line FROM edge_kind e
+JOIN sym t ON t.id = e.source_node_id JOIN sym t2 ON t2.id = e.target_node_id
+LEFT JOIN site w ON w.element_id = e.id
+WHERE e.type = 8 AND $match AND $(in_other t2) ORDER BY w.line, t2.qname LIMIT $limit;" ;;
+	refs) sql="
+SELECT e.kind, s.qname||s.sig, w.path||':'||w.line FROM edge_kind e
+JOIN sym t ON t.id = e.target_node_id JOIN sym s ON s.id = e.source_node_id
+LEFT JOIN site w ON w.element_id = e.id
+WHERE e.type NOT IN (1, 256) AND $match AND $(in_other s) ORDER BY e.kind, s.qname, w.line LIMIT $limit;" ;;
+	members) sql="
+SELECT m.kind, m.qname||m.sig FROM edge_kind e
+JOIN sym t ON t.id = e.source_node_id JOIN sym m ON m.id = e.target_node_id
+WHERE e.type = 1 AND $match ORDER BY m.kind, m.qname LIMIT $limit;" ;;
+	sql) sql="$name" ;;
+	*) echo "consulta desconocida: $query" >&2; exit 2 ;;
+esac
+
+"$sqlite" -readonly -separator ' | ' "$db" "$prelude$sql"
