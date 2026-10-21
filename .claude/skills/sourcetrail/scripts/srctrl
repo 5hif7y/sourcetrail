@@ -14,6 +14,10 @@
 # ruta contiene <ruta> (p. ej. Renderer/Private): saca matemática inline, STL y macros.
 set -euo pipefail
 
+# La ayuda es el bloque de comentarios de arriba, hasta la primera línea de código.
+usage() { awk 'NR > 1 && !/^#/ { exit } NR > 1 { sub(/^# ?/, ""); print }' "$0"; exit 2; }
+[ $# -ge 2 ] || usage
+
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 sqlite="${SRCTRL_SQLITE:-}"
 if [ -z "$sqlite" ]; then
@@ -21,7 +25,6 @@ if [ -z "$sqlite" ]; then
 fi
 [ -n "$sqlite" ] || { echo "falta sqlite3: poné SRCTRL_SQLITE o sqlite3 en el PATH" >&2; exit 1; }
 
-[ $# -ge 2 ] || { sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
 db="$1"; query="$2"; shift 2
 name=""; limit=50; within=
 while [ $# -gt 0 ]; do
