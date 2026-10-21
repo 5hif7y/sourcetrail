@@ -29,11 +29,13 @@ db="$1"; query="$2"; shift 2
 name=""; limit=50; within=
 while [ $# -gt 0 ]; do
 	case "$1" in
-		--limit) limit="$2"; shift 2 ;;
-		--in) within="$2"; shift 2 ;;
+		--limit|--in) [ $# -ge 2 ] || { echo "falta el valor de $1" >&2; exit 2; }
+			if [ "$1" = --limit ]; then limit="$2"; else within="$2"; fi; shift 2 ;;
 		*) name="$1"; shift ;;
 	esac
 done
+# limit va sin comillas al SQL: solo dígitos.
+[[ "$limit" =~ ^[0-9]+$ ]] || { echo "--limit espera un número: $limit" >&2; exit 2; }
 [ -f "$db" ] || { echo "no existe la base: $db" >&2; exit 1; }
 esc="${name//\'/\'\'}"
 within="${within//\'/\'\'}"
