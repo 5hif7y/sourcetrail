@@ -515,12 +515,18 @@ if (BUILD_CXX_LANGUAGE_PACKAGE)
 	set(CLANG_MAX_VERSION 22)
 
 	# An explicit -DClang_DIR (e.g. a system LLVM installed outside vcpkg) wins over the vcpkg path.
-	if (isVcpkgBuild AND NOT DEFINED Clang_DIR)
+	# A Clang_DIR this block set itself is recomputed, so a new triplet or installed tree in an
+	# existing build directory still takes effect; so is the Clang_DIR-NOTFOUND that a failed
+	# find_package leaves, so installing LLVM and reconfiguring works.
+	if (isVcpkgBuild AND (NOT DEFINED Clang_DIR OR Clang_DIR STREQUAL SOURCETRAIL_VCPKG_CLANG_DIR
+			OR Clang_DIR MATCHES "-NOTFOUND$"))
 		# Force Clang_DIR to the Release configuration directory to prevent CMake
 		# from picking up debug/lib/cmake/clang (which imports Debug LLVM libraries).
 		# Use VCPKG_INSTALLED_DIR instead of assuming <binary-dir>/vcpkg_installed:
 		# the installed tree may be shared between build directories.
 		set(Clang_DIR "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib/cmake/clang" CACHE PATH "Path to ClangConfig.cmake" FORCE)
+		# Remember the value as CMake stored it (PATH entries are normalized).
+		set(SOURCETRAIL_VCPKG_CLANG_DIR "${Clang_DIR}" CACHE INTERNAL "Clang_DIR as set from the vcpkg tree")
 	endif()
 
 	find_package(Clang CONFIG REQUIRED) # Minimum version and/or version range xx...<yy doesn't work.
