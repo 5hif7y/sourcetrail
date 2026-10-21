@@ -7,7 +7,7 @@
 #   callees <nombre>      a quién llama la función
 #   refs <nombre>         todo lo que apunta al símbolo (llamada, uso, tipo, herencia, override)
 #   members <nombre>      miembros de una clase, struct o namespace
-#   sql "<SQL>"           SQL libre; la vista temporal sym(id, kind, qname, sig) ya está creada
+#   sql "<SQL>"           SQL libre; la tabla temporal sym(id, kind, qname, sig) ya está creada
 # <nombre> es el nombre calificado sin firma (FLumenWorldCache::Update, pkg.Clase.metodo) o su final:
 # coincide, con mayúsculas, con "=nombre", con "...::nombre" o con "....nombre".
 # --in <ruta>: en callers, callees, refs y find, solo el otro extremo definido en un archivo cuya
@@ -36,16 +36,42 @@ esc="${name//\'/\'\'}"
 within="${within//\'/\'\'}"
 
 # loc en site: 0 token, 1 scope (cuerpo de la definición), 2 qualifier.
-# Nombres de Sourcetrail: <delim>\tm<nombre>\ts<prefijo>\tp<postfijo>[\tn<nombre>...].
-# sym quita los prefijos vacíos, une los niveles con el separador del lenguaje (el que va antes
-# de 	m: :: en C++ y Odin, . en Python y Java) y separa la firma del último nivel;
-# cada main viene como .:main:.<archivo> (uno por ejecutable) y queda main.
-prelude="
-CREATE TEMP VIEW nm AS SELECT id, type,
-  replace(replace(substr(serialized_name, instr(serialized_name, char(9)||'m') + 2),
-    char(9)||'s'||char(9)||'p', ''), char(9)||'n',
-    substr(serialized_name, 1, instr(serialized_name, char(9)||'m') - 1)) AS s FROM node;
-CREATE TEMP VIEW sym AS SELECT id,
+# Nombres de Sourcetrail: <delim>\tm<nombre>\ts<prefijo>\tp<postfijo>[\tn<nombre>...]; cada nivel
+# trae siempre \ts y \tp (NameHierarchy::serializeRange).
+# sym deja de cada nivel solo el nombre, une los niveles con el separador del lenguaje (el que va
+# antes de \tm: :: en C++ y Odin, . en Python y Java) y pone en sig el postfijo (la firma) del
+# último nivel. Cada main viene como .:main:.<archivo> (uno por ejecutable) y queda main.
+# Camino rápido: si después de quitar los \ts\tp vacíos solo queda la firma del último nivel,
+# basta reemplazar \tn por el separador. Si no (la clase local de una función, el tipo dentro de
+# una plantilla de función: ~1,4 % de los nodos de Unreal), lv recorre los niveles uno por uno.
+# sym es una tabla temporal: cada nombre se decodifica una sola vez por llamada.
+# En lv, $h es el nivel que se consume en cada paso.
+h="substr(r, 1, instr(r, char(9)||'n') - 1)"
+symtab="
+CREATE TEMP VIEW nm0 AS SELECT id, type, serialized_name AS raw,
+  substr(serialized_name, 1, instr(serialized_name, char(9)||'m') - 1) AS d,
+  replace(substr(serialized_name, instr(serialized_name, char(9)||'m') + 2),
+    char(9)||'s'||char(9)||'p', '') AS x FROM node;
+CREATE TEMP VIEW nm AS SELECT id, type, CASE
+  WHEN instr(x, char(9)||'s') = 0 OR instr(substr(x, instr(x, char(9)||'s')), char(9)||'n') = 0 THEN
+    CASE WHEN x GLOB '.:main:.*' THEN 'main'
+      WHEN instr(x, char(9)||'s') > 0 THEN replace(substr(x, 1, instr(x, char(9)||'s') - 1), char(9)||'n', d)
+      ELSE replace(x, char(9)||'n', d) END
+    || char(1) ||
+    CASE WHEN instr(x, char(9)||'p') > 0 THEN substr(x, instr(x, char(9)||'p') + 2) ELSE '' END
+  ELSE (WITH RECURSIVE lv(r, q, sig) AS (
+      SELECT substr(raw, instr(raw, char(9)||'m') + 2)||char(9)||'n', '', ''
+      UNION ALL
+      SELECT substr(r, instr(r, char(9)||'n') + 2),
+        q || CASE WHEN q = '' THEN '' ELSE d END
+          || CASE WHEN $h GLOB '.:main:.*' THEN 'main'
+            WHEN instr($h, char(9)||'s') > 0 THEN substr($h, 1, instr($h, char(9)||'s') - 1) ELSE $h END,
+        CASE WHEN instr($h, char(9)||'p') > 0 THEN substr($h, instr($h, char(9)||'p') + 2) ELSE '' END
+      FROM lv WHERE r <> '')
+    SELECT q||char(1)||sig FROM lv WHERE r = '') END AS s FROM nm0;
+CREATE TEMP TABLE sym(id INTEGER PRIMARY KEY, kind TEXT, qname TEXT, sig TEXT);
+WITH m AS MATERIALIZED (SELECT id, type, s FROM nm)
+INSERT INTO sym SELECT id,
   CASE type WHEN 1 THEN 'symbol' WHEN 2 THEN 'type' WHEN 4 THEN 'builtin' WHEN 8 THEN 'module'
     WHEN 16 THEN 'namespace' WHEN 32 THEN 'package' WHEN 64 THEN 'struct' WHEN 128 THEN 'class'
     WHEN 256 THEN 'interface' WHEN 512 THEN 'annotation' WHEN 1024 THEN 'global' WHEN 2048 THEN 'field'
@@ -54,10 +80,10 @@ CREATE TEMP VIEW sym AS SELECT id,
     WHEN 262144 THEN 'file' WHEN 524288 THEN 'macro' WHEN 1048576 THEN 'union'
     WHEN 2097152 THEN 'record' WHEN 4194304 THEN 'concept' WHEN 8388608 THEN 'c_cast'
     ELSE 'kind_'||type END AS kind,
-  CASE WHEN s LIKE '.:main:.%' THEN 'main'
-    WHEN instr(s, char(9)||'s') > 0 THEN substr(s, 1, instr(s, char(9)||'s') - 1) ELSE s END AS qname,
-  CASE WHEN instr(s, char(9)||'p') > 0 THEN substr(s, instr(s, char(9)||'p') + 2) ELSE '' END AS sig
-FROM nm;
+  substr(s, 1, instr(s, char(1)) - 1), substr(s, instr(s, char(1)) + 1)
+FROM m;
+"
+prelude="
 CREATE TEMP VIEW edge_kind AS SELECT id, source_node_id, target_node_id,
   CASE type WHEN 1 THEN 'member' WHEN 2 THEN 'type_usage' WHEN 4 THEN 'usage' WHEN 8 THEN 'call'
     WHEN 16 THEN 'inheritance' WHEN 32 THEN 'override' WHEN 64 THEN 'type_argument'
@@ -109,4 +135,6 @@ WHERE e.type = 1 AND $match ORDER BY m.kind, m.qname LIMIT $limit;" ;;
 	*) echo "consulta desconocida: $query" >&2; exit 2 ;;
 esac
 
+# stats no usa sym: se salta su costo (decodificar todos los nombres).
+[ "$query" = stats ] || prelude="$symtab$prelude"
 "$sqlite" -readonly -separator ' | ' "$db" "$prelude$sql"

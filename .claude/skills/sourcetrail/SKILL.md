@@ -61,7 +61,7 @@ Dos responsabilidades separadas:
 - `members`: campos y métodos de una clase, struct, módulo o namespace.
 - `--in <ruta>`: solo el otro extremo definido en un archivo cuya ruta contiene `<ruta>`. Saca la
   biblioteca estándar, las funciones inline y las macros de los `callees`.
-- `sql`: SQL libre con las vistas `sym(id, kind, qname, sig)`, `edge_kind` y `site`
+- `sql`: SQL libre con la tabla `sym(id, kind, qname, sig)` y las vistas `edge_kind` y `site`
   ([esquema](references/esquema.md)).
 - Salida con columnas separadas por ` | `, cortada en 50 filas sin `--limit`.
 

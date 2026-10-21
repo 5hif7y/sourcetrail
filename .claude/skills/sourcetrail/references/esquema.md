@@ -28,8 +28,10 @@ Tablas de Sourcetrail, verificadas en `src/lib/data/storage/sqlite/SqliteIndexSt
   `<nombre>\ts<prefijo>\tp<postfijo>`, niveles unidos por `\tn`. `<delim>` es el separador del
   lenguaje: `::` en C++, `.` en Python, Java y Odin. El prefijo es el tipo de retorno y el
   postfijo la lista de parámetros; un `main` de C/C++ viene como `.:main:.<archivo>`. `srctrl` lo
-  traduce, uniendo los niveles con ese separador, en la vista temporal `sym(id, kind, qname, sig)`,
-  disponible también en `sql`.
+  traduce en la tabla temporal `sym(id, kind, qname, sig)`, disponible también en `sql`: `qname`
+  une los nombres de los niveles con ese separador, sin firmas, y `sig` es el postfijo del último.
+  Los niveles intermedios también pueden tener firma (una clase local o un lambda dentro de una
+  función: `Render::lambda at 120:8`); `qname` la omite.
 - El sitio de una relación es la `occurrence` de la arista: `occurrence.element_id = edge.id`.
 
 Ejemplo de SQL libre, quién usa un campo:
