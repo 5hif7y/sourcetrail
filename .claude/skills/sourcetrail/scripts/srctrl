@@ -9,7 +9,7 @@
 #   members <nombre>      miembros de una clase, struct o namespace
 #   sql "<SQL>"           SQL libre; la vista temporal sym(id, kind, qname, sig) ya está creada
 # <nombre> es el nombre calificado sin firma (FLumenWorldCache::Update, pkg.Clase.metodo) o su final:
-# coincide con "=nombre", con "...::nombre" o con "....nombre".
+# coincide, con mayúsculas, con "=nombre", con "...::nombre" o con "....nombre".
 # --in <ruta>: en callers, callees, refs y find, solo el otro extremo definido en un archivo cuya
 # ruta contiene <ruta> (p. ej. Renderer/Private): saca matemática inline, STL y macros.
 set -euo pipefail
@@ -68,7 +68,10 @@ CREATE TEMP VIEW site AS SELECT o.element_id AS element_id, f.path AS path, l.st
   l.type AS loc FROM occurrence o JOIN source_location l ON l.id = o.source_location_id
   JOIN file f ON f.id = l.file_node_id;
 "
-match="(t.qname = '$esc' OR t.qname LIKE '%::$esc' OR t.qname LIKE '%.$esc')"
+# Comparación exacta, sensible a mayúsculas: LIKE ignora mayúsculas y toma _ y % como comodines,
+# y GLOB tomaría los [] y * de operator[] u operator*.
+match="(t.qname = '$esc' OR substr(t.qname, -length('::$esc')) = '::$esc'
+  OR substr(t.qname, -length('.$esc')) = '.$esc')"
 # Filtro --in sobre el nodo "otro" (alias o): su definición (token o scope) cae en la ruta.
 in_other() { [ -z "$within" ] && echo "1" || echo "EXISTS (SELECT 1 FROM site WHERE element_id = $1.id AND loc IN (0, 1) AND path LIKE '%$within%')"; }
 

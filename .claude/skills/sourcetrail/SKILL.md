@@ -52,8 +52,9 @@ Dos responsabilidades separadas:
 
 - `<nombre>`: el nombre calificado sin firma o su final. Los niveles se unen con el separador que
   el indexador guardó para ese lenguaje: `Box::grow` en C++, `app.Box.grow` en Python,
-  `demo.grow` en Odin. Coincide exacto, como `...::<nombre>` o como `....<nombre>`; un final corto
-  trae homónimos, que la columna del nombre calificado separa.
+  `demo.grow` en Odin. Coincide exacto y con mayúsculas (`grow` no trae `Grow`), entero o como
+  final `...::<nombre>` o `....<nombre>`; un final corto trae homónimos, que la columna del nombre
+  calificado separa.
 - `find`: por subcadena; da la definición (el cuerpo si existe, si no el token).
 - `callers` / `callees`: una fila por sitio de llamada, con el `archivo:línea` de la llamada.
 - `refs`: llamadas, usos, uso como tipo, herencia y override (no `member`, `include` ni `import`).
