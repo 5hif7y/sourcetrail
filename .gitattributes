@@ -5,3 +5,6 @@
 *.sh text eol=lf
 *.bat text eol=crlf
 *.cmd text eol=crlf
+# Bash scripts of the Claude Code skill must keep LF to run in Git Bash.
+.claude/skills/sourcetrail/scripts/srctrl text eol=lf
+.claude/skills/sourcetrail/scripts/srctrl-index text eol=lf
