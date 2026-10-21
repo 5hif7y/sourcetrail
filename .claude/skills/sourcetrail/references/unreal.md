@@ -10,7 +10,7 @@ arma para un subconjunto del renderer sin compilar nada:
 
 ```sh
 py -3 -I <skill>/scripts/unreal_cdb.py <UnrealEngine> <salida> Lumen MegaLights IndirectLightRendering.cpp
-<skill>/scripts/srctrl-index <salida>/compile_commands.json <salida> ue-renderer \
+<skill>/scripts/srctrl-index cdb <salida>/compile_commands.json <salida> ue-renderer \
   --headers <UnrealEngine>/Engine/Source/Runtime/Renderer --threads 4
 ```
 
