@@ -75,6 +75,11 @@ Dos responsabilidades separadas:
 - Una función que "se llama a sí misma" en la línea de una macro es la expansión, no recursión.
 - En C y C++ las funciones `static` llevan el archivo en la firma (`helper(Box &) (a.cpp)`) y
   cada `main` queda como `main`.
+- Las plantillas de C++ llevan sus parámetros en el nombre
+  (`TIdBasedArray<typename IndexType, typename ItemType, typename Allocator>::operator[]`), y cada
+  instanciación es otro símbolo con los argumentos concretos. `TIdBasedArray::operator[]` no
+  coincide con ninguno: consultar por el final (`operator[]`), que trae la plantilla y sus
+  instanciaciones, o copiar el nombre completo de `find`.
 
 ## Mapa
 
