@@ -24,11 +24,12 @@ case "$mode" in
 esac
 while [ $# -gt 0 ]; do
 	case "$1" in
-		--headers) headers+=("$2"); shift 2 ;;
-		--threads) threads="$2"; shift 2 ;;
+		--headers|--threads) [ $# -ge 2 ] || { echo "falta el valor de $1" >&2; exit 2; }
+			if [ "$1" = --headers ]; then headers+=("$2"); else threads="$2"; fi; shift 2 ;;
 		*) echo "opción desconocida: $1" >&2; exit 2 ;;
 	esac
 done
+[[ "$threads" =~ ^[1-9][0-9]*$ ]] || { echo "--threads espera un número positivo: $threads" >&2; exit 2; }
 # cdb sin carpeta por defecto: la del JSON suele ser build/, sin encabezados propios, y la base
 # saldría sin los símbolos de los .h.
 [ "$mode" = src ] || [ ${#headers[@]} -gt 0 ] || { echo "cdb necesita --headers <carpeta de encabezados>" >&2; exit 2; }
