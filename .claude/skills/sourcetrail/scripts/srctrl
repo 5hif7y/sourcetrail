@@ -37,6 +37,10 @@ done
 # limit va sin comillas al SQL: solo dígitos.
 [[ "$limit" =~ ^[0-9]+$ ]] || { echo "--limit espera un número: $limit" >&2; exit 2; }
 [ -f "$db" ] || { echo "no existe la base: $db" >&2; exit 1; }
+case "$query" in
+	callers|callees|refs|members) [ -n "$name" ] || { echo "$query necesita un nombre" >&2; exit 2; } ;;
+	sql) [ -n "$name" ] || { echo "sql necesita una consulta" >&2; exit 2; } ;;
+esac
 esc="${name//\'/\'\'}"
 within="${within//\'/\'\'}"
 
