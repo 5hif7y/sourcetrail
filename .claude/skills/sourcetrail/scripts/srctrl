@@ -5,7 +5,7 @@
 #   find <patrón>         símbolos cuyo nombre calificado contiene el patrón
 #   callers <nombre>      quién llama a la función (arista CALL), con archivo:línea de la llamada
 #   callees <nombre>      a quién llama la función
-#   refs <nombre>         todo lo que apunta al símbolo (llamada, uso, tipo, herencia, override)
+#   refs <nombre>         todo lo que apunta al símbolo menos member, include e import
 #   members <nombre>      miembros de una clase, struct o namespace
 #   sql "<SQL>"           SQL libre; la tabla temporal sym(id, kind, qname, sig) ya está creada
 # <nombre> es el nombre calificado sin firma (FLumenWorldCache::Update, pkg.Clase.metodo) o su final:

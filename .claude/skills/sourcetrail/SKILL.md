@@ -57,7 +57,9 @@ Dos responsabilidades separadas:
   calificado separa.
 - `find`: por subcadena; da la definición (el cuerpo si existe, si no el token).
 - `callers` / `callees`: una fila por sitio de llamada, con el `archivo:línea` de la llamada.
-- `refs`: llamadas, usos, uso como tipo, herencia y override (no `member`, `include` ni `import`).
+- `refs`: toda arista que apunta al símbolo menos `member`, `include` e `import`: llamadas, usos,
+  uso como tipo, herencia y override, y también argumento de plantilla, especialización de
+  plantilla, uso de macro y de anotación. La primera columna dice el tipo de cada fila.
 - `members`: campos y métodos de una clase, struct, módulo o namespace.
 - `--in <ruta>`: solo el otro extremo definido en un archivo cuya ruta contiene `<ruta>`. Saca la
   biblioteca estándar, las funciones inline y las macros de los `callees`.
