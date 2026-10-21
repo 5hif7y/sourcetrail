@@ -1,5 +1,6 @@
-"""Genera un compile_commands.json y un .srctrlprj para indexar con Sourcetrail un subconjunto
-del renderer de Unreal Engine sin compilar el motor (sin UBT ni UHT).
+"""Genera un compile_commands.json para indexar con Sourcetrail un subconjunto del renderer de
+Unreal Engine sin compilar el motor (sin UBT ni UHT). El proyecto y la base los arma
+srctrl-index cdb, con --headers en Runtime/Renderer.
 
 UBT no se corre: las rutas de include salen de recorrer los módulos (carpetas con *.Build.cs) y
 los .generated.h de UHT se reemplazan por stubs que anulan GENERATED_BODY y compañía. El índice
@@ -99,13 +100,6 @@ def main():
         elif os.path.isfile(p):
             files.append(p)
 
-    rsp = os.path.join(out, "flags.rsp")
-    with open(rsp, "w", newline="\n") as fh:
-        for d in defines:
-            fh.write(f'-D{d}\n'.replace("\\", "/"))
-        for i in includes:
-            fh.write(f'-I"{i}"\n'.replace("\\", "/"))
-
     base = ["clang++", "--target=x86_64-pc-windows-msvc", "-std=c++20", "-fms-extensions",
             "-fms-compatibility", "-fms-compatibility-version=19.44", "-fsyntax-only",
             "-Wno-everything", "-include", os.path.join(renderer_private, "RendererPrivatePCH.h")]
@@ -113,33 +107,6 @@ def main():
     cdb = [{"directory": renderer_private, "file": f, "arguments": base + [f]} for f in files]
     with open(os.path.join(out, "compile_commands.json"), "w") as fh:
         json.dump(cdb, fh, indent=1)
-
-    # Solo se indexan los encabezados del renderer: Core, Engine y RHI se parsean pero no se
-    # guardan, lo que mantiene chica la base y rápido el indexado.
-    renderer = os.path.join(source, "Runtime", "Renderer").replace("\\", "/")
-    prj = f"""<?xml version="1.0" encoding="utf-8" ?>
-<config>
-    <source_groups>
-        <source_group_5f0c1a2e-6b1d-4c55-9d0e-0a1e2f3b4c5d>
-            <build_file_path>
-                <compilation_db_path>./compile_commands.json</compilation_db_path>
-            </build_file_path>
-            <indexed_header_paths>
-                <indexed_header_path>{renderer}</indexed_header_path>
-            </indexed_header_paths>
-            <name>Unreal Renderer GI</name>
-            <pch_flags>
-                <use_compiler_flags>0</use_compiler_flags>
-            </pch_flags>
-            <status>enabled</status>
-            <type>C/C++ from Compilation Database</type>
-        </source_group_5f0c1a2e-6b1d-4c55-9d0e-0a1e2f3b4c5d>
-    </source_groups>
-    <version>8</version>
-</config>
-"""
-    with open(os.path.join(out, "ue-gi.srctrlprj"), "w", newline="\n") as fh:
-        fh.write(prj)
 
     print(f"{len(files)} archivos, {len(includes)} includes, {len(defines)} defines, "
           f"{len(names)} stubs")

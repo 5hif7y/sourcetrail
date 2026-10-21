@@ -5,8 +5,9 @@ arma para un subconjunto del renderer sin compilar nada:
 
 - junta los `Public`, `Classes` e `Internal` de cada módulo (carpetas con `*.Build.cs`) como `-I`;
 - define vacíos los `<MÓDULO>_API`;
-- reemplaza los `.generated.h` de UHT por stubs que anulan `GENERATED_BODY` y compañía;
-- escribe también un `.srctrlprj` con los encabezados del renderer como indexados.
+- reemplaza los `.generated.h` de UHT por stubs que anulan `GENERATED_BODY` y compañía.
+
+El proyecto y la base los arma `srctrl-index`, con los encabezados del renderer como indexados:
 
 ```sh
 py -3 -I <skill>/scripts/unreal_cdb.py <UnrealEngine> <salida> Lumen MegaLights IndirectLightRendering.cpp
