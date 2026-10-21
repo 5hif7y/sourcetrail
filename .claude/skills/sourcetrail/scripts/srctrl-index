@@ -2,9 +2,10 @@
 # Arma una base .srctrldb con el indexador de Sourcetrail. El lenguaje lo resuelve el indexador;
 # este script solo escribe el .srctrlprj y lo corre.
 # Uso:
-#   srctrl-index cdb <compile_commands.json> <carpeta> <nombre> [--headers <ruta>]... [--threads N]
-#       C y C++ con los flags de su compilación. --headers (repetible): los encabezados que se
-#       guardan; sin --headers, la carpeta del JSON. Los de afuera se parsean pero no se guardan.
+#   srctrl-index cdb <compile_commands.json> <carpeta> <nombre> --headers <ruta>... [--threads N]
+#       C y C++ con los flags de su compilación. --headers (obligatorio, repetible): las carpetas
+#       de encabezados cuyos símbolos se guardan, normalmente las del código propio. Los de afuera
+#       se parsean pero no se guardan.
 #   srctrl-index src <python|odin> <fuentes> <carpeta> <nombre> [--threads N]
 #       Python u Odin desde una carpeta de fuentes.
 # Escribe <carpeta>/<nombre>.srctrlprj; la base queda en <carpeta>/<nombre>.srctrldb.
@@ -28,6 +29,9 @@ while [ $# -gt 0 ]; do
 		*) echo "opción desconocida: $1" >&2; exit 2 ;;
 	esac
 done
+# cdb sin carpeta por defecto: la del JSON suele ser build/, sin encabezados propios, y la base
+# saldría sin los símbolos de los .h.
+[ "$mode" = src ] || [ ${#headers[@]} -gt 0 ] || { echo "cdb necesita --headers <carpeta de encabezados>" >&2; exit 2; }
 [ -e "$input" ] || { echo "no existe: $input" >&2; exit 1; }
 cli="${SOURCETRAIL_CLI:-$(command -v sourcetrail_cli || true)}"
 [ -x "$cli" ] || { echo "no está el CLI de Sourcetrail: $cli (poné SOURCETRAIL_CLI)" >&2; exit 1; }
@@ -39,7 +43,6 @@ mkdir -p "$out"
 
 case "$mode" in
 	cdb)
-		[ ${#headers[@]} -gt 0 ] || headers=("$(dirname "$(abs "$input")")")
 		paths=""
 		for h in "${headers[@]}"; do paths+="                <indexed_header_path>$(win "$(abs "$h")")</indexed_header_path>"$'\n'; done
 		group="            <build_file_path>

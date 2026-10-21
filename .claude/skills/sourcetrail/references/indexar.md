@@ -34,8 +34,9 @@ Sourcetrail indexa C y C++ con Clang, con los mismos flags con los que se compil
 
 - No hace falta compilar: alcanza con el JSON y los encabezados generados (protobuf, Qt `moc`,
   `config.h`) en su lugar. Correr antes el paso de generación del build si lo hay.
-- `--headers <ruta>` (repetible): los encabezados cuyos símbolos se guardan. Poner solo el código
-  propio; los de terceros se parsean igual. Sin `--headers`, la carpeta del JSON.
+- `--headers <ruta>` (obligatorio, repetible): las carpetas de encabezados cuyos símbolos se
+  guardan. Poner solo el código propio; los de terceros se parsean igual. No hay valor por
+  defecto: la carpeta del JSON suele ser `build/`, y la base saldría sin los símbolos de los `.h`.
 - Para un subconjunto, filtrar el JSON (una lista de `{directory, command|arguments, file}`):
   indexar todo un motor puede tardar horas. Medida: 66 unidades del renderer de Unreal en 14 min
   con 4 hilos, base de 82 MB.
