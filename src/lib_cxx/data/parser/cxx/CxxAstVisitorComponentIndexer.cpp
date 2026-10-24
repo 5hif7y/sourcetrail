@@ -1246,8 +1246,59 @@ void CxxAstVisitorComponentIndexer::recordDeducedQualType(const QualType deduced
 	m_client->recordReference(ReferenceKind::TYPE_USAGE, deducedTypeId, contextSymbolId, keywordLocation);
 }
 
+// 'CFG::buildCFG' assumes valid code: for a destructor it reads the definition of every base and
+// member class, which does not exist when a class was only forward declared (e.g. because an
+// include was not found), and the indexer crashes.
+static bool hasDefinedBasesAndMembers(const CXXRecordDecl *recordDecl)
+{
+	auto isDefined = [](QualType type)
+	{
+		const CXXRecordDecl *typeDecl = type->getBaseElementTypeUnsafe()->getAsCXXRecordDecl();
+		return typeDecl == nullptr || typeDecl->hasDefinition();
+	};
+
+	if (recordDecl == nullptr || !recordDecl->hasDefinition())
+	{
+		return false;
+	}
+	for (const CXXBaseSpecifier &base : recordDecl->bases())
+	{
+		if (!isDefined(base.getType()))
+		{
+			return false;
+		}
+	}
+	for (const CXXBaseSpecifier &base : recordDecl->vbases())
+	{
+		if (!isDefined(base.getType()))
+		{
+			return false;
+		}
+	}
+	for (const FieldDecl *field : recordDecl->fields())
+	{
+		if (!isDefined(field->getType()))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 void CxxAstVisitorComponentIndexer::recordNonTrivialDestructorCalls(const FunctionDecl *functionDecl)
 {
+	if (functionDecl->isInvalidDecl())
+	{
+		return;
+	}
+	if (const CXXDestructorDecl *destructorDecl = dyn_cast<CXXDestructorDecl>(functionDecl))
+	{
+		if (!hasDefinedBasesAndMembers(destructorDecl->getParent()))
+		{
+			return;
+		}
+	}
+
 	auto recordDestructorCall = [this](const FunctionDecl *functionDecl, const CXXDestructorDecl *destructorDecl)
 	{
 		Id referencedSymbolId = getOrCreateSymbolId(destructorDecl);
