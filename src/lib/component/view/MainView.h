@@ -18,7 +18,7 @@ class MainView: public ViewLayout
 {
 public:
 	MainView(const ViewFactory* viewFactory, StorageAccess* storageAccess);
-	virtual ~MainView() = default;
+	~MainView() override = default;
 
 	void setup();
 	void clear();
@@ -35,7 +35,7 @@ public:
 	virtual void loadWindow(bool showStartWindow) = 0;
 
 	virtual void hideStartScreen() = 0;
-	virtual void setTitle(const std::wstring& title) = 0;
+	virtual void setTitle(const std::string& title) = 0;
 	virtual void activateWindow() = 0;
 
 	virtual void updateRecentProjectMenu() = 0;

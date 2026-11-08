@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# Arma una base .srctrldb con el indexador de Sourcetrail. El lenguaje lo resuelve el indexador;
+# este script solo escribe el .srctrlprj y lo corre.
+# Uso:
+#   srctrl-index cdb <compile_commands.json> <carpeta> <nombre> --headers <ruta>... [--threads N]
+#       C y C++ con los flags de su compilación. --headers (obligatorio, repetible): las carpetas
+#       de encabezados cuyos símbolos se guardan, normalmente las del código propio. Los de afuera
+#       se parsean pero no se guardan.
+#   srctrl-index src <python|odin> <fuentes> <carpeta> <nombre> [--threads N]
+#       Python u Odin desde una carpeta de fuentes.
+# Escribe <carpeta>/<nombre>.srctrlprj; la base queda en <carpeta>/<nombre>.srctrldb.
+# El CLI sale de SOURCETRAIL_CLI o del PATH (sourcetrail_cli).
+set -euo pipefail
+
+# La ayuda es el bloque de comentarios de arriba, hasta la primera línea de código.
+usage() { awk 'NR > 1 && !/^#/ { exit } NR > 1 { sub(/^# ?/, ""); print }' "$0"; exit 2; }
+[ $# -ge 1 ] || usage
+mode="$1"; shift
+headers=(); threads=4; lang=""
+case "$mode" in
+	cdb) [ $# -ge 3 ] || usage; input="$1"; out="$2"; name="$3"; shift 3 ;;
+	src) [ $# -ge 4 ] || usage; lang="$1"; input="$2"; out="$3"; name="$4"; shift 4 ;;
+	*) usage ;;
+esac
+while [ $# -gt 0 ]; do
+	case "$1" in
+		--headers|--threads) [ $# -ge 2 ] || { echo "falta el valor de $1" >&2; exit 2; }
+			if [ "$1" = --headers ]; then headers+=("$2"); else threads="$2"; fi; shift 2 ;;
+		*) echo "opción desconocida: $1" >&2; exit 2 ;;
+	esac
+done
+[[ "$threads" =~ ^[1-9][0-9]*$ ]] || { echo "--threads espera un número positivo: $threads" >&2; exit 2; }
+# cdb sin carpeta por defecto: la del JSON suele ser build/, sin encabezados propios, y la base
+# saldría sin los símbolos de los .h.
+[ "$mode" = src ] || [ ${#headers[@]} -gt 0 ] || { echo "cdb necesita --headers <carpeta de encabezados>" >&2; exit 2; }
+[ -e "$input" ] || { echo "no existe: $input" >&2; exit 1; }
+cli="${SOURCETRAIL_CLI:-$(command -v sourcetrail_cli || true)}"
+[ -x "$cli" ] || { echo "no está el CLI de Sourcetrail: $cli (poné SOURCETRAIL_CLI)" >&2; exit 1; }
+
+# Rutas en el formato que lee Sourcetrail en Windows (C:/...).
+win() { if command -v cygpath > /dev/null; then cygpath -m "$1"; else echo "$1"; fi; }
+# Texto dentro del XML: & < > escapados (TinyXML los decodifica al leer el proyecto). Los
+# reemplazos van entre comillas: sin ellas, bash 5.2 lee el & como el texto encontrado.
+xml() { local s="${1//&/"&amp;"}"; s="${s//</"&lt;"}"; printf '%s' "${s//>/"&gt;"}"; }
+abs() { if [ -d "$1" ]; then (cd "$1" && pwd); else echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"; fi; }
+mkdir -p "$out"
+
+case "$mode" in
+	cdb)
+		paths=""
+		for h in "${headers[@]}"; do paths+="                <indexed_header_path>$(xml "$(win "$(abs "$h")")")</indexed_header_path>"$'\n'; done
+		group="            <build_file_path>
+                <compilation_db_path>$(xml "$(win "$(abs "$input")")")</compilation_db_path>
+            </build_file_path>
+            <indexed_header_paths>
+$paths            </indexed_header_paths>
+            <pch_flags>
+                <use_compiler_flags>0</use_compiler_flags>
+            </pch_flags>
+            <type>C/C++ from Compilation Database</type>" ;;
+	src)
+		case "$lang" in
+			python) extension=.py; type="Python Source Group" ;;
+			odin) extension=.odin; type="Empty Odin Source Group" ;;
+			*) echo "lenguaje sin modo src: $lang (python, odin; Java: proyecto Maven desde la interfaz)" >&2; exit 2 ;;
+		esac
+		group="            <source_extensions>
+                <source_extension>$extension</source_extension>
+            </source_extensions>
+            <source_paths>
+                <source_path>$(xml "$(win "$(abs "$input")")")</source_path>
+            </source_paths>
+            <type>$type</type>" ;;
+esac
+
+project="$out/$name.srctrlprj"
+cat > "$project" <<EOF
+<?xml version="1.0" encoding="utf-8" ?>
+<config>
+    <source_groups>
+        <source_group_1>
+            <name>$(xml "$name")</name>
+$group
+            <status>enabled</status>
+        </source_group_1>
+    </source_groups>
+    <version>8</version>
+</config>
+EOF
+
+echo "proyecto: $project"
+"$cli" --refresh=all --threads="$threads" "$(win "$(abs "$project")")"
+db="$out/$name.srctrldb"
+[ -f "$db" ] || { echo "el CLI no dejó la base" >&2; exit 1; }
+# El CLI deja una base vacía y sale bien si no pudo indexar (falta Sourcetrail_indexer, el
+# proyecto no se leyó, no hay fuentes): contar los archivos indexados con srctrl, si hay sqlite3.
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if indexed=$("$here/srctrl" "$db" sql "SELECT count(*) FROM file WHERE indexed = 1" 2> /dev/null); then
+	[ "$indexed" -gt 0 ] || { echo "la base no tiene archivos indexados: $db (ver el log del CLI)" >&2; exit 1; }
+	echo "base: $db ($indexed archivos indexados)"
+else
+	echo "base: $db (sin sqlite3 para contar los archivos indexados)"
+fi

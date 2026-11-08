@@ -25,9 +25,9 @@ public:
 		bool checkMissingPaths);
 
 	// QtSettingsWindow implementation
-	virtual void populate(QGridLayout* layout, int& row) override;
+	void populate(QGridLayout* layout, int& row) override;
 
-	virtual bool check() override;
+	bool check() override;
 
 protected:
 	void setTitleString(const QString& title);
@@ -44,7 +44,7 @@ protected:
 	QString m_showFilesString;
 	std::shared_ptr<CombinedPathDetector> m_pathDetector;
 
-	bool m_makePathsRelativeToProjectFileLocation;
+	bool m_makePathsRelativeToProjectFileLocation = true;
 
 private slots:
 	void detectionClicked();

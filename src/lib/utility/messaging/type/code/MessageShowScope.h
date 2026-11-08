@@ -2,7 +2,7 @@
 #define MESSAGE_SHOW_SCOPE_H
 
 #include "Message.h"
-#include "TabId.h"
+#include "TabIds.h"
 #include "types.h"
 
 class MessageShowScope: public Message<MessageShowScope>
@@ -11,7 +11,7 @@ public:
 	MessageShowScope(Id scopeLocationId, bool showErrors)
 		: scopeLocationId(scopeLocationId), showErrors(showErrors)
 	{
-		setSchedulerId(TabId::currentTab());
+		setSchedulerId(TabIds::currentTab());
 	}
 
 	static const std::string getStaticType()
@@ -19,7 +19,7 @@ public:
 		return "MessageShowScope";
 	}
 
-	virtual void print(std::wostream& os) const
+	void print(std::ostream& os) const override
 	{
 		os << scopeLocationId;
 	}

@@ -1,52 +1,47 @@
 #include "NameDelimiterType.h"
 
-#include <vector>
-
-std::wstring nameDelimiterTypeToString(NameDelimiterType delimiter)
+std::string nameDelimiterTypeToString(NameDelimiterType delimiter)
 {
 	switch (delimiter)
 	{
-	case NAME_DELIMITER_FILE:
-		return L"/";
-	case NAME_DELIMITER_CXX:
-		return L"::";
-	case NAME_DELIMITER_JAVA:
-		return L".";
-	default:
-		break;
+		case NameDelimiterType::FILE:
+			return "/";
+		case NameDelimiterType::CXX:
+			return "::";
+		case NameDelimiterType::JAVA:
+			return ".";
+		case NameDelimiterType::MODULE:
+			return ".";
+			break;
+		case NameDelimiterType::C_CAST:
+			return "()";
+		case NameDelimiterType::UNKNOWN:
+			break;
 	}
-	return L"@";
+	return "@";
 }
 
-NameDelimiterType stringToNameDelimiterType(const std::wstring& s)
+NameDelimiterType stringToNameDelimiterType(const std::string &s)
 {
-	if (s == nameDelimiterTypeToString(NAME_DELIMITER_FILE))
+	if (s == nameDelimiterTypeToString(NameDelimiterType::FILE))
 	{
-		return NAME_DELIMITER_FILE;
+		return NameDelimiterType::FILE;
 	}
-	if (s == nameDelimiterTypeToString(NAME_DELIMITER_CXX))
+	if (s == nameDelimiterTypeToString(NameDelimiterType::CXX))
 	{
-		return NAME_DELIMITER_CXX;
+		return NameDelimiterType::CXX;
 	}
-	if (s == nameDelimiterTypeToString(NAME_DELIMITER_JAVA))
+	if (s == nameDelimiterTypeToString(NameDelimiterType::JAVA))
 	{
-		return NAME_DELIMITER_JAVA;
+		return NameDelimiterType::JAVA;
 	}
-	return NAME_DELIMITER_UNKNOWN;
-}
-
-NameDelimiterType detectDelimiterType(const std::wstring& name)
-{
-	std::vector<NameDelimiterType> allDelimiters {
-		NAME_DELIMITER_FILE, NAME_DELIMITER_CXX, NAME_DELIMITER_JAVA};
-
-	for (NameDelimiterType delimiter: allDelimiters)
+	if (s == nameDelimiterTypeToString(NameDelimiterType::MODULE))
 	{
-		if (name.find(nameDelimiterTypeToString(delimiter)) != std::wstring::npos)
-		{
-			return delimiter;
-		}
+		return NameDelimiterType::MODULE;
 	}
-
-	return NAME_DELIMITER_UNKNOWN;
+	if (s == nameDelimiterTypeToString(NameDelimiterType::C_CAST))
+	{
+		return NameDelimiterType::C_CAST;
+	}
+	return NameDelimiterType::UNKNOWN;
 }

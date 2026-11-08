@@ -2,6 +2,7 @@
 #define CONTROLLER_H
 
 #include "Component.h"
+#include "TabIds.h"
 
 class Controller
 {
@@ -12,15 +13,15 @@ public:
 	void setComponent(Component* component);
 
 	virtual void clear() = 0;
-
-	Id getTabId() const;
+	
+	TabId getTabId() const;
 
 protected:
 	template <typename ViewType>
 	ViewType* getView() const;
 
 private:
-	Component* m_component;
+	Component* m_component = nullptr;
 };
 
 

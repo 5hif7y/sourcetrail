@@ -16,16 +16,16 @@ public:
 	QtProjectWizardContentPath(QtProjectWizardWindow* window);
 
 	// QtSettingsWindow implementation
-	virtual void populate(QGridLayout* layout, int& row) override;
+	void populate(QGridLayout* layout, int& row) override;
 
-	virtual bool check() override;
+	bool check() override;
 
 protected:
 	void setTitleString(const QString& title);
 	void setHelpString(const QString& help);
 	void setPlaceholderString(const QString& placeholder);
 
-	void setFileEndings(const std::set<std::wstring>& fileEndings);
+	void setFileEndings(const std::set<std::string>& fileEndings);
 
 	QtLocationPicker* m_picker;
 
@@ -35,7 +35,7 @@ private:
 	QString m_titleString;
 	QString m_helpString;
 	QString m_placeholderString;
-	std::set<std::wstring> m_fileEndings;
+	std::set<std::string> m_fileEndings;
 };
 
 #endif	  // QT_PROJECT_WIZARD_CONTENT_PATH_H

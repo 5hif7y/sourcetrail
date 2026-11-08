@@ -22,9 +22,9 @@ public:
 	static Direction opposite(Direction direction);
 
 	TokenComponentBundledEdges();
-	virtual ~TokenComponentBundledEdges();
+	~TokenComponentBundledEdges() override;
 
-	virtual std::shared_ptr<TokenComponent> copy() const;
+	std::shared_ptr<TokenComponent> copy() const override;
 
 	int getBundledEdgesCount() const;
 	std::set<Id> getBundledEdgesIds() const;
@@ -36,7 +36,7 @@ public:
 
 private:
 	std::map<Id, Direction> m_ids;
-	Direction m_direction;
+	Direction m_direction = DIRECTION_INVALID;
 };
 
 #endif	  // TOKEN_COMPONENT_BUNDLED_EDGES_H

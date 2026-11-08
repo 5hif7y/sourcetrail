@@ -10,8 +10,8 @@ public:
 	QtProjectWizardContentPathsFrameworkSearchGlobal(QtProjectWizardWindow* window);
 
 	// QtProjectWizardContent implementation
-	virtual void load() override;
-	virtual void save() override;
+	void load() override;
+	void save() override;
 };
 
 #endif	  // QT_PROJECT_WIZARD_CONTENT_PATHS_FRAMEWORK_SEARCH_GLOBAL_H

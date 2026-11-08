@@ -6,7 +6,7 @@
 class MessageClearStatusView: public Message<MessageClearStatusView>
 {
 public:
-	MessageClearStatusView() {}
+	MessageClearStatusView() = default;
 
 	static const std::string getStaticType()
 	{

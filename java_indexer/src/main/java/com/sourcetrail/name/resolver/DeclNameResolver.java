@@ -27,6 +27,7 @@ import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.Name;
 import org.eclipse.jdt.core.dom.PackageDeclaration;
 import org.eclipse.jdt.core.dom.QualifiedName;
+import org.eclipse.jdt.core.dom.RecordDeclaration;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
@@ -83,6 +84,7 @@ public class DeclNameResolver extends NameResolver
 		return declName;
 	}
 
+	@SuppressWarnings("cast")
 	public DeclName getDeclName(VariableDeclarationFragment decl)
 	{
 		TypeName typeName = TypeName.unsolved();
@@ -161,39 +163,37 @@ public class DeclNameResolver extends NameResolver
 
 		if (decl != null)
 		{
-			if (decl instanceof AnnotationTypeDeclaration)
+			if (decl instanceof AnnotationTypeDeclaration annotationDecl)
 			{
-				declName = new DeclName(((AnnotationTypeDeclaration)decl).getName().getIdentifier());
+				declName = new DeclName(annotationDecl.getName().getIdentifier());
 			}
-			else if (decl instanceof EnumDeclaration)
+			else if (decl instanceof EnumDeclaration enumDecl)
 			{
-				declName = new DeclName(((EnumDeclaration)decl).getName().getIdentifier());
+				declName = new DeclName(enumDecl.getName().getIdentifier());
 			}
-			else if (decl instanceof TypeDeclaration)
+			else if (decl instanceof RecordDeclaration recordDecl)
 			{
-				TypeDeclaration typeDeclaration = (TypeDeclaration)decl;
-
+				declName = new DeclName(recordDecl.getName().getIdentifier());
+			}
+			else if (decl instanceof TypeDeclaration typeDeclarationDecl)
+			{
 				List<String> typeParameterNames = new ArrayList<>();
-				for (Object typeParameter: typeDeclaration.typeParameters())
+				for (Object typeParameterDecl: typeDeclarationDecl.typeParameters())
 				{
-					if (typeParameter instanceof TypeParameter)
+					if (typeParameterDecl instanceof TypeParameter typeParameter)
 					{
-						typeParameterNames.add(
-							((TypeParameter)typeParameter).getName().getIdentifier());
+						typeParameterNames.add(typeParameter.getName().getIdentifier());
 					}
 				}
-
-				declName = new DeclName(
-					typeDeclaration.getName().getIdentifier(), typeParameterNames);
+				declName = new DeclName(typeDeclarationDecl.getName().getIdentifier(), typeParameterNames);
 			}
-			else if (decl instanceof AnnotationTypeMemberDeclaration)
+			else if (decl instanceof AnnotationTypeMemberDeclaration annotationTypeMemberDecl)
 			{
-				declName = new DeclName(
-					((AnnotationTypeMemberDeclaration)decl).getName().getIdentifier());
+				declName = new DeclName(annotationTypeMemberDecl.getName().getIdentifier());
 			}
-			else if (decl instanceof EnumConstantDeclaration)
+			else if (decl instanceof EnumConstantDeclaration enumConstantDecl)
 			{
-				declName = new DeclName(((EnumConstantDeclaration)decl).getName().getIdentifier());
+				declName = new DeclName(enumConstantDecl.getName().getIdentifier());
 			}
 			else if (decl instanceof FieldDeclaration)
 			{
@@ -203,10 +203,8 @@ public class DeclNameResolver extends NameResolver
 			{
 				declName = new DeclName("Initializer");
 			}
-			else if (decl instanceof MethodDeclaration)
+			else if (decl instanceof MethodDeclaration methodDeclaration)
 			{
-				MethodDeclaration methodDeclaration = (MethodDeclaration)decl;
-
 				List<String> typeParameterNames = new ArrayList<>();
 				for (Object typeParameter: methodDeclaration.typeParameters())
 				{
@@ -304,7 +302,7 @@ public class DeclNameResolver extends NameResolver
 	public DeclName getDeclName(AnonymousClassDeclaration decl)
 	{
 		Position pos = Utility.getRange(decl, m_compilationUnit).begin;
-		return DeclName.anonymousClass(m_currentFile, pos.line, pos.column);
+		return DeclName.anonymousClass(m_currentFile, pos.line(), pos.column());
 	}
 
 

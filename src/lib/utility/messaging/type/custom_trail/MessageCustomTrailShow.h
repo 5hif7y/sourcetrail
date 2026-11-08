@@ -6,7 +6,7 @@
 class MessageCustomTrailShow: public Message<MessageCustomTrailShow>
 {
 public:
-	MessageCustomTrailShow() {}
+	MessageCustomTrailShow() = default;
 
 	static const std::string getStaticType()
 	{

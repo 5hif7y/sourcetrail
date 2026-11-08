@@ -6,54 +6,28 @@
 #include <sstream>
 
 #include "FileSystem.h"
-#include "utilityString.h"
 
-std::wstring FileLogger::generateDatedFileName(
-	const std::wstring& prefix, const std::wstring& suffix, int offsetDays)
+std::string FileLogger::generateDatedFileName(const std::string &prefix, int offsetDays)
 {
-	time_t time;
-	std::time(&time);
-
-#pragma warning(push)
-#pragma warning(disable : 4996)
+	time_t time = std::time(nullptr);
 	tm t = *std::localtime(&time);
 
-	if (offsetDays != 0)
-	{
-		time = mktime(&t) + offsetDays * 24 * 60 * 60;
-		t = *std::localtime(&time);
-	}
-#pragma warning(pop)
+	// Apply the offset directly to the day field. mktime() will normalizes the struct (e.g., Dec 32nd becomes Jan 1st)
+	// and handles Daylight Saving Time transitions correctly:
 
-	std::wstringstream filename;
-	if (!prefix.empty())
-	{
-		filename << prefix << L"_";
-	}
+	t.tm_mday += offsetDays;
+	mktime(&t);
 
-	filename << t.tm_year + 1900 << L"-";
-	filename << (t.tm_mon < 9 ? L"0" : L"") << t.tm_mon + 1 << L"-";
-	filename << (t.tm_mday < 10 ? L"0" : L"") << t.tm_mday << L"_";
-	filename << (t.tm_hour < 10 ? L"0" : L"") << t.tm_hour << L"-";
-	filename << (t.tm_min < 10 ? L"0" : L"") << t.tm_min << L"-";
-	filename << (t.tm_sec < 10 ? L"0" : L"") << t.tm_sec;
-
-	if (!suffix.empty())
-	{
-		filename << L"_" << suffix;
-	}
+	std::stringstream filename;
+	filename << prefix << "_" << std::put_time(&t, "%Y-%m-%d_%H-%M-%S");
 
 	return filename.str();
 }
 
 FileLogger::FileLogger()
 	: Logger("FileLogger")
-	, m_logFileName(L"log")
-	, m_logDirectory(L"user/log/")
-	, m_maxLogLineCount(0)
-	, m_maxLogFileCount(0)
-	, m_currentLogLineCount(0)
-	, m_currentLogFileCount(0)
+	, m_logFileName("log")
+	, m_logDirectory("user/log/")
 {
 	updateLogFileName();
 }
@@ -66,16 +40,16 @@ FilePath FileLogger::getLogFilePath() const
 void FileLogger::setLogFilePath(const FilePath& filePath)
 {
 	m_currentLogFilePath = filePath;
-	m_logFileName = L"";
+	m_logFileName = "";
 }
 
 void FileLogger::setLogDirectory(const FilePath& filePath)
 {
 	m_logDirectory = filePath;
-	FileSystem::createDirectory(m_logDirectory);
+	FileSystem::createDirectories(m_logDirectory);
 }
 
-void FileLogger::setFileName(const std::wstring& fileName)
+void FileLogger::setFileName(const std::string& fileName)
 {
 	if (fileName != m_logFileName)
 	{
@@ -111,9 +85,9 @@ void FileLogger::setMaxLogFileCount(unsigned int fileCount)
 	m_maxLogFileCount = fileCount;
 }
 
-void FileLogger::deleteLogFiles(const std::wstring& cutoffDate)
+void FileLogger::deleteLogFiles(const std::string& cutoffDate)
 {
-	for (const FilePath& file: FileSystem::getFilePathsFromDirectory(m_logDirectory, {L".txt"}))
+	for (const FilePath& file: FileSystem::getFilePathsFromDirectory(m_logDirectory, {".txt"}))
 	{
 		if (file.fileName() < cutoffDate)
 		{
@@ -131,10 +105,10 @@ void FileLogger::updateLogFileName()
 
 	bool fileChanged = false;
 
-	std::wstring currentLogFilePath = m_logDirectory.wstr() + m_logFileName;
+	std::string currentLogFilePath = m_logDirectory.str() + m_logFileName;
 	if (m_maxLogFileCount > 0)
 	{
-		currentLogFilePath += L"_";
+		currentLogFilePath += "_";
 		if (m_currentLogLineCount >= m_maxLogLineCount)
 		{
 			m_currentLogLineCount = 0;
@@ -146,9 +120,9 @@ void FileLogger::updateLogFileName()
 			}
 			fileChanged = true;
 		}
-		currentLogFilePath += std::to_wstring(m_currentLogFileCount);
+		currentLogFilePath += std::to_string(m_currentLogFileCount);
 	}
-	currentLogFilePath += L".txt";
+	currentLogFilePath += ".txt";
 
 	m_currentLogFilePath = FilePath(currentLogFilePath);
 
@@ -171,7 +145,7 @@ void FileLogger::logMessage(const std::string& type, const LogMessage& message)
 				   << "() | ";
 	}
 
-	fileStream << type << ": " << utility::encodeToUtf8(message.message) << std::endl;
+	fileStream << type << ": " << message.message << std::endl;
 	fileStream.close();
 
 	m_currentLogLineCount++;

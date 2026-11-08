@@ -2,7 +2,7 @@
 #define MESSAGE_SCROLL_GRAPH_H
 
 #include "Message.h"
-#include "TabId.h"
+#include "TabIds.h"
 
 class MessageScrollGraph: public Message<MessageScrollGraph>
 {
@@ -10,7 +10,7 @@ public:
 	MessageScrollGraph(int xValue, int yValue): xValue(xValue), yValue(yValue)
 	{
 		setIsLogged(false);
-		setSchedulerId(TabId::currentTab());
+		setSchedulerId(TabIds::currentTab());
 	}
 
 	static const std::string getStaticType()

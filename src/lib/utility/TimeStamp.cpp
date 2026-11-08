@@ -1,5 +1,7 @@
 #include "TimeStamp.h"
 
+using namespace std;
+
 TimeStamp TimeStamp::now()
 {
 	return TimeStamp(boost::posix_time::microsec_clock::local_time());
@@ -120,14 +122,9 @@ size_t TimeStamp::deltaS(const TimeStamp& other) const
 
 bool TimeStamp::isSameDay(const TimeStamp& other) const
 {
-	if (m_time.date().day() == other.m_time.date().day() &&
+	return m_time.date().day() == other.m_time.date().day() &&
 		m_time.date().month() == other.m_time.date().month() &&
-		m_time.date().year() == other.m_time.date().year())
-	{
-		return true;
-	}
-
-	return false;
+		m_time.date().year() == other.m_time.date().year();
 }
 
 size_t TimeStamp::deltaDays(const TimeStamp& other) const

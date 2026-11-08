@@ -6,10 +6,10 @@
 class SourceGroupSettingsWithCustomCommand: public SourceGroupSettingsComponent
 {
 public:
-	virtual ~SourceGroupSettingsWithCustomCommand() = default;
+	~SourceGroupSettingsWithCustomCommand() override = default;
 
-	const std::wstring& getCustomCommand() const;
-	void setCustomCommand(const std::wstring& customCommand);
+	const std::string& getCustomCommand() const;
+	void setCustomCommand(const std::string& customCommand);
 
 	bool getRunInParallel() const;
 	void setRunInParallel(bool runInParallel);
@@ -21,7 +21,7 @@ protected:
 	void save(ConfigManager* config, const std::string& key) override;
 
 private:
-	std::wstring m_customCommand;
+	std::string m_customCommand;
 	bool m_runInParallel = false;
 };
 

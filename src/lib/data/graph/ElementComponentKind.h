@@ -1,13 +1,15 @@
 #ifndef ELEMENT_COMPONENT_KIND_H
 #define ELEMENT_COMPONENT_KIND_H
 
-enum class ElementComponentKind
+#include "utilityEnum.h"
+
+enum ElementComponentKind
 {
-	NONE = 0,
-	IS_AMBIGUOUS = 1
+	ELEMENT_COMPONENT_NONE = 0,
+	ELEMENT_COMPONENT_IS_AMBIGUOUS = 1
 };
 
-int elementComponentKindToInt(ElementComponentKind type);
-ElementComponentKind intToElementComponentKind(int value);
+template <>
+ElementComponentKind intToEnum(int value);
 
 #endif	  // ELEMENT_COMPONENT_KIND_H

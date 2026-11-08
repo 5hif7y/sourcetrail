@@ -16,7 +16,7 @@ class QtBookmarkButtonsView
 
 public:
 	QtBookmarkButtonsView(ViewLayout* viewLayout);
-	~QtBookmarkButtonsView() = default;
+	~QtBookmarkButtonsView() override = default;
 
 	// View implementation
 	void createWidgetWrapper() override;
@@ -27,7 +27,7 @@ public:
 
 private slots:
 	void createBookmarkClicked();
-	void showBookmarksClicked();
+	static void showBookmarksClicked();
 
 private:
 	QtThreadedLambdaFunctor m_onQtThread;
@@ -37,7 +37,7 @@ private:
 	QtSearchBarButton* m_createBookmarkButton;
 	QtSearchBarButton* m_showBookmarksButton;
 
-	MessageBookmarkButtonState::ButtonState m_createButtonState;
+	MessageBookmarkButtonState::ButtonState m_createButtonState = MessageBookmarkButtonState::CANNOT_CREATE;
 };
 
 #endif	  // QT_BOOKMARK_BUTTONS_VIEW_H

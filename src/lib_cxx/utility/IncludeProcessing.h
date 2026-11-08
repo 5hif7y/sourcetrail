@@ -3,16 +3,18 @@
 
 #include <memory>
 #include <set>
+#include <string>
 #include <unordered_set>
 #include <vector>
 
 #include "OrderedCache.h"
+#include "SourcetrailCxxExport.h"
 
 class FilePath;
 class IncludeDirective;
 class TextAccess;
 
-class IncludeProcessing
+class SOURCETRAIL_CXX_EXPORT IncludeProcessing
 {
 public:
 	static std::vector<IncludeDirective> getUnresolvedIncludeDirectives(
@@ -36,7 +38,7 @@ public:
 private:
 	static std::vector<IncludeDirective> doGetUnresolvedIncludeDirectives(
 		std::set<FilePath> filePathsToProcess,
-		std::unordered_set<std::wstring>& processedFilePaths,
+		std::unordered_set<std::string>& processedFilePaths,
 		const std::set<FilePath>& indexedPaths,
 		const std::set<FilePath>& headerSearchDirectories);
 

@@ -3,43 +3,43 @@
 #include <sstream>
 
 CxxFunctionDeclName::CxxFunctionDeclName(
-	std::wstring name,
-	std::vector<std::wstring> templateParameterNames,
+	std::string name,
+	std::vector<std::string> templateParameterNames,
 	std::unique_ptr<CxxTypeName> returnTypeName,
 	std::vector<std::unique_ptr<CxxTypeName>> parameterTypeNames,
-	const bool isConst,
+	CxxQualifierFlags qualifierFlags,
 	const bool isStatic)
 	: CxxDeclName(std::move(name), std::move(templateParameterNames))
 	, m_returnTypeName(std::move(returnTypeName))
 	, m_parameterTypeNames(std::move(parameterTypeNames))
-	, m_isConst(isConst)
+	, m_qualifierFlags(qualifierFlags)
 	, m_isStatic(isStatic)
 {
 }
 
 NameHierarchy CxxFunctionDeclName::toNameHierarchy() const
 {
-	std::wstringstream prefix;
+	std::stringstream prefix;
 	if (m_isStatic)
 	{
-		prefix << L"static ";
+		prefix << "static ";
 	}
 	prefix << m_returnTypeName->toString();
 
-	std::wstringstream postfix;
-	postfix << L'(';
+	std::stringstream postfix;
+	postfix << '(';
 	for (size_t i = 0; i < m_parameterTypeNames.size(); i++)
 	{
 		if (i != 0)
 		{
-			postfix << L", ";
+			postfix << ", ";
 		}
 		postfix << m_parameterTypeNames[i]->toString();
 	}
-	postfix << L')';
-	if (m_isConst)
+	postfix << ')';
+	if (!m_qualifierFlags.empty())
 	{
-		postfix << L" const";
+		postfix << " " << m_qualifierFlags.toString();
 	}
 
 	NameHierarchy ret = CxxDeclName::toNameHierarchy();

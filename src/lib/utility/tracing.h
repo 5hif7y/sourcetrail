@@ -1,24 +1,21 @@
 #ifndef TRACING_H
 #define TRACING_H
 
-
-// #define TRACING_ENABLED
-// #define USE_ACCUMULATED_TRACING
-
+#include "FilePath.h"
+#include "Id.h"
+#include "TimeStamp.h"
 
 #include <mutex>
 #include <stack>
 #include <thread>
 
-#include "FilePath.h"
-#include "TimeStamp.h"
-#include "types.h"
-#include "utilityString.h"
+// #define TRACING_ENABLED
+// #define USE_ACCUMULATED_TRACING
 
 struct TraceEvent
 {
 public:
-	TraceEvent(): eventName(""), id(0), depth(0), time(0.0) {}
+	TraceEvent():  id(0), depth(0), time(0.0) {}
 
 	TraceEvent(const std::string& eventName, Id id, size_t depth)
 		: eventName(eventName), id(id), depth(depth), time(0.0)
@@ -118,7 +115,7 @@ ScopedTrace<TracerType>::ScopedTrace(
 {
 	m_event = TracerType::getInstance()->startEvent(eventName);
 	m_event->functionName = functionName;
-	m_event->locationName = utility::encodeToUtf8(FilePath(fileName).fileName()) + ":" +
+	m_event->locationName = FilePath(fileName).fileName() + ":" +
 		std::to_string(lineNumber);
 
 	m_timeStamp = TimeStamp::now();
@@ -134,21 +131,21 @@ ScopedTrace<TracerType>::~ScopedTrace()
 
 #ifdef TRACING_ENABLED
 #	ifdef USE_ACCUMULATED_TRACING
-#		define TRACE(__name__)                                                                    \
+#		define TRACE(...)                                                                    \
 			ScopedTrace<AccumulatingTracer> __trace__(                                             \
-				std::string(__name__), __FILE__, __LINE__, __FUNCTION__)
+				std::string(__VA_ARGS__), __FILE__, __LINE__, __FUNCTION__)
 
 #		define PRINT_TRACES() AccumulatingTracer::getInstance()->printTraces()
 #	else
-#		define TRACE(__name__)                                                                    \
-			ScopedTrace<Tracer> __trace__(std::string(__name__), __FILE__, __LINE__, __FUNCTION__)
+#		define TRACE(...)                                                                    \
+			ScopedTrace<Tracer> __trace__(std::string(__VA_ARGS__), __FILE__, __LINE__, __FUNCTION__)
 
 #		define PRINT_TRACES() Tracer::getInstance()->printTraces()
 #	endif
 
 
 #else
-#	define TRACE(__name__)
+#	define TRACE(...)
 #	define PRINT_TRACES()
 #endif
 

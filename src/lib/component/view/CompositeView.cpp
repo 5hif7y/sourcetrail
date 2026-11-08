@@ -3,14 +3,14 @@
 #include <algorithm>
 
 CompositeView::CompositeView(
-	ViewLayout* viewLayout, CompositeDirection direction, const std::string& name, Id tabId)
+	ViewLayout* viewLayout, CompositeDirection direction, const std::string& name, TabId tabId)
 	: View(viewLayout), m_direction(direction), m_name(name), m_tabId(tabId)
 {
 }
 
-CompositeView::~CompositeView() {}
+CompositeView::~CompositeView() = default;
 
-Id CompositeView::getSchedulerId() const
+TabId CompositeView::getSchedulerId() const
 {
 	return m_tabId;
 }
@@ -48,9 +48,9 @@ void CompositeView::removeView(View* view)
 	m_views.erase(it);
 }
 
-void CompositeView::showView(View* view) {}
+void CompositeView::showView(View*  /*view*/) {}
 
-void CompositeView::hideView(View* view) {}
+void CompositeView::hideView(View*  /*view*/) {}
 
 void CompositeView::setViewEnabled(View* view, bool enabled)
 {

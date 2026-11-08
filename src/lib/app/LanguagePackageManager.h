@@ -14,6 +14,8 @@ public:
 	static void destroyInstance();
 
 	void addPackage(std::shared_ptr<LanguagePackage> package);
+	bool removePackage(const std::shared_ptr<LanguagePackage>& package);
+	size_t packageCount() const;
 	std::shared_ptr<IndexerComposite> instantiateSupportedIndexers();
 
 private:

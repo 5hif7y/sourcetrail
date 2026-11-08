@@ -7,7 +7,7 @@ bool SourceGroupFactoryModuleCustom::supports(SourceGroupType type) const
 {
 	switch (type)
 	{
-	case SOURCE_GROUP_CUSTOM_COMMAND:
+	case SourceGroupType::CUSTOM_COMMAND:
 		return true;
 	default:
 		break;

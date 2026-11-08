@@ -16,7 +16,7 @@ private:
 	void logWarning(const LogMessage& message) override;
 	void logError(const LogMessage& message) override;
 
-	void logMessage(const std::string& type, const LogMessage& message);
+	static void logMessage(const std::string& type, const LogMessage& message);
 };
 
 #endif	  // CONSOLE_LOGGER_H

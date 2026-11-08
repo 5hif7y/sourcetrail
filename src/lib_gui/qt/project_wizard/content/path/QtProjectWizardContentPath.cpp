@@ -1,6 +1,5 @@
 #include "QtProjectWizardContentPath.h"
-
-#include <QMessageBox>
+#include "QtMessageBox.h"
 
 #include "SourceGroupSettings.h"
 #include "utilityFile.h"
@@ -48,7 +47,7 @@ bool QtProjectWizardContentPath::check()
 		}
 
 		FilePath path = utility::getExpandedAndAbsolutePath(
-			FilePath(m_picker->getText().toStdWString()),
+			FilePath(m_picker->getText().toStdString()),
 			getSourceGroupSettings()->getProjectDirectoryPath());
 
 		if (m_picker->pickDirectory())
@@ -73,9 +72,9 @@ bool QtProjectWizardContentPath::check()
 
 	if (!error.isEmpty())
 	{
-		QMessageBox msgBox(m_window);
+		QtMessageBox msgBox(m_window);
 		msgBox.setText(error);
-		msgBox.exec();
+		msgBox.execModal();
 		return false;
 	}
 
@@ -97,7 +96,7 @@ void QtProjectWizardContentPath::setPlaceholderString(const QString& placeholder
 	m_placeholderString = placeholder;
 }
 
-void QtProjectWizardContentPath::setFileEndings(const std::set<std::wstring>& fileEndings)
+void QtProjectWizardContentPath::setFileEndings(const std::set<std::string>& fileEndings)
 {
 	m_fileEndings = fileEndings;
 }

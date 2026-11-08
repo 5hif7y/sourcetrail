@@ -16,15 +16,15 @@ public:
 		QtProjectWizardWindow* window);
 
 	// QtProjectWizardContent implementation
-	virtual void populate(QGridLayout* layout, int& row) override;
+	void populate(QGridLayout* layout, int& row) override;
 
-	virtual void load() override;
-	virtual void save() override;
+	void load() override;
+	void save() override;
 
 private:
 	std::shared_ptr<SourceGroupSettingsWithCStandard> m_sourceGroupSettings;
 
-	QComboBox* m_standard;
+	QComboBox* m_standard = nullptr;
 };
 
 #endif	  // QT_PROJECT_WIZARD_CONTENT_C_STANDARD

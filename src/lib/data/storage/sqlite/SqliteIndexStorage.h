@@ -20,12 +20,10 @@
 #include "StorageOccurrence.h"
 #include "StorageSourceLocation.h"
 #include "StorageSymbol.h"
-#include "types.h"
 #include "utility.h"
 #include "utilityString.h"
 
 class TextAccess;
-class Version;
 class SourceLocationCollection;
 class SourceLocationFile;
 
@@ -43,7 +41,7 @@ public:
 
 	SqliteIndexStorage(const FilePath& dbFilePath);
 
-	virtual size_t getStaticVersion() const;
+	size_t getStaticVersion() const override;
 
 	void setMode(const StorageModeType mode);
 
@@ -99,19 +97,19 @@ public:
 	std::vector<StorageEdge> getEdgesByTargetsType(const std::vector<Id>& targetIds, int type) const;
 
 	StorageNode getNodeById(Id id) const;
-	StorageNode getNodeBySerializedName(const std::wstring& serializedName) const;
+	StorageNode getNodeBySerializedName(const std::string& serializedName) const;
+	
+	std::vector<NodeKind> getAvailableNodeTypes() const;
+	std::vector<Edge::EdgeType> getAvailableEdgeTypes() const;
 
-	std::vector<int> getAvailableNodeTypes() const;
-	std::vector<int> getAvailableEdgeTypes() const;
-
-	StorageFile getFileByPath(const std::wstring& filePath) const;
+	StorageFile getFileByPath(const std::string& filePath) const;
 
 	std::vector<StorageFile> getFilesByPaths(const std::vector<FilePath>& filePaths) const;
-	std::shared_ptr<TextAccess> getFileContentByPath(const std::wstring& filePath) const;
+	std::shared_ptr<TextAccess> getFileContentByPath(const std::string& filePath) const;
 	std::shared_ptr<TextAccess> getFileContentById(Id fileId) const;
 
 	void setFileIndexed(Id fileId, bool indexed);
-	void setFileCompleteIfNoError(Id fileId, const std::wstring& filePath, bool complete);
+	void setFileCompleteIfNoError(Id fileId, const std::string& filePath, bool complete);
 	void setNodeType(int type, Id nodeId);
 
 	std::shared_ptr<SourceLocationFile> getSourceLocationsForFile(
@@ -148,7 +146,7 @@ public:
 	{
 		if (id != 0)
 		{
-			return doGetFirst<ResultType>("WHERE id == " + std::to_string(id));
+			return doGetFirst<ResultType>("WHERE id == " + to_string(id));
 		}
 		return ResultType();
 	}
@@ -170,8 +168,8 @@ public:
 		forEach("", func);
 	}
 
-	template <typename StorageType>
-	void forEachOfType(int type, std::function<void(StorageType&&)> func) const
+	template <typename StorageType, typename T>
+	void forEachOfType(T type, std::function<void(StorageType&&)> func) const
 	{
 		forEach("WHERE type == " + std::to_string(type), func);
 	}
@@ -235,11 +233,11 @@ private:
 		uint8_t type;
 	};
 
-	std::vector<std::pair<int, SqliteDatabaseIndex>> getIndices() const;
+	static std::vector<std::pair<int, SqliteDatabaseIndex>> getIndices();
 
-	virtual void clearTables();
-	virtual void setupTables();
-	virtual void setupPrecompiledStatements();
+	void clearTables() override;
+	void setupTables() override;
+	void setupPrecompiledStatements() override;
 
 	template <typename ResultType>
 	std::vector<ResultType> doGetAll(const std::string& query) const
@@ -264,12 +262,12 @@ private:
 	template <typename StorageType>
 	void forEach(const std::string& query, std::function<void(StorageType&&)> func) const;
 
-	LowMemoryStringMap<std::string, uint32_t, 0> m_tempNodeNameIndex;
-	LowMemoryStringMap<std::wstring, uint32_t, 0> m_tempWNodeNameIndex;
-	std::map<uint32_t, int> m_tempNodeTypes;
-	std::map<StorageEdgeData, uint32_t> m_tempEdgeIndex;
-	std::map<std::wstring, std::map<std::wstring, uint32_t>> m_tempLocalSymbolIndex;
-	std::map<uint32_t, std::map<TempSourceLocation, uint32_t>> m_tempSourceLocationIndices;
+	LowMemoryStringMap<std::string, Id> m_tempNodeNameIndex;
+	LowMemoryStringMap<std::string, Id> m_tempWNodeNameIndex;
+	std::map<Id, int> m_tempNodeTypes;
+	std::map<StorageEdgeData, Id> m_tempEdgeIndex;
+	std::map<std::string, std::map<std::string, Id>> m_tempLocalSymbolIndex;
+	std::map<Id, std::map<TempSourceLocation, Id>> m_tempSourceLocationIndices;
 
 	template <typename StorageType>
 	class InsertBatchStatement
@@ -283,8 +281,7 @@ private:
 		{
 			m_bindValuesFunc = bindValuesFunc;
 
-			std::string valueStr = '(' +
-				utility::join(std::vector<std::string>(valueCount, "?"), ',') + ')';
+			std::string valueStr = '(' + utility::join(std::vector<std::string>(valueCount, "?"), ',') + ')';
 
 			const size_t MAX_VARIABLE_COUNT = 999;
 			size_t batchSize = MAX_VARIABLE_COUNT / valueCount;
@@ -304,8 +301,7 @@ private:
 				}
 				stmt << ';';
 
-				m_stmts.emplace_back(
-					std::make_pair(batchSize, database.compileStatement(stmt.str().c_str())));
+				m_stmts.emplace_back(std::make_pair(batchSize, database.compileStatement(stmt.str())));
 
 				if (batchSize == 1)
 				{
@@ -318,7 +314,7 @@ private:
 			}
 		}
 
-		bool execute(const std::vector<StorageType>& types, SqliteIndexStorage* storage)
+		bool execute(const std::vector<StorageType>& types, SqliteIndexStorage*  /*storage*/)
 		{
 			size_t i = 0;
 			for (std::pair<size_t, CppSQLite3Statement>& p: m_stmts)
@@ -333,7 +329,7 @@ private:
 						m_bindValuesFunc(stmt, types[i + j], j);
 					}
 
-					const bool success = storage->executeStatement(stmt);
+					const bool success = SqliteIndexStorage::executeStatement(stmt);
 					if (!success)
 					{
 						return false;

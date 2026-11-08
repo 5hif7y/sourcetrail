@@ -17,14 +17,14 @@ class Node: public Token
 public:
 	Node(Id id, NodeType type, NameHierarchy nameHierarchy, DefinitionKind definitionKind);
 	Node(const Node& other);
-	virtual ~Node();
+	~Node() override;
 
 	NodeType getType() const;
 	void setType(NodeType type);
 	bool isType(NodeKindMask mask) const;
 
-	std::wstring getName() const;
-	std::wstring getFullName() const;
+	std::string getName() const;
+	std::string getFullName() const;
 	const NameHierarchy& getNameHierarchy() const;
 
 	bool isDefined() const;
@@ -55,12 +55,12 @@ public:
 	void forEachNodeRecursive(std::function<void(const Node*)> func) const;
 
 	// Token implementation.
-	virtual bool isNode() const override;
-	virtual bool isEdge() const override;
+	bool isNode() const override;
+	bool isEdge() const override;
 
 	// Logging.
-	virtual std::wstring getReadableTypeString() const override;
-	std::wstring getAsString() const;
+	std::string getReadableTypeString() const override;
+	std::string getAsString() const;
 
 private:
 	void operator=(const Node&);
@@ -71,9 +71,9 @@ private:
 	const NameHierarchy m_nameHierarchy;
 	DefinitionKind m_definitionKind;
 
-	size_t m_childCount;
+	size_t m_childCount = 0;
 };
 
-std::wostream& operator<<(std::wostream& ostream, const Node& node);
+std::ostream& operator<<(std::ostream& ostream, const Node& node);
 
 #endif	  // NODE_H

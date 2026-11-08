@@ -7,7 +7,7 @@
 #include "ScopedFunctor.h"
 #include "logging.h"
 
-InterprocessIndexer::InterprocessIndexer(const std::string& uuid, Id processId)
+InterprocessIndexer::InterprocessIndexer(const std::string& uuid, ProcessId processId)
 	: m_interprocessIndexerCommandManager(uuid, processId, false)
 	, m_interprocessIndexingStatusManager(uuid, processId, false)
 	, m_interprocessIntermediateStorageManager(uuid, processId, false)
@@ -44,7 +44,9 @@ void InterprocessIndexer::work()
 			}
 		});
 
-		ScopedFunctor threadStopper([&]() {
+		[[maybe_unused]]
+		ScopedFunctor threadStopper([&]()
+		{
 			updaterThreadRunning = false;
 			if (updaterThread)
 			{

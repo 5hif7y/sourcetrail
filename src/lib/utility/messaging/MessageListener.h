@@ -11,22 +11,22 @@ template <typename MessageType>
 class MessageListener: public MessageListenerBase
 {
 public:
-	MessageListener() {}
+	MessageListener() = default;
 
 private:
-	virtual std::string doGetType() const
+	std::string getType() const final
 	{
 		return MessageType::getStaticType();
 	}
 
-	virtual void doHandleMessageBase(MessageBase* message)
+	void handleMessageBase(MessageBase* message) final
 	{
 		// if (message->isLogged())
 		// {
 		// 	LOG_INFO_STREAM_BARE(<< "handle " << message->str());
 		// }
 
-		handleMessage(dynamic_cast<MessageType*>(message));
+		handleMessage(static_cast<MessageType *>(message));
 	}
 
 	virtual void handleMessage(MessageType* message) = 0;

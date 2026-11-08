@@ -10,12 +10,12 @@ class QtTextEditDialog: public QtWindow
 	Q_OBJECT
 
 public:
-	QtTextEditDialog(const QString& title, const QString& description, QWidget* parent = 0);
+	QtTextEditDialog(const QString& title, const QString& description, QWidget* parent = nullptr);
 
 	QSize sizeHint() const override;
 
-	void setText(const std::wstring& text);
-	std::wstring getText();
+	void setText(const std::string& text);
+	std::string getText();
 
 	void setReadOnly(bool readOnly);
 

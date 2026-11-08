@@ -1,10 +1,10 @@
 #include "BookmarkCategory.h"
 
-BookmarkCategory::BookmarkCategory(): m_id(-1), m_name(L"") {}
+BookmarkCategory::BookmarkCategory(): m_id(-1) {}
 
-BookmarkCategory::BookmarkCategory(const Id id, const std::wstring& name): m_id(id), m_name(name) {}
+BookmarkCategory::BookmarkCategory(const Id id, const std::string& name): m_id(id), m_name(name) {}
 
-BookmarkCategory::~BookmarkCategory() {}
+BookmarkCategory::~BookmarkCategory() = default;
 
 Id BookmarkCategory::getId() const
 {
@@ -16,12 +16,12 @@ void BookmarkCategory::setId(const Id id)
 	m_id = id;
 }
 
-std::wstring BookmarkCategory::getName() const
+std::string BookmarkCategory::getName() const
 {
 	return m_name;
 }
 
-void BookmarkCategory::setName(const std::wstring& name)
+void BookmarkCategory::setName(const std::string& name)
 {
 	m_name = name;
 }

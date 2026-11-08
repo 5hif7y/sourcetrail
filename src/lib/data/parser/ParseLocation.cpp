@@ -30,5 +30,5 @@ ParseLocation::ParseLocation(
 
 bool ParseLocation::isValid() const
 {
-	return fileId;
+	return fileId != 0;
 }

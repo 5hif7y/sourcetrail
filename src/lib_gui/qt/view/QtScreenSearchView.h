@@ -17,7 +17,7 @@ class QtScreenSearchView
 
 public:
 	QtScreenSearchView(ViewLayout* viewLayout);
-	~QtScreenSearchView() = default;
+	~QtScreenSearchView() override = default;
 
 	// View implementation
 	void createWidgetWrapper() override;

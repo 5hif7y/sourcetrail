@@ -1,21 +1,25 @@
 #ifndef LOCATION_TYPE_H
 #define LOCATION_TYPE_H
 
-enum LocationType
+#include "utilityEnum.h"
+
+enum class LocationType
 {
-	LOCATION_TOKEN = 0,
-	LOCATION_SCOPE = 1,
-	LOCATION_QUALIFIER = 2,
-	LOCATION_LOCAL_SYMBOL = 3,
-	LOCATION_SIGNATURE = 4,
-	LOCATION_COMMENT = 5,
-	LOCATION_ERROR = 6,
-	LOCATION_FULLTEXT_SEARCH = 7,
-	LOCATION_SCREEN_SEARCH = 8,
-	LOCATION_UNSOLVED = 9
+	TOKEN = 0,
+	SCOPE = 1,
+	QUALIFIER = 2,
+	LOCAL_SYMBOL = 3,
+	SIGNATURE = 4,
+	COMMENT = 5,
+	ERROR = 6,
+	FULLTEXT_SEARCH = 7,
+	SCREEN_SEARCH = 8,
+	UNSOLVED = 9
 };
 
-int locationTypeToInt(LocationType type);
-LocationType intToLocationType(int value);
+template <>
+LocationType intToEnum(int value);
+
+std::size_t operator << (std::size_t bits, LocationType locationType);
 
 #endif	  // LOCATION_TYPE_H

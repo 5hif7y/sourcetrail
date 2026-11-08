@@ -3,8 +3,6 @@
 
 #include "language_packages.h"
 
-#if BUILD_CXX_LANGUAGE_PACKAGE
-
 #	include "SourceGroupSettingsWithComponents.h"
 #	include "SourceGroupSettingsWithCppStandard.h"
 #	include "SourceGroupSettingsWithCxxCrossCompilationOptions.h"
@@ -26,7 +24,7 @@ class SourceGroupSettingsCppEmpty
 {
 public:
 	SourceGroupSettingsCppEmpty(const std::string& id, const ProjectSettings* projectSettings)
-		: SourceGroupSettingsWithComponents(SOURCE_GROUP_CPP_EMPTY, id, projectSettings)
+		: SourceGroupSettingsWithComponents(SourceGroupType::CXX_EMPTY, id, projectSettings)
 	{
 	}
 
@@ -35,7 +33,5 @@ public:
 		return std::make_shared<SourceGroupSettingsCppEmpty>(*this);
 	}
 };
-
-#endif	  // BUILD_CXX_LANGUAGE_PACKAGE
 
 #endif	  // SOURCE_GROUP_SETTINGS_CPP_EMPTY_H

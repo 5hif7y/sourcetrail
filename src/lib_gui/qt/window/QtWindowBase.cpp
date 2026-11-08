@@ -1,26 +1,24 @@
 #include "QtWindowBase.h"
 
+#include "ApplicationSettings.h"
+#include "compatibilityQt.h"
+#include "QtResources.h"
+
 #include <QGraphicsDropShadowEffect>
 #include <QMouseEvent>
 #include <QVBoxLayout>
 
-#include "ApplicationSettings.h"
-#include "ResourcePaths.h"
+using namespace utility::compatibility;
 
 QtWindowBase::QtWindowBase(bool isSubWindow, QWidget* parent)
 	: QtWindowStackElement(parent)
 	, m_isSubWindow(isSubWindow)
-	, m_window(nullptr)
-	, m_content(nullptr)
-	, m_mousePressedInWindow(false)
-	, m_sizeGrip(nullptr)
 {
 	if (isSubWindow)
 	{
 		setWindowFlags(Qt::SubWindow | Qt::FramelessWindowHint);
 		setAttribute(Qt::WA_TranslucentBackground, true);
 		setFocusPolicy(Qt::StrongFocus);
-		setFocus();
 	}
 	else
 	{
@@ -82,15 +80,13 @@ void QtWindowBase::setSizeGripStyle(bool isBlack)
 		return;
 	}
 
-	const std::wstring path = isBlack ? L"size_grip_black.png" : L"size_grip_white.png";
+	const std::string path = isBlack ? QtResources::WINDOW_SIZE_GRIP_BLACK : QtResources::WINDOW_SIZE_GRIP_WHITE;
 
-	m_sizeGrip->setStyleSheet(QString::fromStdWString(
-		L"QSizeGrip {"
+	m_sizeGrip->setStyleSheet(QString::fromStdString(
+		"QSizeGrip {"
 		"	max-height: 16px;"
 		"	max-width: 16px;"
-		"	border-image: url(" +
-		ResourcePaths::getGuiDirectoryPath().wstr() + L"window/" + path +
-		L");"
+		"	border-image: url(" + path + ");"
 		"}"));
 }
 
@@ -118,14 +114,12 @@ void QtWindowBase::moveToCenter()
 	}
 }
 
-void QtWindowBase::showWindow()
+void QtWindowBase::setVisible(bool visible)
 {
-	show();
-}
+	QWidget::setVisible(visible);
 
-void QtWindowBase::hideWindow()
-{
-	hide();
+	if (visible)
+		setFocus();
 }
 
 void QtWindowBase::mouseMoveEvent(QMouseEvent* event)
@@ -134,7 +128,7 @@ void QtWindowBase::mouseMoveEvent(QMouseEvent* event)
 	{
 		if (m_isSubWindow)
 		{
-			QPoint pos = event->globalPos() - m_dragPosition;
+			QPoint pos = QMouseEvent_globalPos(event) - m_dragPosition;
 			QRect parentRect = parentWidget()->rect();
 
 			if (pos.x() < parentRect.left())
@@ -149,7 +143,7 @@ void QtWindowBase::mouseMoveEvent(QMouseEvent* event)
 		}
 		else
 		{
-			move(event->globalPos() - m_dragPosition);
+			move(QMouseEvent_globalPos(event) - m_dragPosition);
 			event->accept();
 		}
 	}
@@ -159,7 +153,7 @@ void QtWindowBase::mousePressEvent(QMouseEvent* event)
 {
 	if (event->button() == Qt::LeftButton)
 	{
-		m_dragPosition = event->globalPos() - frameGeometry().topLeft();
+		m_dragPosition = QMouseEvent_globalPos(event) - frameGeometry().topLeft();
 		event->accept();
 		m_mousePressedInWindow = true;
 	}
@@ -169,7 +163,7 @@ void QtWindowBase::mouseReleaseEvent(QMouseEvent* event)
 {
 	if (event->button() == Qt::LeftButton)
 	{
-		m_dragPosition = event->globalPos() - frameGeometry().topLeft();
+		m_dragPosition = QMouseEvent_globalPos(event) - frameGeometry().topLeft();
 		event->accept();
 		m_mousePressedInWindow = false;
 	}

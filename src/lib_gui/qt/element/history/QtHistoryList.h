@@ -22,8 +22,8 @@ public:
 
 protected:
 	// because changing font-weight within the stylesheet does not work for some reason
-	void enterEvent(QEvent* event);
-	void leaveEvent(QEvent* event);
+	void enterEvent(QEnterEvent* event) override;
+	void leaveEvent(QEvent* event) override;
 
 private:
 	QLabel* m_name;
@@ -42,7 +42,7 @@ public:
 	QtHistoryListWidget(QWidget* parent = nullptr);
 
 protected:
-	void mouseReleaseEvent(QMouseEvent* event);
+	void mouseReleaseEvent(QMouseEvent* event) override;
 };
 
 
@@ -59,7 +59,7 @@ public:
 	void showPopup(QPoint pos);
 
 protected:
-	void closeEvent(QCloseEvent* event);
+	void closeEvent(QCloseEvent* event) override;
 
 private slots:
 	void onItemClicked(QListWidgetItem* item);

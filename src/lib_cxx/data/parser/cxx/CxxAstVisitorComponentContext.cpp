@@ -53,10 +53,9 @@ void CxxAstVisitorComponentContext::beginTraverseDecl(clang::Decl* d)
 {
 	std::shared_ptr<CxxContextDecl> context;
 
-	if (d && clang::isa<clang::NamedDecl>(d) &&
+	if (clang::isa_and_nonnull<clang::NamedDecl>(d) &&
 		!clang::isa<clang::ParmVarDecl>(d) &&	 // no parameter
-		!(clang::isa<clang::VarDecl>(d) &&
-		  d->getParentFunctionOrMethod() != nullptr) &&		 // no local variable
+		(!clang::isa<clang::VarDecl>(d) || d->getParentFunctionOrMethod() == nullptr) &&  // no local variable
 		!clang::isa<clang::UsingDirectiveDecl>(d) &&		 // no using directive decl
 		!clang::isa<clang::UsingDecl>(d) &&					 // no using decl
 		!clang::isa<clang::NamespaceDecl>(d) &&				 // no namespace
@@ -72,7 +71,7 @@ void CxxAstVisitorComponentContext::beginTraverseDecl(clang::Decl* d)
 	m_contextStack.push_back(context);
 }
 
-void CxxAstVisitorComponentContext::endTraverseDecl(clang::Decl* d)
+void CxxAstVisitorComponentContext::endTraverseDecl(clang::Decl*  /*d*/)
 {
 	m_contextStack.pop_back();
 }
@@ -80,8 +79,8 @@ void CxxAstVisitorComponentContext::endTraverseDecl(clang::Decl* d)
 void CxxAstVisitorComponentContext::beginTraverseTypeLoc(const clang::TypeLoc& tl)
 {
 	std::shared_ptr<CxxContextType> context;
-	clang::TypeLoc::TypeLocClass tlcc = tl.getTypeLocClass();
-	if (!getAstVisitor()->checkIgnoresTypeLoc(tl))
+	// clang::TypeLoc::TypeLocClass tlcc = tl.getTypeLocClass();
+	if (getAstVisitor()->shouldHandleTypeLoc(tl))
 	{
 		bool recordContext = true;
 		if (tl.getTypeLocClass() == clang::TypeLoc::TemplateSpecialization)
@@ -103,7 +102,7 @@ void CxxAstVisitorComponentContext::beginTraverseTypeLoc(const clang::TypeLoc& t
 	m_contextStack.push_back(context);
 }
 
-void CxxAstVisitorComponentContext::endTraverseTypeLoc(const clang::TypeLoc& tl)
+void CxxAstVisitorComponentContext::endTraverseTypeLoc(const clang::TypeLoc&  /*tl*/)
 {
 	m_contextStack.pop_back();
 }
@@ -113,7 +112,7 @@ void CxxAstVisitorComponentContext::beginTraverseLambdaExpr(clang::LambdaExpr* s
 	m_contextStack.push_back(std::make_shared<CxxContextDecl>(s->getCallOperator()));
 }
 
-void CxxAstVisitorComponentContext::endTraverseLambdaExpr(clang::LambdaExpr* s)
+void CxxAstVisitorComponentContext::endTraverseLambdaExpr(clang::LambdaExpr*  /*s*/)
 {
 	m_contextStack.pop_back();
 }
@@ -123,7 +122,7 @@ void CxxAstVisitorComponentContext::beginTraverseFunctionDecl(clang::FunctionDec
 	m_templateArgumentContext.push_back(std::make_shared<CxxContextDecl>(d));
 }
 
-void CxxAstVisitorComponentContext::endTraverseFunctionDecl(clang::FunctionDecl* d)
+void CxxAstVisitorComponentContext::endTraverseFunctionDecl(clang::FunctionDecl*  /*d*/)
 {
 	m_templateArgumentContext.pop_back();
 }
@@ -135,7 +134,7 @@ void CxxAstVisitorComponentContext::beginTraverseClassTemplateSpecializationDecl
 }
 
 void CxxAstVisitorComponentContext::endTraverseClassTemplateSpecializationDecl(
-	clang::ClassTemplateSpecializationDecl* d)
+	clang::ClassTemplateSpecializationDecl*  /*d*/)
 {
 	m_templateArgumentContext.pop_back();
 }
@@ -147,7 +146,7 @@ void CxxAstVisitorComponentContext::beginTraverseClassTemplatePartialSpecializat
 }
 
 void CxxAstVisitorComponentContext::endTraverseClassTemplatePartialSpecializationDecl(
-	clang::ClassTemplatePartialSpecializationDecl* d)
+	clang::ClassTemplatePartialSpecializationDecl*  /*d*/)
 {
 	m_templateArgumentContext.pop_back();
 }
@@ -158,7 +157,7 @@ void CxxAstVisitorComponentContext::beginTraverseDeclRefExpr(clang::DeclRefExpr*
 		s->getDecl()));	   // e.g. used for recording usage of template arguments within function calls
 }
 
-void CxxAstVisitorComponentContext::endTraverseDeclRefExpr(clang::DeclRefExpr* s)
+void CxxAstVisitorComponentContext::endTraverseDeclRefExpr(clang::DeclRefExpr*  /*s*/)
 {
 	m_templateArgumentContext.pop_back();
 }
@@ -184,24 +183,24 @@ void CxxAstVisitorComponentContext::beginTraverseTemplateSpecializationTypeLoc(
 }
 
 void CxxAstVisitorComponentContext::endTraverseTemplateSpecializationTypeLoc(
-	const clang::TemplateSpecializationTypeLoc& loc)
+	const clang::TemplateSpecializationTypeLoc&  /*loc*/)
 {
 	m_templateArgumentContext.pop_back();
 }
 
 void CxxAstVisitorComponentContext::beginTraverseUnresolvedLookupExpr(
-	clang::UnresolvedLookupExpr* e)	   // TODO: do this for unresolved and dependent stuff
+	clang::UnresolvedLookupExpr*  /*e*/)	   // TODO: do this for unresolved and dependent stuff
 {
 	m_templateArgumentContext.push_back(nullptr);
 }
 
-void CxxAstVisitorComponentContext::endTraverseUnresolvedLookupExpr(clang::UnresolvedLookupExpr* e)
+void CxxAstVisitorComponentContext::endTraverseUnresolvedLookupExpr(clang::UnresolvedLookupExpr*  /*e*/)
 {
 	m_templateArgumentContext.pop_back();
 }
 
 void CxxAstVisitorComponentContext::beginTraverseTemplateArgumentLoc(
-	const clang::TemplateArgumentLoc& loc)
+	const clang::TemplateArgumentLoc&  /*loc*/)
 {
 	std::shared_ptr<CxxContext> context;
 
@@ -213,7 +212,7 @@ void CxxAstVisitorComponentContext::beginTraverseTemplateArgumentLoc(
 	m_contextStack.push_back(context);
 }
 
-void CxxAstVisitorComponentContext::endTraverseTemplateArgumentLoc(const clang::TemplateArgumentLoc& loc)
+void CxxAstVisitorComponentContext::endTraverseTemplateArgumentLoc(const clang::TemplateArgumentLoc&  /*loc*/)
 {
 	m_contextStack.pop_back();
 }

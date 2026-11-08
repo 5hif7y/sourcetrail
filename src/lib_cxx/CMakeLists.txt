@@ -1,7 +1,6 @@
-
-add_files(
-	LIB_CXX
-
+add_library(Sourcetrail_lib_cxx SHARED
+	PluginInit.cpp
+	DebugStubs.cpp
 	data/indexer/CxxIndexerCommandProvider.cpp
 	data/indexer/CxxIndexerCommandProvider.h
 	data/indexer/IndexerCommandCxx.cpp
@@ -105,6 +104,7 @@ add_files(
 	utility/codeblocks/CodeblocksTargetRelationType.h
 	utility/codeblocks/CodeblocksUnit.cpp
 	utility/codeblocks/CodeblocksUnit.h
+
 	utility/CompilationDatabase.cpp
 	utility/CompilationDatabase.h
 	utility/IncludeDirective.cpp
@@ -114,4 +114,70 @@ add_files(
 
 	LanguagePackageCxx.cpp
 	LanguagePackageCxx.h
+)
+setDefaultTargetOptions(Sourcetrail_lib_cxx)
+
+# Unity build is NOT enabled here: our CommentHandler, ASTConsumer and
+# GeneratePCHAction collide with the clang:: symbols of the same name, and
+# DebugStubs.cpp cannot be combined with the PCH. Tested at batch size 8; the
+# potential gain (~15 s) does not justify qualifying every symbol.
+
+# Precompile the Clang/LLVM headers that most translation units pull in. These
+# headers dominate the per-file cost of this plugin, so a PCH pays off even
+# though it is large. Template-heavy headers used by only a few files (e.g.
+# RecursiveASTVisitor.h) are intentionally left out.
+target_precompile_headers(Sourcetrail_lib_cxx
+	PRIVATE
+		<clang/AST/ASTContext.h>
+		<clang/AST/Decl.h>
+		<clang/AST/DeclCXX.h>
+		<clang/AST/DeclTemplate.h>
+		<clang/Basic/SourceManager.h>
+		<clang/Frontend/CompilerInstance.h>
+		<clang/Lex/Preprocessor.h>
+		<clang/Tooling/CompilationDatabase.h>
+		<clang/Tooling/Tooling.h>
+		<llvm/Support/raw_ostream.h>
+		<string>
+		<vector>
+		<map>
+		<set>
+		<memory>
+		<sstream>
+		<unordered_map>
+)
+
+# DebugStubs.cpp defines the debug CRT symbols it stubs itself and conflicts
+# with the standard headers pulled in by the PCH, so it is compiled without it.
+set_source_files_properties(DebugStubs.cpp PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+
+target_include_directories(Sourcetrail_lib_cxx
+	PUBLIC
+		data/indexer
+		data/parser/cxx/name
+		data/parser/cxx/name_resolver
+		data/parser/cxx
+		project
+		utility/codeblocks
+		utility/
+		.
+)
+
+target_link_libraries(Sourcetrail_lib_cxx
+	PUBLIC
+		Sourcetrail_lib
+		External_lib_clang
+)
+
+set_target_properties(Sourcetrail_lib_cxx PROPERTIES 
+	OUTPUT_NAME "sourcetrail_cxx_plugin"
+	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Debug/app"
+	RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/Debug/app"
+	RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/Release/app"
+)
+
+add_custom_command(TARGET Sourcetrail_lib_cxx POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+	$<TARGET_FILE:Sourcetrail_lib_cxx>
+	$<TARGET_FILE_DIR:Sourcetrail_lib_cxx>/plugins/$<TARGET_FILE_NAME:Sourcetrail_lib_cxx>
 )

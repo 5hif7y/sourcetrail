@@ -1,13 +1,14 @@
 #include "QtIndexingDialog.h"
 
+#include "QtDeviceScaledPixmap.h"
+#include "QtHelpButton.h"
+#include "QtResources.h"
+#include "utilityQt.h"
+
 #include <QLabel>
 #include <QPushButton>
 
-#include "MessageErrorsHelpMessage.h"
-#include "QtDeviceScaledPixmap.h"
-#include "QtHelpButton.h"
-#include "ResourcePaths.h"
-#include "utilityQt.h"
+using namespace utility;
 
 QLabel* QtIndexingDialog::createTitleLabel(const QString& title, QBoxLayout* layout)
 {
@@ -44,8 +45,7 @@ QWidget* QtIndexingDialog::createErrorWidget(QBoxLayout* layout)
 	errorCount->setObjectName(QStringLiteral("errorCount"));
 	errorCount->setAttribute(Qt::WA_LayoutUsesWidgetRect);	  // fixes layouting on Mac
 
-	errorCount->setIcon(QPixmap(QString::fromStdWString(
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"indexing_dialog/error.png").wstr())));
+	errorCount->setIcon(QPixmap(QString::fromUtf8(QtResources::INDEXING_DIALOG_ERROR)));
 	errorLayout->addWidget(errorCount);
 
 	QtHelpButton* helpButton = new QtHelpButton(QtHelpButtonInfo(createErrorHelpButtonInfo()));
@@ -59,8 +59,7 @@ QWidget* QtIndexingDialog::createErrorWidget(QBoxLayout* layout)
 
 QLabel* QtIndexingDialog::createFlagLabel(QWidget* parent)
 {
-	QtDeviceScaledPixmap flag(QString::fromStdWString(
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"indexing_dialog/flag.png").wstr()));
+	QtDeviceScaledPixmap flag(QString::fromUtf8(QtResources::INDEXING_DIALOG_FLAG));
 	flag.scaleToWidth(120);
 
 	QLabel* flagLabel = new QLabel(parent);
@@ -72,22 +71,16 @@ QLabel* QtIndexingDialog::createFlagLabel(QWidget* parent)
 	return flagLabel;
 }
 
-
-QtIndexingDialog::QtIndexingDialog(bool isSubWindow, QWidget* parent)
+QtIndexingDialog::QtIndexingDialog(bool isSubWindow, QWidget *parent)
 	: QtWindowBase(isSubWindow, parent)
 {
-	m_window->setStyleSheet(
-		m_window->styleSheet() +
-		QStringLiteral("#window { "
-					   "background: #2E3C86;"
-					   "border: none;"
-					   "}"));
+	m_window->setStyleSheet(m_window->styleSheet() + QStringLiteral(
+		"#window { "
+		"background: #2E3C86;"
+		"border: none;"
+		"}"));
 
-	setStyleSheet(
-		(utility::getStyleSheet(ResourcePaths::getGuiDirectoryPath().concatenate(L"window/window.css")) +
-		 utility::getStyleSheet(ResourcePaths::getGuiDirectoryPath().concatenate(L"indexing_dialog/"
-																		L"indexing_dialog.css")))
-			.c_str());
+	setStyleSheet(QtResources::loadStyleSheets(QtResources::WINDOW_CSS, QtResources::INDEXING_DIALOG_CSS));
 
 	m_layout = new QVBoxLayout(this);
 	m_layout->setContentsMargins(20, 20, 20, 0);

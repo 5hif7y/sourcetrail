@@ -1,5 +1,10 @@
 #include "QtScreenSearchBox.h"
 
+#include "QtActions.h"
+#include "QtResources.h"
+#include "QtSelfRefreshIconButton.h"
+#include "utilityQt.h"
+
 #include <QApplication>
 #include <QCheckBox>
 #include <QFocusEvent>
@@ -7,11 +12,6 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QTimer>
-
-#include "QtSelfRefreshIconButton.h"
-#include "ResourcePaths.h"
-#include "utilityQt.h"
-
 
 QtFocusInFilter::QtFocusInFilter(QObject* parent): QObject(parent) {}
 
@@ -41,10 +41,7 @@ QtScreenSearchBox::QtScreenSearchBox(
 
 	// search field
 	{
-		m_searchButton = new QtSelfRefreshIconButton(
-			QLatin1String(""),
-			ResourcePaths::getGuiDirectoryPath().concatenate(L"search_view/images/search.png"),
-			"screen_search/button");
+		m_searchButton = new QtSelfRefreshIconButton("", QtResources::SEARCH_VIEW_SEARCH, "screen_search/button");
 		m_searchButton->setObjectName(QStringLiteral("search_button"));
 		m_searchButton->setIconSize(QSize(12, 12));
 		layout->addWidget(m_searchButton);
@@ -53,7 +50,8 @@ QtScreenSearchBox::QtScreenSearchBox(
 
 		m_searchBox = new QLineEdit(this);
 		m_searchBox->setObjectName(QStringLiteral("search_box"));
-		m_searchBox->setAttribute(Qt::WA_MacShowFocusRect, 0);	  // remove blue focus box on Mac
+		m_searchBox->setToolTip(QtActions::findOnScreen().tooltip());
+		m_searchBox->setAttribute(Qt::WA_MacShowFocusRect, false);	  // remove blue focus box on Mac
 		layout->addWidget(m_searchBox);
 
 		connect(m_searchBox, &QLineEdit::textChanged, this, &QtScreenSearchBox::searchQueryChanged);
@@ -76,19 +74,14 @@ QtScreenSearchBox::QtScreenSearchBox(
 
 	// buttons
 	{
-		m_prevButton = new QtSelfRefreshIconButton(
-			QLatin1String(""),
-			ResourcePaths::getGuiDirectoryPath().concatenate(L"code_view/images/arrow_left.png"),
-			"screen_search/button");
-		m_nextButton = new QtSelfRefreshIconButton(
-			QLatin1String(""),
-			ResourcePaths::getGuiDirectoryPath().concatenate(L"code_view/images/arrow_right.png"),
-			"screen_search/button");
-
+		m_prevButton = new QtSelfRefreshIconButton("", QtResources::CODE_VIEW_ARROW_LEFT, "screen_search/button");
+		m_prevButton->setToolTip(QtActions::screenSearchPrevious().tooltip());
 		m_prevButton->setObjectName(QStringLiteral("prev_button"));
-		m_nextButton->setObjectName(QStringLiteral("next_button"));
-
 		m_prevButton->setIconSize(QSize(12, 12));
+
+		m_nextButton = new QtSelfRefreshIconButton("", QtResources::CODE_VIEW_ARROW_RIGHT, "screen_search/button");
+		m_nextButton->setToolTip(QtActions::screenSearchNext().tooltip());
+		m_nextButton->setObjectName(QStringLiteral("next_button"));
 		m_nextButton->setIconSize(QSize(12, 12));
 
 		layout->addWidget(m_prevButton);
@@ -107,10 +100,8 @@ QtScreenSearchBox::QtScreenSearchBox(
 
 	// buttons
 	{
-		m_closeButton = new QtSelfRefreshIconButton(
-			QLatin1String(""),
-			ResourcePaths::getGuiDirectoryPath().concatenate(L"screen_search_view/images/close.png"),
-			"screen_search/button");
+		m_closeButton = new QtSelfRefreshIconButton("", QtResources::SCREEN_SEARCH_VIEW_CLOSE, "screen_search/button");
+		m_closeButton->setToolTip(QtActions::screenSearchClose().tooltip());
 		m_closeButton->setObjectName(QStringLiteral("close_button"));
 		m_closeButton->setIconSize(QSize(15, 15));
 		layout->addWidget(m_closeButton);
@@ -125,7 +116,7 @@ QtScreenSearchBox::QtScreenSearchBox(
 	setMatchCount(0);
 }
 
-QtScreenSearchBox::~QtScreenSearchBox() {}
+QtScreenSearchBox::~QtScreenSearchBox() = default;
 
 void QtScreenSearchBox::setMatchCount(size_t matchCount)
 {
@@ -156,7 +147,7 @@ void QtScreenSearchBox::addResponder(const std::string& name)
 	m_checkBoxes.emplace(name, box);
 	m_checkboxLayout->addWidget(box);
 
-	connect(box, &QCheckBox::stateChanged, this, &QtScreenSearchBox::findMatches);
+	connect(box, &QCheckBox::checkStateChanged, this, &QtScreenSearchBox::findMatches);
 }
 
 void QtScreenSearchBox::setFocus()
@@ -188,7 +179,7 @@ void QtScreenSearchBox::findMatches()
 			}
 		}
 
-		controller->search(m_searchBox->text().toLower().toStdWString(), responderNames);
+		controller->search(m_searchBox->text().toLower().toStdString(), responderNames);
 	});
 }
 

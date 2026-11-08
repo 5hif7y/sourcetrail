@@ -22,7 +22,7 @@ signals:
 	void opened();
 
 public:
-	virtual void showPopup()
+	void showPopup() override
 	{
 		emit opened();
 	}
@@ -35,14 +35,14 @@ class QtProjectWizardContentPreferences: public QtProjectWizardContent
 
 public:
 	QtProjectWizardContentPreferences(QtProjectWizardWindow* window);
-	~QtProjectWizardContentPreferences();
+	~QtProjectWizardContentPreferences() override;
 
 	// QtProjectWizardContent implementation
-	virtual void populate(QGridLayout* layout, int& row) override;
+	void populate(QGridLayout* layout, int& row) override;
 
-	virtual void load() override;
-	virtual void save() override;
-	virtual bool check() override;
+	void load() override;
+	void save() override;
+	bool check() override;
 
 private slots:
 	void colorSchemeChanged(int index);
@@ -59,9 +59,9 @@ private:
 	void addJreSystemLibraryPathsDetection(QGridLayout* layout, int& row);
 	void addMavenPathDetection(QGridLayout* layout, int& row);
 
-	void addTitle(const QString& title, QGridLayout* layout, int& row);
+	static void addTitle(const QString& title, QGridLayout* layout, int& row);
 	void addLabel(const QString& label, QGridLayout* layout, int row);
-	void addWidget(
+	static void addWidget(
 		QWidget* widget, QGridLayout* layout, int row, Qt::Alignment widgetAlignment = Qt::Alignment());
 	void addLabelAndWidget(
 		const QString& label,
@@ -69,7 +69,7 @@ private:
 		QGridLayout* layout,
 		int row,
 		Qt::Alignment widgetAlignment = Qt::Alignment());
-	void addGap(QGridLayout* layout, int& row);
+	static void addGap(QGridLayout* layout, int& row);
 
 	QCheckBox* addCheckBox(
 		const QString& label,
@@ -105,17 +105,17 @@ private:
 
 	QComboBox* m_colorSchemes;
 	std::vector<FilePath> m_colorSchemePaths;
-	int m_oldColorSchemeIndex;
-	int m_newColorSchemeIndex;
+	int m_oldColorSchemeIndex = -1;
+	int m_newColorSchemeIndex = -1;
 
 	QCheckBox* m_useAnimations;
 	QCheckBox* m_showBuiltinTypes;
 	QCheckBox* m_showDirectoryInCode;
 
-	QComboBox* m_screenAutoScaling;
+	QComboBox* m_screenAutoScaling = nullptr;
 	QLabel* m_screenAutoScalingInfoLabel;
 
-	QComboBox* m_screenScaleFactor;
+	QComboBox* m_screenScaleFactor = nullptr;
 	QLabel* m_screenScaleFactorInfoLabel;
 
 	QLineEdit* m_scrollSpeed;
@@ -143,8 +143,6 @@ private:
 	QtLocationPicker* m_javaPath;
 	QtPathListBox* m_jreSystemLibraryPaths;
 	QtLocationPicker* m_mavenPath;
-
-	QCheckBox* m_pythonPostProcessing;
 };
 
 #endif	  // QT_PROJECT_WIZARD_CONTENT_PREFERENCES_H

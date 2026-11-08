@@ -73,7 +73,7 @@ public class TypeName implements SymbolName
 		return declName;
 	}
 
-	public NameHierarchy toNameHierarchy()
+	@Override public NameHierarchy toNameHierarchy()
 	{
 		NameHierarchy nameHierarchy;
 
@@ -91,7 +91,7 @@ public class TypeName implements SymbolName
 		return nameHierarchy;
 	}
 
-	public String toString()
+	@Override public String toString()
 	{
 		String string = "";
 		if (m_parent != null)

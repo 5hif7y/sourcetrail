@@ -16,13 +16,13 @@ class Tab
 	, public MessageListener<MessageRefreshUI>
 {
 public:
-	Tab(Id tabId,
+	Tab(TabId tabId,
 		const ViewFactory* viewFactory,
 		StorageAccess* storageAccess,
 		ScreenSearchSender* screenSearchSender);
-	virtual ~Tab();
+	~Tab() override;
 
-	Id getSchedulerId() const override;
+	TabId getSchedulerId() const override;
 
 	void setParentLayout(ViewLayout* parentLayout);
 
@@ -39,12 +39,12 @@ private:
 	void handleMessage(MessageFocusView* message) override;
 	void handleMessage(MessageRefreshUI* message) override;
 
-	const Id m_tabId;
+	const TabId m_tabId;
 
 	ComponentManager m_componentManager;
 	std::vector<View*> m_views;
 
-	ViewLayout* m_parentLayout;
+	ViewLayout* m_parentLayout = nullptr;
 	ScreenSearchSender* m_screenSearchSender;
 };
 

@@ -1,21 +1,12 @@
 #include "ElementComponentKind.h"
 
-int elementComponentKindToInt(ElementComponentKind kind)
+template <>
+ElementComponentKind intToEnum(int value)
 {
-	return static_cast<int>(kind);
-}
-
-ElementComponentKind intToElementComponentKind(int value)
-{
-	const ElementComponentKind kinds[] = {ElementComponentKind::IS_AMBIGUOUS};
-
-	for (ElementComponentKind kind: kinds)
+	switch (value)
 	{
-		if (value == elementComponentKindToInt(kind))
-		{
-			return kind;
-		}
+		case ELEMENT_COMPONENT_IS_AMBIGUOUS:
+			return ELEMENT_COMPONENT_IS_AMBIGUOUS;
 	}
-
-	return ElementComponentKind::NONE;
+	return ELEMENT_COMPONENT_NONE;
 }

@@ -37,6 +37,8 @@ public:
 		}
 	};
 
+	virtual ~CodeFocusHandler() = default;
+
 	void focus();
 	void defocus();
 

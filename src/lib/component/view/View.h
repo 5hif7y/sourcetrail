@@ -49,7 +49,7 @@ private:
 	template <typename ControllerType>
 	friend class ControllerProxy;
 
-	Component* m_component;
+	Component* m_component = nullptr;
 	ViewLayout* const m_viewLayout;
 	std::shared_ptr<ViewWidgetWrapper> m_widgetWrapper;
 };

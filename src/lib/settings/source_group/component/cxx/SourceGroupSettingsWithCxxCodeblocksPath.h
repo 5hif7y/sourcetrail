@@ -7,7 +7,7 @@
 class SourceGroupSettingsWithCxxCodeblocksPath: public SourceGroupSettingsComponent
 {
 public:
-	virtual ~SourceGroupSettingsWithCxxCodeblocksPath() = default;
+	~SourceGroupSettingsWithCxxCodeblocksPath() override = default;
 
 	FilePath getCodeblocksProjectPath() const;
 	FilePath getCodeblocksProjectPathExpandedAndAbsolute() const;

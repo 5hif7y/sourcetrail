@@ -11,7 +11,7 @@ public:
 		return "MessageRefreshUI";
 	}
 
-	MessageRefreshUI(): loadStyle(true), isAfterIndexing(false) {}
+	MessageRefreshUI() = default;
 
 	MessageRefreshUI& noStyleReload()
 	{
@@ -25,7 +25,7 @@ public:
 		return *this;
 	}
 
-	void print(std::wostream& os) const override
+	void print(std::ostream& os) const override
 	{
 		if (loadStyle)
 		{
@@ -33,8 +33,8 @@ public:
 		}
 	}
 
-	bool loadStyle;
-	bool isAfterIndexing;
+	bool loadStyle = true;
+	bool isAfterIndexing = false;
 };
 
 #endif	  // MESSAGE_REFRESH_UI_H

@@ -17,11 +17,11 @@ public:
 		bool indicateAsAdditional = false);
 
 	// QtProjectWizardContent implementation
-	virtual void populate(QGridLayout* layout, int& row) override;
+	void populate(QGridLayout* layout, int& row) override;
 
-	virtual void load() override;
-	virtual void save() override;
-	virtual bool check() override;
+	void load() override;
+	void save() override;
+	bool check() override;
 
 private:
 	std::shared_ptr<SourceGroupSettingsWithCxxPathsAndFlags> m_settings;

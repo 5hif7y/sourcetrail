@@ -1,82 +1,91 @@
-AccessModifierOffset: -4
-AlignAfterOpenBracket: AlwaysBreak
-AlignConsecutiveAssignments: false
-AlignConsecutiveDeclarations: false
-AlignConsecutiveMacros: false
-AlignEscapedNewlines: Right
-AlignOperands: false
-AlignTrailingComments: true
-AllowAllArgumentsOnNextLine: true
-AllowAllConstructorInitializersOnNextLine: true
-AllowAllParametersOfDeclarationOnNextLine: true
-AllowShortBlocksOnASingleLine: false
-AllowShortCaseLabelsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: Empty
-AllowShortIfStatementsOnASingleLine: Never
-AllowShortLambdasOnASingleLine: All
-AllowShortLoopsOnASingleLine: false
-AlwaysBreakAfterDefinitionReturnType: None
-AlwaysBreakAfterReturnType: None
-AlwaysBreakBeforeMultilineStrings: true
-AlwaysBreakTemplateDeclarations: Yes
-BinPackArguments: false
-BinPackParameters: false
-BreakBeforeBinaryOperators: None
-BreakBeforeBraces: Allman
-BreakBeforeTernaryOperators: true
-BreakConstructorInitializers: BeforeComma
-BreakInheritanceList: BeforeComma
-BreakStringLiterals: true
-ColumnLimit: 100
-CompactNamespaces: true
-ConstructorInitializerAllOnOneLineOrOnePerLine: true
-ConstructorInitializerIndentWidth: 4
-ContinuationIndentWidth: 4
-Cpp11BracedListStyle: true
-DerivePointerAlignment: false
-FixNamespaceComments: true
-IncludeBlocks: Preserve
-IndentCaseLabels: false
-IndentPPDirectives: AfterHash
-IndentWidth: 4
-IndentWrappedFunctionNames: true
-KeepEmptyLinesAtTheStartOfBlocks: false
-MaxEmptyLinesToKeep: 2
-NamespaceIndentation: None
-PenaltyBreakAssignment:					  50
-PenaltyBreakBeforeFirstCallParameter:	   0
-PenaltyBreakComment:					 100
-PenaltyBreakFirstLessLess:				 200
-PenaltyBreakString:						 100
-PenaltyBreakTemplateDeclaration:		   0
-PenaltyExcessCharacter:					  10
-PenaltyReturnTypeOnItsOwnLine:			1000
-PointerAlignment: Left
-ReflowComments: true
-SortIncludes: true
-SpaceAfterCStyleCast: false
-SpaceAfterLogicalNot: false
-SpaceAfterTemplateKeyword: true
-SpaceBeforeAssignmentOperators: true
-SpaceBeforeCpp11BracedList: true
-SpaceBeforeCtorInitializerColon: false
-SpaceBeforeInheritanceColon: false
-SpaceBeforeParens: ControlStatements
-SpaceBeforeRangeBasedForLoopColon: false
-SpaceInEmptyBlock: false
-SpaceInEmptyParentheses: false
-SpacesBeforeTrailingComments: 4
-SpacesInAngles: false
-SpacesInCStyleCastParentheses: false
-SpacesInContainerLiterals: false
-SpacesInParentheses: false
-SpacesInSquareBrackets: false
-Standard: c++17
-TabWidth: 4
-UseTab: Always
 ---
 Language: Cpp
----
-Language: Java
-#BasedOnStyle: Google
-#BreakAfterJavaFieldAnnotations: true
+Standard: Latest
+ColumnLimit: 150
+AccessModifierOffset: -4
+
+AlignAfterOpenBracket: DontAlign
+AlignEscapedNewlines: LeftWithLastLine
+
+TabWidth: 4
+IndentWidth: 4
+UseTab: Always
+# UseTab: AlignWithSpaces
+# AlignConsecutiveAssignments: Consecutive
+
+IndentCaseLabels: true
+
+AllowShortBlocksOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLambdasOnASingleLine: None
+AllowShortLoopsOnASingleLine: false
+
+BreakTemplateDeclarations: Yes
+BreakBeforeBinaryOperators: None
+
+FixNamespaceComments: true
+
+LambdaBodyIndentation: OuterScope
+
+# Constructor settings:
+PackConstructorInitializers: Never
+BreakConstructorInitializers: BeforeComma
+
+PenaltyBreakOpenParenthesis: 1
+
+# BinPackArguments: false (Breaks connect calls!)
+
+# Basically the 'Allman' style, but necessary for 'BeforeLambdaBody'
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: true
+  AfterClass: true
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterUnion: true
+  AfterExternBlock: true
+  BeforeCatch: true
+  BeforeElse: true
+  BeforeLambdaBody: true
+  BeforeWhile: true
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
+
+# K&R style:
+# BreakBeforeBraces: Custom
+# BraceWrapping:
+#   AfterCaseLabel: false
+#   AfterClass: true
+#   AfterControlStatement: Never
+#   AfterEnum: true
+#   AfterFunction: true
+#   AfterNamespace: true
+#   AfterStruct: true
+#   AfterUnion: true
+#   AfterExternBlock: true
+#   BeforeCatch: false
+#   BeforeElse: false
+#   BeforeLambdaBody: true
+#   BeforeWhile: false
+#   SplitEmptyFunction: true
+#   SplitEmptyRecord: true
+#   SplitEmptyNamespace: true
+
+# Warning
+# This option will be renamed and expanded to support other styles.
+#
+# Warning
+# Setting this option to true could lead to incorrect code formatting due to clang-format’s lack of complete semantic
+# information. As such, extra care should be taken to review code changes made by this option.
+#RemoveBracesLLVM: true
+
+# Warning
+# Setting this option to any value other than Leave could lead to incorrect code formatting due to clang-format’s lack of
+# complete semantic information. As such, extra care should be taken to review code changes made by this option.
+#RemoveParentheses: MultipleParentheses

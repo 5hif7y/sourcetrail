@@ -41,14 +41,14 @@ protected:
 private:
 	void updateStyleSheet();
 
-	QWidget* createSearchBox(QtSmartSearchBox* searchBox) const;
+	static QWidget* createSearchBox(QtSmartSearchBox* searchBox);
 	QVBoxLayout* addFilters(
 		const QString& name,
 		const std::vector<QString>& filters,
 		const std::vector<QColor>& colors,
 		std::vector<QCheckBox*>* checkBoxes,
 		size_t filtersInFirstColumn);
-	QHBoxLayout* addCheckButtons(const std::vector<QCheckBox*>& checkBoxes) const;
+	static QHBoxLayout* addCheckButtons(const std::vector<QCheckBox*>& checkBoxes);
 
 	NodeKindMask getCheckedNodeTypes() const;
 	Edge::TypeMask getCheckedEdgeTypes() const;

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "sourcetrail",
+  "version": "1.0.0",
+  "dependencies": [
+    "boost-system",
+    "boost-date-time",
+    "boost-filesystem",
+    "boost-program-options",
+    "boost-dll",
+    "boost-interprocess",
+    "boost-uuid",
+    "boost-asio",
+    "boost-process",
+    "boost-multi-index",
+    {
+      "name": "boost-locale",
+      "features": [
+        "icu"
+      ]
+    },
+    "icu",
+    "nlohmann-json",
+    "sqlite3",
+    "tinyxml"
+  ],
+  "features": {
+    "gui": {
+      "description": "Qt GUI",
+      "dependencies": [
+        "qtsvg",
+        "qtbase",
+        "qtimageformats"
+      ]
+    },
+    "cxx": {
+      "description": "C/C++ language package (LLVM/Clang)",
+      "dependencies": [
+        "llvm"
+      ]
+    },
+    "tests": {
+      "description": "Unit tests",
+      "dependencies": [
+        "catch2",
+        "gtest"
+      ]
+    }
+  }
+}

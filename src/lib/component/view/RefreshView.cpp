@@ -4,7 +4,7 @@
 
 RefreshView::RefreshView(ViewLayout* viewLayout): View(viewLayout) {}
 
-RefreshView::~RefreshView() {}
+RefreshView::~RefreshView() = default;
 
 std::string RefreshView::getName() const
 {

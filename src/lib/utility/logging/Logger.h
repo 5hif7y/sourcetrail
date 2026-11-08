@@ -37,7 +37,7 @@ private:
 	virtual void logError(const LogMessage& message) = 0;
 
 	const std::string m_type;
-	LogLevelMask m_levelMask;
+	LogLevelMask m_levelMask = LOG_ALL;
 };
 
 #endif	  // LOGGER_H

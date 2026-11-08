@@ -10,13 +10,13 @@ public:
 	QtProjectWizardContentPathsHeaderSearchGlobal(QtProjectWizardWindow* window);
 
 	// QtProjectWizardContent implementation
-	virtual void load() override;
-	virtual void save() override;
+	void load() override;
+	void save() override;
 
-	virtual bool check() override;
+	bool check() override;
 
 protected:
-	virtual void detectedPaths(const std::vector<FilePath>& paths) override;
+	void detectedPaths(const std::vector<FilePath>& paths) override;
 
 private:
 	void setPaths(const std::vector<FilePath>& paths);

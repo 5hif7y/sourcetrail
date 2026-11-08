@@ -16,9 +16,9 @@ public:
 	};
 
 	TokenComponentAbstraction(AbstractionType abstraction);
-	virtual ~TokenComponentAbstraction();
+	~TokenComponentAbstraction() override;
 
-	virtual std::shared_ptr<TokenComponent> copy() const;
+	std::shared_ptr<TokenComponent> copy() const override;
 
 	AbstractionType getAbstraction() const;
 	std::string getAbstractionString() const;

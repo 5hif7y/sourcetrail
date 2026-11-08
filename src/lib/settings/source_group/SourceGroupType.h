@@ -3,31 +3,39 @@
 
 #include "language_packages.h"
 
+
+
 #include <string>
 
-enum SourceGroupType
+enum class SourceGroupType
 {
-#if BUILD_CXX_LANGUAGE_PACKAGE
-	SOURCE_GROUP_C_EMPTY,
-	SOURCE_GROUP_CPP_EMPTY,
-	SOURCE_GROUP_CXX_CDB,
-	SOURCE_GROUP_CXX_CODEBLOCKS,
-	SOURCE_GROUP_CXX_VS,
-#endif	  // BUILD_CXX_LANGUAGE_PACKAGE
-#if BUILD_JAVA_LANGUAGE_PACKAGE
-	SOURCE_GROUP_JAVA_EMPTY,
-	SOURCE_GROUP_JAVA_MAVEN,
-	SOURCE_GROUP_JAVA_GRADLE,
-#endif	  // BUILD_JAVA_LANGUAGE_PACKAGE
-#if BUILD_PYTHON_LANGUAGE_PACKAGE
-	SOURCE_GROUP_PYTHON_EMPTY,
-#endif	  // BUILD_PYTHON_LANGUAGE_PACKAGE
-	SOURCE_GROUP_CUSTOM_COMMAND,
-	SOURCE_GROUP_UNKNOWN
+	UNKNOWN,
+	C_EMPTY,
+	CXX_EMPTY,
+	CXX_CDB,
+	CXX_CODEBLOCKS,
+	CXX_VS,
+
+	JAVA_EMPTY,
+	JAVA_MAVEN,
+	JAVA_GRADLE,
+
+	PYTHON_EMPTY,
+	ODIN_EMPTY,
+
+	CUSTOM_COMMAND
 };
+
+
 
 std::string sourceGroupTypeToString(SourceGroupType v);
 std::string sourceGroupTypeToProjectSetupString(SourceGroupType v);
+
+// Stable id for project files and plugins (e.g. "odin_empty"). Old projects
+// keep using the display strings; stringToSourceGroupType accepts both.
+std::string sourceGroupTypeToId(SourceGroupType v);
+SourceGroupType sourceGroupTypeFromId(const std::string& v);
+
 SourceGroupType stringToSourceGroupType(const std::string& v);
 
 #endif	  // SOURCE_GROUP_TYPE_H

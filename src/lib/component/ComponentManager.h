@@ -7,6 +7,7 @@
 #include "Component.h"
 #include "ComponentFactory.h"
 #include "DialogView.h"
+#include "TabIds.h"
 
 class CompositeView;
 class DialogView;
@@ -23,9 +24,9 @@ public:
 	ComponentManager(const ViewFactory* viewFactory, StorageAccess* storageAccess);
 
 	void clear();
-
-	void setupMain(ViewLayout* viewLayout, Id appId);
-	void setupTab(ViewLayout* viewLayout, Id tabId, ScreenSearchSender* screenSearchSender);
+	
+	void setupMain(ViewLayout* viewLayout, TabId appId);
+	void setupTab(ViewLayout* viewLayout, TabId tabId, ScreenSearchSender* screenSearchSender);
 	void teardownTab(ScreenSearchSender* screenSearchSender);
 
 	void clearComponents();

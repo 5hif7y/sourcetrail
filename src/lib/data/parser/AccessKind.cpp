@@ -1,48 +1,44 @@
 #include "AccessKind.h"
 
-AccessKind intToAccessKind(int v)
+namespace
 {
-	switch (v)
-	{
-	case ACCESS_PUBLIC:
-		return ACCESS_PUBLIC;
-	case ACCESS_PROTECTED:
-		return ACCESS_PROTECTED;
-	case ACCESS_PRIVATE:
-		return ACCESS_PRIVATE;
-	case ACCESS_DEFAULT:
-		return ACCESS_DEFAULT;
-	case ACCESS_TEMPLATE_PARAMETER:
-		return ACCESS_TEMPLATE_PARAMETER;
-	case ACCESS_TYPE_PARAMETER:
-		return ACCESS_TYPE_PARAMETER;
-	}
-	return ACCESS_NONE;
+
+const AccessKind ACCESS_KINDS[] = {
+	AccessKind::NONE,
+	AccessKind::PUBLIC,
+	AccessKind::PROTECTED,
+	AccessKind::PRIVATE,
+	AccessKind::DEFAULT,
+	AccessKind::TEMPLATE_PARAMETER,
+	AccessKind::TYPE_PARAMETER
+};
+
 }
 
-int accessKindToInt(AccessKind t)
+template <>
+AccessKind intToEnum(int value)
 {
-	return t;
+	return lookupEnum(value, ACCESS_KINDS, AccessKind::NONE);
 }
 
-std::wstring accessKindToString(AccessKind t)
+std::string accessKindToString(AccessKind t)
 {
 	switch (t)
 	{
-	case ACCESS_NONE:
-		return L"";
-	case ACCESS_PUBLIC:
-		return L"public";
-	case ACCESS_PROTECTED:
-		return L"protected";
-	case ACCESS_PRIVATE:
-		return L"private";
-	case ACCESS_DEFAULT:
-		return L"default";
-	case ACCESS_TEMPLATE_PARAMETER:
-		return L"template parameter";
-	case ACCESS_TYPE_PARAMETER:
-		return L"type parameter";
+	case AccessKind::NONE:
+		return "";
+	case AccessKind::PUBLIC:
+		return "public";
+	case AccessKind::PROTECTED:
+		return "protected";
+	case AccessKind::PRIVATE:
+		return "private";
+	case AccessKind::DEFAULT:
+		return "default";
+	case AccessKind::TEMPLATE_PARAMETER:
+		return "template parameter";
+	case AccessKind::TYPE_PARAMETER:
+		return "type parameter";
 	}
-	return L"";
+	return "";
 }

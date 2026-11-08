@@ -5,7 +5,7 @@ TokenComponentFilePath::TokenComponentFilePath(const FilePath& path, bool comple
 {
 }
 
-TokenComponentFilePath::~TokenComponentFilePath() {}
+TokenComponentFilePath::~TokenComponentFilePath() = default;
 
 std::shared_ptr<TokenComponent> TokenComponentFilePath::copy() const
 {

@@ -23,21 +23,21 @@
 #include "utilityString.h"
 
 GraphController::GraphController(StorageAccess* storageAccess)
-	: m_storageAccess(storageAccess), m_useBezierEdges(false)
+	: m_storageAccess(storageAccess)
 {
 }
 
-Id GraphController::getSchedulerId() const
+TabId GraphController::getSchedulerId() const
 {
 	return Controller::getTabId();
 }
 
-void GraphController::handleMessage(MessageActivateErrors* message)
+void GraphController::handleMessage(MessageActivateErrors*  /*message*/)
 {
 	clear();
 }
 
-void GraphController::handleMessage(MessageActivateFullTextSearch* message)
+void GraphController::handleMessage(MessageActivateFullTextSearch*  /*message*/)
 {
 	clear();
 }
@@ -211,7 +211,7 @@ void GraphController::handleMessage(MessageActivateTrail* message)
 {
 	TRACE("trail activate");
 
-	MessageStatus(L"Retrieving graph data", false, true).dispatch();
+	MessageStatus("Retrieving graph data", false, true).dispatch();
 
 	m_activeEdgeIds.clear();
 
@@ -247,40 +247,40 @@ void GraphController::handleMessage(MessageActivateTrail* message)
 
 	if (message->originId && message->targetId && !graph->getNodeById(message->targetId))
 	{
-		MessageStatus(L"No trail graph found.", true).dispatch();
+		MessageStatus("No trail graph found.", true).dispatch();
 
 		Application::getInstance()->handleDialog(
-			L"No custom trail was found between the specified symbols with the specified "
-			L"parameters.",
-			{L"Ok"});
+			"No custom trail was found between the specified symbols with the specified "
+			"parameters.",
+			{"Ok"});
 	}
 	else if (graph->getNodeCount() > 1000)
 	{
 		int r = Application::getInstance()->handleDialog(
-			L"Warning!\n\nThe graph will contain " + std::to_wstring(graph->getNodeCount()) +
+			"Warning!\n\nThe graph will contain " + std::to_string(graph->getNodeCount()) +
 				" nodes. "
-				L"Layouting and drawing might take a while and the resulting graph could look "
-				L"confusing. Please "
-				L"consider reducing graph depth with the slider on the left.\n\n"
-				L"Do you want to proceed?",
-			{L"Yes", L"No"});
+				"Layouting and drawing might take a while and the resulting graph could look "
+				"confusing. Please "
+				"consider reducing graph depth with the slider on the left.\n\n"
+				"Do you want to proceed?",
+			{"Yes", "No"});
 
 		if (r == 1)
 		{
-			MessageStatus(L"Aborted graph display").dispatch();
+			MessageStatus("Aborted graph display").dispatch();
 			return;
 		}
 	}
 
 	createDummyGraph(graph);
 	m_graph->setTrailMode(message->horizontalLayout ? Graph::TRAIL_HORIZONTAL : Graph::TRAIL_VERTICAL);
-	m_graph->setHasTrailOrigin(message->originId);
+	m_graph->setHasTrailOrigin(message->originId != 0);
 
 	m_activeNodeIds = {message->originId ? message->originId : message->targetId};
 	setActive(m_activeNodeIds, true);
 	setVisibility(true);
 
-	MessageStatus(L"Layouting graph", false, true).dispatch();
+	MessageStatus("Layouting graph", false, true).dispatch();
 
 	if (!message->custom && message->edgeTypes & Edge::EDGE_INHERITANCE)
 	{
@@ -288,7 +288,7 @@ void GraphController::handleMessage(MessageActivateTrail* message)
 	}
 
 	layoutNesting();
-	layoutTrail(message->horizontalLayout, message->originId);
+	layoutTrail(message->horizontalLayout, message->originId != 0);
 
 	if (message->originId && message->targetId)
 	{
@@ -299,7 +299,7 @@ void GraphController::handleMessage(MessageActivateTrail* message)
 		}
 	}
 
-	MessageStatus(L"Displaying graph", false, true).dispatch();
+	MessageStatus("Displaying graph", false, true).dispatch();
 
 	GraphView::GraphParams params;
 	params.centerActiveNode = message->isLast();
@@ -316,7 +316,7 @@ void GraphController::handleMessage(MessageActivateTrailEdge* message)
 	getView()->activateEdge(message->edgeIds.back());
 }
 
-void GraphController::handleMessage(MessageDeactivateEdge* message)
+void GraphController::handleMessage(MessageDeactivateEdge*  /*message*/)
 {
 	TRACE("edge deactivate");
 
@@ -362,7 +362,7 @@ void GraphController::handleMessage(MessageFocusOut* message)
 
 void GraphController::handleMessage(MessageGraphNodeBundleSplit* message)
 {
-	std::wstring name;
+	std::string name;
 	if (m_dummyNodes.size() == 1 && m_dummyNodes[0]->isGroupNode())
 	{
 		name = m_dummyNodes[0]->name;
@@ -492,7 +492,7 @@ void GraphController::handleMessage(MessageGraphNodeExpand* message)
 					if (edge && edge->data && edge->data->isType(Edge::EDGE_BUNDLED_EDGES) &&
 						(edge->targetId == dummyNode->tokenId || edge->ownerId == dummyNode->tokenId))
 					{
-						std::vector<Id> bundledEdgesIds = utility::toVector<Id>(
+						std::vector<Id> bundledEdgesIds = utility::toVector(
 							edge->data->getComponent<TokenComponentBundledEdges>()->getBundledEdgesIds());
 
 						if (m_graph->getEdgeById(bundledEdgesIds[0]) != nullptr)
@@ -535,7 +535,7 @@ void GraphController::handleMessage(MessageGraphNodeHide* message)
 	{
 		if (node->active || node->hasActiveSubNode())
 		{
-			MessageStatus(L"Can't hide active node or node with active children", true).dispatch();
+			MessageStatus("Can't hide active node or node with active children", true).dispatch();
 			return;
 		}
 
@@ -566,7 +566,7 @@ void GraphController::handleMessage(MessageGraphNodeHide* message)
 
 	if (node || edge)
 	{
-		relayoutGraph(message, GraphView::GraphParams(), false, L"");
+		relayoutGraph(message, GraphView::GraphParams(), false, "");
 	}
 }
 
@@ -580,7 +580,7 @@ void GraphController::handleMessage(MessageGraphNodeMove* message)
 		if (m_graph->getTrailMode() != Graph::TRAIL_NONE)
 		{
 			std::set<Id> childNodeIds;
-			for (const std::pair<Id, Id>& p: m_topLevelAncestorIds)
+			for (const auto &p: m_topLevelAncestorIds)
 			{
 				if (p.second == message->tokenId)
 				{
@@ -588,7 +588,7 @@ void GraphController::handleMessage(MessageGraphNodeMove* message)
 				}
 			}
 
-			for (std::shared_ptr<DummyEdge> edge: m_dummyEdges)
+			for (std::shared_ptr<DummyEdge> &edge: m_dummyEdges)
 			{
 				if (childNodeIds.find(edge->ownerId) != childNodeIds.end() ||
 					childNodeIds.find(edge->targetId) != childNodeIds.end())
@@ -748,7 +748,7 @@ std::vector<std::shared_ptr<DummyNode>> GraphController::createDummyNodeTopDown(
 
 	node->forEachChildNode([&result, &ancestorId, this](Node* child) {
 		DummyNode* parent = nullptr;
-		AccessKind accessKind = ACCESS_NONE;
+		AccessKind accessKind = AccessKind::NONE;
 
 		TokenComponentAccess* access = child->getComponent<TokenComponentAccess>();
 		if (access)
@@ -817,7 +817,7 @@ void GraphController::updateDummyNodeNamesAndAddQualifiers(
 std::vector<Id> GraphController::getExpandedNodeIds() const
 {
 	std::vector<Id> nodeIds;
-	for (const std::pair<Id, std::shared_ptr<DummyNode>>& p: m_dummyGraphNodes)
+	for (const auto &p: m_dummyGraphNodes)
 	{
 		DummyNode* oldNode = p.second.get();
 		if (oldNode->expanded && !oldNode->autoExpanded && oldNode->isGraphNode() &&
@@ -989,7 +989,7 @@ bool GraphController::setNodeVisibilityRecursiveBottomUp(DummyNode* node, bool n
 		}
 	}
 
-	if (node->isAccessNode() && node->accessKind == ACCESS_NONE && node->childVisible)
+	if (node->isAccessNode() && node->accessKind == AccessKind::NONE && node->childVisible)
 	{
 		node->visible = true;
 	}
@@ -1010,7 +1010,7 @@ void GraphController::setNodeVisibilityRecursiveTopDown(DummyNode* node, bool pa
 	}
 
 	if ((node->isGraphNode() && node->isExpanded()) ||
-		(node->isAccessNode() && (node->accessKind == ACCESS_NONE || parentExpanded)))
+		(node->isAccessNode() && (node->accessKind == AccessKind::NONE || parentExpanded)))
 	{
 		for (const std::shared_ptr<DummyNode>& subNode: node->subNodes)
 		{
@@ -1142,7 +1142,7 @@ void GraphController::bundleNodes()
 	// 	std::cout << node->bundleInfo.layoutVertical << " ";
 	// 	std::cout << node->bundleInfo.isReferenced << " ";
 	// 	std::cout << node->bundleInfo.isReferencing << " ";
-	// 	std::wcout << node->name << std::endl;
+	// 	std::cout << node->name << std::endl;
 	// }
 
 	// bundle
@@ -1164,28 +1164,28 @@ void GraphController::bundleNodes()
 	}
 
 	bundleNodesAndEdgesMatching(
-		[](const DummyNode::BundleInfo& info, const Node* data) {
+		[](const DummyNode::BundleInfo&  /*info*/, const Node* data) {
 			return data->getType().isFile() && data->findEdgeOfType(Edge::EDGE_IMPORT);
 		},
 		1,
 		false,
-		L"Importing Files");
+		"Importing Files");
 
 	bundleNodesAndEdgesMatching(
-		[](const DummyNode::BundleInfo& info, const Node* data) {
+		[](const DummyNode::BundleInfo& info, const Node*  /*data*/) {
 			return !info.isDefined && info.isReferencing && !info.layoutVertical;
 		},
 		2,
 		true,
-		L"Non-indexed Symbols");
+		"Non-indexed Symbols");
 
 	bundleNodesAndEdgesMatching(
-		[](const DummyNode::BundleInfo& info, const Node* data) {
+		[](const DummyNode::BundleInfo& info, const Node*  /*data*/) {
 			return !info.isDefined && info.isReferenced && !info.layoutVertical;
 		},
 		2,
 		true,
-		L"Non-indexed Symbols");
+		"Non-indexed Symbols");
 
 	bundleNodesAndEdgesMatching(
 		[](const DummyNode::BundleInfo& info, const Node* data) {
@@ -1193,23 +1193,23 @@ void GraphController::bundleNodes()
 		},
 		3,
 		false,
-		L"Built-in Types");
+		"Built-in Types");
 
 	bundleNodesAndEdgesMatching(
-		[](const DummyNode::BundleInfo& info, const Node* data) {
+		[](const DummyNode::BundleInfo& info, const Node*  /*data*/) {
 			return info.isDefined && info.isReferencing && !info.layoutVertical;
 		},
 		10,
 		false,
-		L"Referencing Symbols");
+		"Referencing Symbols");
 
 	bundleNodesAndEdgesMatching(
-		[](const DummyNode::BundleInfo& info, const Node* data) {
+		[](const DummyNode::BundleInfo& info, const Node*  /*data*/) {
 			return info.isDefined && info.isReferenced && !info.layoutVertical;
 		},
 		10,
 		false,
-		L"Referenced Symbols");
+		"Referenced Symbols");
 
 	bundleNodesAndEdgesMatching(
 		[](const DummyNode::BundleInfo& info, const Node* data) {
@@ -1218,7 +1218,7 @@ void GraphController::bundleNodes()
 		},
 		5,
 		false,
-		L"Specializing Symbols");
+		"Specializing Symbols");
 
 	bundleNodesAndEdgesMatching(
 		[](const DummyNode::BundleInfo& info, const Node* data) {
@@ -1227,7 +1227,7 @@ void GraphController::bundleNodes()
 		},
 		5,
 		false,
-		L"Derived Symbols");
+		"Derived Symbols");
 
 	bundleNodesAndEdgesMatching(
 		[](const DummyNode::BundleInfo& info, const Node* data) {
@@ -1236,14 +1236,14 @@ void GraphController::bundleNodes()
 		},
 		5,
 		false,
-		L"Base Symbols");
+		"Base Symbols");
 }
 
 void GraphController::bundleNodesAndEdgesMatching(
 	std::function<bool(const DummyNode::BundleInfo&, const Node* data)> matcher,
 	size_t count,
 	bool countConnectedNodes,
-	const std::wstring& name)
+	const std::string& name)
 {
 	std::vector<size_t> matchedNodeIndices;
 	size_t connectedNodeCount = 0;
@@ -1296,7 +1296,7 @@ void GraphController::bundleNodesAndEdgesMatching(
 	DummyNode* firstNode = bundleNode->bundledNodes.begin()->get();
 
 	// Use token Id of first node and make first bit 1
-	bundleNode->tokenId = ~(~Id(0) >> 1) + firstNode->data->getId();
+	bundleNode->tokenId = addCollisionGuardBits(firstNode->data->getId(), CollisionGuardBits::ONE);
 	bundleNode->bundleInfo.layoutVertical = firstNode->bundleInfo.layoutVertical;
 	bundleNode->bundleInfo.isReferenced = firstNode->bundleInfo.isReferenced;
 	bundleNode->bundleInfo.isReferencing = firstNode->bundleInfo.isReferencing;
@@ -1354,7 +1354,7 @@ void GraphController::bundleNodesAndEdgesMatching(
 std::shared_ptr<DummyNode> GraphController::bundleNodesMatching(
 	std::list<std::shared_ptr<DummyNode>>& nodes,
 	std::function<bool(const DummyNode*)> matcher,
-	const std::wstring& name)
+	const std::string& name)
 {
 	std::vector<std::list<std::shared_ptr<DummyNode>>::iterator> matchedNodes;
 	for (std::list<std::shared_ptr<DummyNode>>::iterator it = nodes.begin(); it != nodes.end(); it++)
@@ -1384,7 +1384,7 @@ std::shared_ptr<DummyNode> GraphController::bundleNodesMatching(
 	}
 
 	// Use token Id of first node and make first bit 1
-	bundleNode->tokenId = ~(~Id(0) >> 1) + (*bundleNode->bundledNodes.begin())->data->getId();
+	bundleNode->tokenId = addCollisionGuardBits((*bundleNode->bundledNodes.begin())->data->getId(), CollisionGuardBits::ONE);
 	return bundleNode;
 }
 
@@ -1436,12 +1436,11 @@ void GraphController::bundleNodesByType()
 	TRACE();
 
 	std::list<std::shared_ptr<DummyNode>> nodes(m_dummyNodes.begin(), m_dummyNodes.end());
-	std::vector<std::shared_ptr<DummyNode>> oldNodes = std::move(m_dummyNodes);
 	m_dummyNodes.clear();
 
 	bool hasNonFileBundle = false;
 
-	for (const NodeType& nodeType: NodeType::overviewBundleNodeTypesOrdered)
+	for (const NodeType& nodeType: NodeType::getOverviewBundleNodes())
 	{
 		Tree<NodeType::BundleInfo> bundleInfoTree = nodeType.getOverviewBundleTree();
 		if (bundleInfoTree.data.isValid())
@@ -1462,7 +1461,7 @@ void GraphController::bundleNodesByType()
 
 	if (nodes.size() && !hasNonFileBundle)
 	{
-		Tree<NodeType::BundleInfo> bundleInfoTree(NodeType::BundleInfo(L"Symbols"));
+		Tree<NodeType::BundleInfo> bundleInfoTree(NodeType::BundleInfo("Symbols"));
 		std::shared_ptr<DummyNode> bundleNode = bundleByType(
 			nodes, NodeType(NODE_SYMBOL), bundleInfoTree, false);
 		if (bundleNode)
@@ -1492,7 +1491,7 @@ void GraphController::addCharacterIndex()
 	m_dummyNodes.insert(m_dummyNodes.end(), newNodes.begin(), newNodes.end());
 
 	// Add index characters
-	wchar_t character = 0;
+	char character = 0;
 	for (size_t i = 0; i < m_dummyNodes.size(); i++)
 	{
 		if (!m_dummyNodes[i]->visible || !m_dummyNodes[i]->name.size())
@@ -1500,9 +1499,9 @@ void GraphController::addCharacterIndex()
 			continue;
 		}
 
-		if (towupper(m_dummyNodes[i]->name[0]) != character)
+		if (toupper(m_dummyNodes[i]->name[0]) != character)
 		{
-			character = towupper(m_dummyNodes[i]->name[0]);
+			character = toupper(m_dummyNodes[i]->name[0]);
 
 			std::shared_ptr<DummyNode> textNode = std::make_shared<DummyNode>(DummyNode::DUMMY_TEXT);
 			textNode->name = character;
@@ -1534,8 +1533,8 @@ void GraphController::groupNodesByParents(GroupType groupType)
 		return;
 	}
 
-	std::map<std::wstring, std::shared_ptr<DummyNode>> groupNodes;
-	std::map<std::wstring, std::vector<std::shared_ptr<DummyNode>>> nodesToGroup;
+	std::map<std::string, std::shared_ptr<DummyNode>> groupNodes;
+	std::map<std::string, std::vector<std::shared_ptr<DummyNode>>> nodesToGroup;
 
 	std::map<Id, std::pair<Id, NameHierarchy>> nodeIdtoParentMap;
 	if (groupType == GroupType::FILE)
@@ -1552,7 +1551,7 @@ void GraphController::groupNodesByParents(GroupType groupType)
 		nodeIdtoParentMap = m_storageAccess->getNodeIdToParentFileMap(nodeIds);
 	}
 
-	std::map<std::wstring, Id> qualifierNameToIdMap;
+	std::map<std::string, Id> qualifierNameToIdMap;
 	for (const std::shared_ptr<DummyNode>& dummyNode: m_dummyNodes)
 	{
 		if (dummyNode->isGroupNode())
@@ -1578,7 +1577,7 @@ void GraphController::groupNodesByParents(GroupType groupType)
 				if (qualifierNode)
 				{
 					Id qualifierId = 0;
-					std::wstring qualifierName = qualifierNode->qualifierName.getQualifiedName();
+					std::string qualifierName = qualifierNode->qualifierName.getQualifiedName();
 					auto it = qualifierNameToIdMap.find(qualifierName);
 					if (it != qualifierNameToIdMap.end())
 					{
@@ -1601,11 +1600,11 @@ void GraphController::groupNodesByParents(GroupType groupType)
 	}
 
 	std::set<Id> groupedNodeIds;
-	for (const std::pair<std::wstring, std::vector<std::shared_ptr<DummyNode>>>& p: nodesToGroup)
+	for (const auto &p: nodesToGroup)
 	{
 		std::shared_ptr<DummyNode> groupNode;
 
-		std::wstring name = p.first;
+		std::string name = p.first;
 		if (groupType == GroupType::FILE)
 		{
 			name = FilePath(p.first).fileName();
@@ -1633,7 +1632,7 @@ void GraphController::groupNodesByParents(GroupType groupType)
 			m_dummyNodes.push_back(groupNode);
 		}
 
-		for (std::shared_ptr<DummyNode> dummyNode: p.second)
+		for (const std::shared_ptr<DummyNode> &dummyNode: p.second)
 		{
 			if (dummyNode->hasActiveSubNode())
 			{
@@ -1675,7 +1674,7 @@ DummyNode* GraphController::groupAllNodes(GroupType groupType, Id groupNodeId)
 	groupNode->tokenId = groupNodeId;
 	m_topLevelAncestorIds[groupNode->tokenId] = groupNode->tokenId;
 
-	for (std::shared_ptr<DummyNode> dummyNode: m_dummyNodes)
+	for (const std::shared_ptr<DummyNode> &dummyNode: m_dummyNodes)
 	{
 		groupNode->subNodes.push_back(dummyNode);
 		m_topLevelAncestorIds[dummyNode->tokenId] = groupNode->tokenId;
@@ -1704,7 +1703,7 @@ void GraphController::groupTrailNodes(GroupType groupType)
 	};
 
 	std::set<Id> possibleNodeIds;
-	for (auto dummyNode: m_dummyNodes)
+	for (const auto &dummyNode: m_dummyNodes)
 	{
 		if (dummyNode->visible && dummyNode->tokenId &&
 			(!dummyNode->subNodes.size() ||
@@ -1767,7 +1766,7 @@ void GraphController::groupTrailNodes(GroupType groupType)
 		groupNode->groupLayout = GroupLayout::SQUARE;
 
 		// Use token Id of first node and make first 2 bits 1
-		groupNode->tokenId = ~(~Id(0) >> 2) + node.nodeId;
+		groupNode->tokenId = addCollisionGuardBits(node.nodeId, CollisionGuardBits::TWO);
 		m_topLevelAncestorIds[groupNode->tokenId] = groupNode->tokenId;
 
 		std::shared_ptr<DummyEdge> targetEdge = std::make_shared<DummyEdge>();
@@ -1775,8 +1774,6 @@ void GraphController::groupTrailNodes(GroupType groupType)
 
 		std::shared_ptr<DummyEdge> originEdge = std::make_shared<DummyEdge>();
 		originEdge->targetId = groupNode->tokenId;
-
-		std::vector<Id> hiddenEdgeIds;
 
 		for (TrailNode& node: group)
 		{
@@ -1871,8 +1868,8 @@ void GraphController::layoutNesting()
 
 void GraphController::extendEqualFunctionNames(const std::vector<std::shared_ptr<DummyNode>>& nodes) const
 {
-	std::multimap<std::wstring, std::shared_ptr<DummyNode>> functionNames;
-	for (auto& node: nodes)
+	std::multimap<std::string, std::shared_ptr<DummyNode>> functionNames;
+	for (const auto& node: nodes)
 	{
 		if (node->visible && node->isGraphNode() && node->data->isType(NODE_FUNCTION | NODE_METHOD))
 		{
@@ -1880,7 +1877,7 @@ void GraphController::extendEqualFunctionNames(const std::vector<std::shared_ptr
 		}
 	}
 
-	for (auto it: functionNames)
+	for (const auto &it: functionNames)
 	{
 		if (functionNames.count(it.first) < 2)
 		{
@@ -1895,7 +1892,7 @@ void GraphController::extendEqualFunctionNames(const std::vector<std::shared_ptr
 		}
 	}
 
-	for (auto& node: nodes)
+	for (const auto& node: nodes)
 	{
 		if (node->subNodes.size())
 		{
@@ -2102,7 +2099,7 @@ Vec4i GraphController::layoutNestingRecursive(DummyNode* node, int relayoutAcces
 	return ListLayouter::boundingRect(node->subNodes);
 }
 
-void GraphController::addExpandToggleNode(DummyNode* node) const
+void GraphController::addExpandToggleNode(DummyNode* node)
 {
 	std::shared_ptr<DummyNode> expandNode = std::make_shared<DummyNode>(
 		DummyNode::DUMMY_EXPAND_TOGGLE);
@@ -2144,7 +2141,7 @@ void GraphController::addExpandToggleNode(DummyNode* node) const
 	}
 }
 
-void GraphController::layoutToGrid(DummyNode* node) const
+void GraphController::layoutToGrid(DummyNode* node)
 {
 	if (!node->visible || !node->isGraphNode() || !node->hasVisibleSubNode())
 	{
@@ -2199,7 +2196,7 @@ void GraphController::layoutGraph(bool getSortedNodes)
 	TRACE();
 
 	std::vector<std::shared_ptr<DummyNode>> visibleNodes;
-	for (auto node: m_dummyNodes)
+	for (const auto &node: m_dummyNodes)
 	{
 		if (node->visible)
 		{
@@ -2251,7 +2248,7 @@ void GraphController::layoutTrail(bool horizontal, bool hasOrigin)
 	}
 
 	std::vector<std::shared_ptr<DummyNode>> visibleNodes;
-	for (auto node: m_dummyNodes)
+	for (const auto &node: m_dummyNodes)
 	{
 		if (node->visible)
 		{
@@ -2308,7 +2305,7 @@ void GraphController::relayoutGraph(
 	MessageBase* message,
 	GraphView::GraphParams params,
 	bool withCharacterIndex,
-	const std::wstring& groupName)
+	const std::string& groupName)
 {
 	bool showsTrail = m_graph->getTrailMode() != Graph::TRAIL_NONE;
 
@@ -2321,7 +2318,7 @@ void GraphController::relayoutGraph(
 		if (withCharacterIndex && m_dummyNodes.size())
 		{
 			// Use token Id of first node and make first 2 bits 1
-			Id groupId = ~(~Id(0) >> 2) + m_dummyNodes[0]->tokenId;
+			Id groupId = addCollisionGuardBits(m_dummyNodes[0]->tokenId, CollisionGuardBits::TWO);
 
 			DummyNode* group = groupAllNodes(GroupType::DEFAULT, groupId);
 			group->groupLayout = GroupLayout::LIST;
@@ -2388,11 +2385,13 @@ void GraphController::forEachDummyEdge(std::function<void(DummyEdge*)> func)
 
 void GraphController::createLegendGraph()
 {
-	Id id = ~Id(0) >> 1;
+	Id id = addCollisionGuardBits(Id(0), CollisionGuardBits::ONE);
+
 	std::map<Id, Vec2i> nodePositions;
 	std::shared_ptr<Graph> graph = std::make_shared<Graph>();
 
-	auto addText = [this](std::wstring text, int fontSizeDiff, Vec2i position) {
+	auto addText = [this](std::string text, int fontSizeDiff, Vec2i position)
+	{
 		std::shared_ptr<DummyNode> node = std::make_shared<DummyNode>(DummyNode::DUMMY_TEXT);
 		node->name = text;
 		node->visible = true;
@@ -2402,45 +2401,43 @@ void GraphController::createLegendGraph()
 		return node;
 	};
 
-	auto addNode = [&id, &graph, &nodePositions](
-					   NodeKind kind,
-					   const std::wstring& name,
-					   Vec2i position,
-					   DefinitionKind defKind = DEFINITION_EXPLICIT) {
+	auto addNode = [&id, &graph, &nodePositions](NodeKind kind, const std::string &name, Vec2i position, DefinitionKind defKind = DefinitionKind::EXPLICIT)
+	{
 		nodePositions.emplace(++id, position);
-		return graph->createNode(
-			id, NodeType(kind), NameHierarchy(name, NAME_DELIMITER_UNKNOWN), defKind);
+		return graph->createNode(id, NodeType(kind), NameHierarchy(name, NameDelimiterType::UNKNOWN), defKind);
 	};
 
-	auto addEdge = [&id, &graph](Edge::EdgeType type, Node* from, Node* to) {
+	auto addEdge = [&id, &graph](Edge::EdgeType type, Node *from, Node *to)
+	{
 		return graph->createEdge(++id, type, from, to);
 	};
 
-	auto addMember = [&id, &graph](Node* from, Node* to, AccessKind access = ACCESS_NONE) {
-		if (access != ACCESS_NONE)
+	auto addMember = [&id, &graph](Node *from, Node *to, AccessKind access = AccessKind::NONE)
+	{
+		if (access != AccessKind::NONE)
 		{
 			to->addComponent(std::make_shared<TokenComponentAccess>(access));
 		}
 		return graph->createEdge(++id, Edge::EDGE_MEMBER, from, to);
 	};
 
-	addText(L"Legend", 6, Vec2i(0, 0));
+	addText("Legend", 6, Vec2i(0, 0));
 
 	int y = 50;
 	int x = 0;
 
 	// Layout
 	{
-		addText(L"Layout", 3, Vec2i(x, y));
+		addText("Layout", 3, Vec2i(x, y));
 
 		x = 50;
 		y = 40;
 
-		Node* base = addNode(NODE_CLASS, L"Base Class", Vec2i(x + 220, y + 50));
-		Node* main = addNode(NODE_CLASS, L"Class", Vec2i(x + 200, y + 130));
-		Node* derived = addNode(NODE_CLASS, L"Derived Class", Vec2i(x + 210, y + 380));
-		Node* user = addNode(NODE_TYPE, L"Referencing Type", Vec2i(x - 10, y + 220));
-		Node* used = addNode(NODE_TYPE, L"Referenced Type", Vec2i(x + 410, y + 220));
+		Node* base = addNode(NODE_CLASS, "Base Class", Vec2i(x + 220, y + 50));
+		Node* main = addNode(NODE_CLASS, "Class", Vec2i(x + 200, y + 130));
+		Node* derived = addNode(NODE_CLASS, "Derived Class", Vec2i(x + 210, y + 380));
+		Node* user = addNode(NODE_TYPE, "Referencing Type", Vec2i(x - 10, y + 220));
+		Node* used = addNode(NODE_TYPE, "Referenced Type", Vec2i(x + 410, y + 220));
 
 		addEdge(Edge::EDGE_INHERITANCE, main, base);
 		addEdge(Edge::EDGE_INHERITANCE, derived, main);
@@ -2467,20 +2464,20 @@ void GraphController::createLegendGraph()
 			edge->addComponent(bundledEdgesComp);
 		}
 
-		Node* publicMethod = addNode(NODE_METHOD, L"public method", Vec2i());
-		Node* privateField = addNode(NODE_FIELD, L"private field", Vec2i());
+		Node* publicMethod = addNode(NODE_METHOD, "public method", Vec2i());
+		Node* privateField = addNode(NODE_FIELD, "private field", Vec2i());
 
-		addMember(main, publicMethod, ACCESS_PUBLIC);
-		addMember(main, privateField, ACCESS_PRIVATE);
+		addMember(main, publicMethod, AccessKind::PUBLIC);
+		addMember(main, privateField, AccessKind::PRIVATE);
 
 		y += 480;
 		x += 10;
 
-		Node* func = addNode(NODE_FUNCTION, L"function", Vec2i(x + 220, y));
-		Node* caller = addNode(NODE_FUNCTION, L"calling function", Vec2i(x, y));
-		Node* var = addNode(NODE_GLOBAL_VARIABLE, L"accessed variable", Vec2i(x + 410, y - 50));
-		Node* called = addNode(NODE_FUNCTION, L"called function", Vec2i(x + 410, y - 10));
-		Node* type = addNode(NODE_TYPE, L"Referenced Type", Vec2i(x + 410, y + 30));
+		Node* func = addNode(NODE_FUNCTION, "function", Vec2i(x + 220, y));
+		Node* caller = addNode(NODE_FUNCTION, "calling function", Vec2i(x, y));
+		Node* var = addNode(NODE_GLOBAL_VARIABLE, "accessed variable", Vec2i(x + 410, y - 50));
+		Node* called = addNode(NODE_FUNCTION, "called function", Vec2i(x + 410, y - 10));
+		Node* type = addNode(NODE_TYPE, "Referenced Type", Vec2i(x + 410, y + 30));
 
 		addEdge(Edge::EDGE_CALL, func, called);
 		addEdge(Edge::EDGE_CALL, caller, func);
@@ -2490,88 +2487,94 @@ void GraphController::createLegendGraph()
 
 	x = 0;
 	y = 610;
-	int dx = 200;
-	int dy = 50;
+	constexpr int dx = 200;
+	constexpr int dy = 50;
 
 	// Nodes
 	{
 		int i = 0;
-		addText(L"Nodes", 3, Vec2i(x, y));
+		addText("Nodes", 3, Vec2i(x, y));
 
-		addNode(NODE_FILE, L"File", Vec2i(x, y + dy * ++i));
-		addNode(NODE_FILE, L"Non-Indexed File", Vec2i(x, y + dy * ++i), DEFINITION_NONE);
-		Node* incompleteFile = addNode(NODE_FILE, L"Incomplete File", Vec2i(x, y + dy * ++i));
+		addNode(NODE_FILE, "File", Vec2i(x, y + dy * ++i));
+		addNode(NODE_FILE, "Non-Indexed File", Vec2i(x, y + dy * ++i), DefinitionKind::NONE);
+		Node* incompleteFile = addNode(NODE_FILE, "Incomplete File", Vec2i(x, y + dy * ++i));
 		incompleteFile->addComponent(std::make_shared<TokenComponentFilePath>(FilePath(), false));
 
-		addNode(NODE_MACRO, L"Macro", Vec2i(x, y + dy * ++i));
-		addNode(NODE_ANNOTATION, L"Annotation", Vec2i(x, y + dy * ++i));
+		addNode(NODE_MACRO, "Macro", Vec2i(x, y + dy * ++i));
+		addNode(NODE_ANNOTATION, "Annotation", Vec2i(x, y + dy * ++i));
 
-		addNode(NODE_MODULE, L"module", Vec2i(x, y + dy * ++i));
+		addNode(NODE_MODULE, "module", Vec2i(x, y + dy * ++i));
 		y -= 15;
-		addNode(NODE_NAMESPACE, L"namespace", Vec2i(x, y + dy * ++i));
+		addNode(NODE_NAMESPACE, "namespace", Vec2i(x, y + dy * ++i));
 		y -= 15;
-		addNode(NODE_PACKAGE, L"package", Vec2i(x, y + dy * ++i));
-		y -= 15;
-
-		addNode(NODE_TYPE, L"Type", Vec2i(x, y + dy * ++i));
-		addNode(NODE_TYPE, L"Non-indexed Type", Vec2i(x, y + dy * ++i), DEFINITION_NONE);
-
-		addNode(NODE_GLOBAL_VARIABLE, L"variable", Vec2i(x, y + dy * ++i));
-		y -= 15;
-		addNode(
-			NODE_GLOBAL_VARIABLE, L"non-indexed variable", Vec2i(x, y + dy * ++i), DEFINITION_NONE);
+		addNode(NODE_PACKAGE, "package", Vec2i(x, y + dy * ++i));
 		y -= 15;
 
-		addNode(NODE_FUNCTION, L"function", Vec2i(x, y + dy * ++i));
+		addNode(NODE_TYPE, "Type", Vec2i(x, y + dy * ++i));
+		addNode(NODE_TYPE, "Non-indexed Type", Vec2i(x, y + dy * ++i), DefinitionKind::NONE);
+
+		addNode(NODE_GLOBAL_VARIABLE, "variable", Vec2i(x, y + dy * ++i));
 		y -= 15;
-		addNode(NODE_FUNCTION, L"non-indexed function", Vec2i(x, y + dy * ++i), DEFINITION_NONE);
+		addNode(NODE_GLOBAL_VARIABLE, "non-indexed variable", Vec2i(x, y + dy * ++i), DefinitionKind::NONE);
 		y -= 15;
 
-		Node* typeNode = addNode(NODE_TYPE, L"Type with Members", Vec2i(x, y + dy * ++i));
-		Node* publicMethod = addNode(NODE_METHOD, L"public method", Vec2i());
-		Node* protectedMethod = addNode(NODE_METHOD, L"protected method", Vec2i());
-		Node* privateMethod = addNode(NODE_METHOD, L"private method", Vec2i());
-		Node* defaultMethod = addNode(NODE_METHOD, L"default method", Vec2i());
-		Node* publicField = addNode(NODE_FIELD, L"public field", Vec2i());
-		Node* protectedField = addNode(NODE_FIELD, L"protected field", Vec2i());
-		Node* privateField = addNode(NODE_FIELD, L"private field", Vec2i());
-		Node* defaultField = addNode(NODE_FIELD, L"default field", Vec2i());
+		addNode(NODE_FUNCTION, "function", Vec2i(x, y + dy * ++i));
+		y -= 15;
+		addNode(NODE_FUNCTION, "non-indexed function", Vec2i(x, y + dy * ++i), DefinitionKind::NONE);
+		y -= 15;
 
-		addMember(typeNode, publicMethod, ACCESS_PUBLIC);
-		addMember(typeNode, publicField, ACCESS_PUBLIC);
-		addMember(typeNode, protectedMethod, ACCESS_PROTECTED);
-		addMember(typeNode, protectedField, ACCESS_PROTECTED);
-		addMember(typeNode, privateMethod, ACCESS_PRIVATE);
-		addMember(typeNode, privateField, ACCESS_PRIVATE);
-		addMember(typeNode, defaultMethod, ACCESS_DEFAULT);
-		addMember(typeNode, defaultField, ACCESS_DEFAULT);
+		addNode(NODE_CONCEPT, "concept", Vec2i(x, y + dy * ++i));
+		y -= 15;
+
+		addNode(NODE_C_CAST, "C cast", Vec2i(x, y + dy * ++i));
+		y -= 15;
+
+		Node* typeNode = addNode(NODE_TYPE, "Type with Members", Vec2i(x, y + dy * ++i));
+		Node* publicMethod = addNode(NODE_METHOD, "public method", Vec2i());
+		Node* protectedMethod = addNode(NODE_METHOD, "protected method", Vec2i());
+		Node* privateMethod = addNode(NODE_METHOD, "private method", Vec2i());
+		Node* defaultMethod = addNode(NODE_METHOD, "default method", Vec2i());
+		Node* publicField = addNode(NODE_FIELD, "public field", Vec2i());
+		Node* protectedField = addNode(NODE_FIELD, "protected field", Vec2i());
+		Node* privateField = addNode(NODE_FIELD, "private field", Vec2i());
+		Node* defaultField = addNode(NODE_FIELD, "default field", Vec2i());
+
+		addMember(typeNode, publicMethod, AccessKind::PUBLIC);
+		addMember(typeNode, publicField, AccessKind::PUBLIC);
+		addMember(typeNode, protectedMethod, AccessKind::PROTECTED);
+		addMember(typeNode, protectedField, AccessKind::PROTECTED);
+		addMember(typeNode, privateMethod, AccessKind::PRIVATE);
+		addMember(typeNode, privateField, AccessKind::PRIVATE);
+		addMember(typeNode, defaultMethod, AccessKind::DEFAULT);
+		addMember(typeNode, defaultField, AccessKind::DEFAULT);
 
 		y -= 15;
 		i += 9;
 
-		addNode(NODE_CLASS, L"Class", Vec2i(x, y + dy * ++i));
-		addNode(NODE_INTERFACE, L"Interface", Vec2i(x, y + dy * ++i));
+		addNode(NODE_CLASS, "Class", Vec2i(x, y + dy * ++i));
+		addNode(NODE_INTERFACE, "Interface", Vec2i(x, y + dy * ++i));
 
-		addNode(NODE_STRUCT, L"Struct", Vec2i(x, y + dy * ++i));
-		addNode(NODE_UNION, L"Union", Vec2i(x, y + dy * ++i));
+		addNode(NODE_STRUCT, "Struct", Vec2i(x, y + dy * ++i));
+		addNode(NODE_RECORD, "Record", Vec2i(x, y + dy * ++i));
+		addNode(NODE_UNION, "Union", Vec2i(x, y + dy * ++i));
 
-		addNode(NODE_TYPEDEF, L"TypeDef", Vec2i(x, y + dy * ++i));
-		Node* enumNode = addNode(NODE_ENUM, L"Enum", Vec2i(x, y + dy * ++i));
-		Node* enumConstantNode = addNode(NODE_ENUM_CONSTANT, L"ENUM_CONSTANT", Vec2i());
+		addNode(NODE_TYPEDEF, "TypeDef", Vec2i(x, y + dy * ++i));
+		Node* enumNode = addNode(NODE_ENUM, "Enum", Vec2i(x, y + dy * ++i));
+		Node* enumConstantNode = addNode(NODE_ENUM_CONSTANT, "ENUM_CONSTANT", Vec2i());
 		addMember(enumNode, enumConstantNode);
 		y += 10;
 		i += 1;
 
 		Node* genericNode = addNode(
-			NODE_TYPE, L"JavaGenericType<ParameterType>", Vec2i(x, y + dy * ++i));
-		Node* genericParameterNode = addNode(NODE_TYPE_PARAMETER, L"ParameterType", Vec2i());
-		addMember(genericNode, genericParameterNode, ACCESS_TYPE_PARAMETER);
+			NODE_TYPE, "JavaGenericType<ParameterType>", Vec2i(x, y + dy * ++i));
+		Node* genericParameterNode = addNode(NODE_TYPE_PARAMETER, "ParameterType", Vec2i());
+		addMember(genericNode, genericParameterNode, AccessKind::TYPE_PARAMETER);
 		i += 2;
 
 		y += 10;
 
 		std::shared_ptr<DummyNode> groupNode = std::make_shared<DummyNode>(DummyNode::DUMMY_GROUP);
-		groupNode->name = L"Group Node";
+		groupNode->name = "Group Node";
 		groupNode->visible = true;
 		groupNode->groupType = GroupType::DEFAULT;
 		groupNode->position = Vec2i(x, y + dy * ++i);
@@ -2579,7 +2582,7 @@ void GraphController::createLegendGraph()
 		y += 25;
 
 		std::shared_ptr<DummyNode> bundleNode = std::make_shared<DummyNode>(DummyNode::DUMMY_BUNDLE);
-		bundleNode->name = L"Bundle Node";
+		bundleNode->name = "Bundle Node";
 		bundleNode->visible = true;
 		bundleNode->position = Vec2i(x, y + dy * ++i);
 		m_dummyNodes.push_back(bundleNode);
@@ -2590,41 +2593,41 @@ void GraphController::createLegendGraph()
 
 	// Edges
 	{
-		addText(L"Edges", 3, Vec2i(x, y));
+		addText("Edges", 3, Vec2i(x, y));
 		int i = 0;
 
 		{
-			addText(L"file include", 0, Vec2i(x, y + dy * ++i));
-			Node* file = addNode(NODE_FILE, L"File", Vec2i(x, y + dy * ++i));
-			Node* fileB = addNode(NODE_FILE, L"File", Vec2i(x + dx, y + dy * i));
+			addText("file include", 0, Vec2i(x, y + dy * ++i));
+			Node* file = addNode(NODE_FILE, "File", Vec2i(x, y + dy * ++i));
+			Node* fileB = addNode(NODE_FILE, "File", Vec2i(x + dx, y + dy * i));
 			addEdge(Edge::EDGE_INCLUDE, file, fileB);
 		}
 
 		{
-			addText(L"class import", 0, Vec2i(x, y + dy * ++i));
-			Node* file = addNode(NODE_FILE, L"File", Vec2i(x, y + dy * ++i));
-			Node* type = addNode(NODE_TYPE, L"Class", Vec2i(x + dx, y + dy * i));
+			addText("class import", 0, Vec2i(x, y + dy * ++i));
+			Node* file = addNode(NODE_FILE, "File", Vec2i(x, y + dy * ++i));
+			Node* type = addNode(NODE_TYPE, "Class", Vec2i(x + dx, y + dy * i));
 			addEdge(Edge::EDGE_IMPORT, file, type);
 		}
 
 		{
-			addText(L"macro use", 0, Vec2i(x, y + dy * ++i));
-			Node* file = addNode(NODE_FILE, L"File", Vec2i(x, y + dy * ++i));
-			Node* macro = addNode(NODE_MACRO, L"Macro", Vec2i(x + dx, y + dy * i));
+			addText("macro use", 0, Vec2i(x, y + dy * ++i));
+			Node* file = addNode(NODE_FILE, "File", Vec2i(x, y + dy * ++i));
+			Node* macro = addNode(NODE_MACRO, "Macro", Vec2i(x + dx, y + dy * i));
 			addEdge(Edge::EDGE_MACRO_USAGE, file, macro);
 		}
 
 		{
-			addText(L"annotation use", 0, Vec2i(x, y + dy * ++i));
-			Node* type = addNode(NODE_TYPE, L"Type", Vec2i(x, y + dy * ++i));
-			Node* macro = addNode(NODE_ANNOTATION, L"Annotation", Vec2i(x + dx, y + dy * i));
+			addText("annotation use", 0, Vec2i(x, y + dy * ++i));
+			Node* type = addNode(NODE_TYPE, "Type", Vec2i(x, y + dy * ++i));
+			Node* macro = addNode(NODE_ANNOTATION, "Annotation", Vec2i(x + dx, y + dy * i));
 			addEdge(Edge::EDGE_ANNOTATION_USAGE, type, macro);
 		}
 
 		{
-			addText(L"bundled edges", 0, Vec2i(x, y + dy * ++i));
-			Node* typeA = addNode(NODE_TYPE, L"Type A", Vec2i(x, y + dy * ++i));
-			Node* typeB = addNode(NODE_TYPE, L"Type B", Vec2i(x + dx, y + dy * i));
+			addText("bundled edges", 0, Vec2i(x, y + dy * ++i));
+			Node* typeA = addNode(NODE_TYPE, "Type A", Vec2i(x, y + dy * ++i));
+			Node* typeB = addNode(NODE_TYPE, "Type B", Vec2i(x + dx, y + dy * i));
 			Edge* edge = addEdge(Edge::EDGE_BUNDLED_EDGES, typeA, typeB);
 			std::shared_ptr<TokenComponentBundledEdges> bundledEdgesComp =
 				std::make_shared<TokenComponentBundledEdges>();
@@ -2636,35 +2639,44 @@ void GraphController::createLegendGraph()
 		}
 
 		{
-			addText(L"type use", 0, Vec2i(x, y + dy * ++i));
-			Node* function = addNode(NODE_FUNCTION, L"function", Vec2i(x, y + dy * ++i));
-			Node* type = addNode(NODE_TYPE, L"Type", Vec2i(x + dx, y + dy * i));
+			addText("type use", 0, Vec2i(x, y + dy * ++i));
+			Node* function = addNode(NODE_FUNCTION, "function", Vec2i(x, y + dy * ++i));
+			Node* type = addNode(NODE_TYPE, "Type", Vec2i(x + dx, y + dy * i));
 			addEdge(Edge::EDGE_TYPE_USAGE, function, type);
 		}
 
 		{
-			addText(L"function call", 0, Vec2i(x, y + dy * ++i));
-			Node* function = addNode(NODE_FUNCTION, L"function", Vec2i(x, y + dy * ++i));
-			Node* functionB = addNode(NODE_FUNCTION, L"function", Vec2i(x + dx, y + dy * i));
+			addText("function call", 0, Vec2i(x, y + dy * ++i));
+			Node* function = addNode(NODE_FUNCTION, "function", Vec2i(x, y + dy * ++i));
+			Node* functionB = addNode(NODE_FUNCTION, "function", Vec2i(x + dx, y + dy * i));
 			addEdge(Edge::EDGE_CALL, function, functionB);
 		}
 
 		{
-			addText(L"variable access", 0, Vec2i(x, y + dy * ++i));
-			Node* function = addNode(NODE_FUNCTION, L"function", Vec2i(x, y + dy * ++i));
-			Node* variable = addNode(NODE_GLOBAL_VARIABLE, L"variable", Vec2i(x + dx, y + dy * i));
+			addText("variable access", 0, Vec2i(x, y + dy * ++i));
+			Node* function = addNode(NODE_FUNCTION, "function", Vec2i(x, y + dy * ++i));
+			Node* variable = addNode(NODE_GLOBAL_VARIABLE, "variable", Vec2i(x + dx, y + dy * i));
 			addEdge(Edge::EDGE_USAGE, function, variable);
 		}
 
 		{
-			addText(L"class inheritance", 0, Vec2i(x, y + dy * ++i));
-			Node* base = addNode(NODE_CLASS, L"Base Class", Vec2i(x, y + dy * (i + 1)));
-			Node* derived = addNode(NODE_CLASS, L"Derived Class", Vec2i(x, y + dy * (i + 3)));
+			addText("concept use", 0, Vec2i(x, y + dy * ++i));
+			Node *templateName = addNode(NODE_TYPE, "TemplateType<typename ParameterType>", Vec2i(x, y + dy * ++i));
+			Node *templateFunction = addNode(NODE_FUNCTION, "template_function<typename ParameterType>", Vec2i(x, y + dy * ++i));
+			Node *conceptName = addNode(NODE_CONCEPT, "concept", Vec2i(x + dx + dx, y + (dy * i) - (dy / 2)));
+			addEdge(Edge::EDGE_USAGE, templateName, conceptName);
+			addEdge(Edge::EDGE_USAGE, templateFunction, conceptName);
+		}
+
+		{
+			addText("class inheritance", 0, Vec2i(x, y + dy * ++i));
+			Node* base = addNode(NODE_CLASS, "Base Class", Vec2i(x, y + dy * (i + 1)));
+			Node* derived = addNode(NODE_CLASS, "Derived Class", Vec2i(x, y + dy * (i + 3)));
 			addEdge(Edge::EDGE_INHERITANCE, derived, base);
 
-			Node* base2 = addNode(NODE_CLASS, L"Base Class", Vec2i(x + 180, y + dy * (i + 1)));
+			Node* base2 = addNode(NODE_CLASS, "Base Class", Vec2i(x + 180, y + dy * (i + 1)));
 			Node* derived2 = addNode(
-				NODE_CLASS, L"Derived Derived Class", Vec2i(x + 180, y + dy * (i + 3)));
+				NODE_CLASS, "Derived Derived Class", Vec2i(x + 180, y + dy * (i + 3)));
 			Edge* edge = addEdge(Edge::EDGE_INHERITANCE, derived2, base2);
 			edge->addComponent(
 				std::make_shared<TokenComponentInheritanceChain>(std::vector<Id>({1, 2})));
@@ -2672,59 +2684,59 @@ void GraphController::createLegendGraph()
 		}
 
 		{
-			addText(L"method override", 0, Vec2i(x, y + dy * ++i));
-			Node* base = addNode(NODE_CLASS, L"Base Class", Vec2i(x, y + dy * ++i));
+			addText("method override", 0, Vec2i(x, y + dy * ++i));
+			Node* base = addNode(NODE_CLASS, "Base Class", Vec2i(x, y + dy * ++i));
 			i += 3;
-			Node* derived = addNode(NODE_CLASS, L"Derived Class", Vec2i(x, y + dy * i));
-			Node* baseMethod = addNode(NODE_METHOD, L"method", Vec2i());
-			Node* derivedMethod = addNode(NODE_METHOD, L"method", Vec2i());
-			addMember(base, baseMethod, ACCESS_PUBLIC);
-			addMember(derived, derivedMethod, ACCESS_PUBLIC);
+			Node* derived = addNode(NODE_CLASS, "Derived Class", Vec2i(x, y + dy * i));
+			Node* baseMethod = addNode(NODE_METHOD, "method", Vec2i());
+			Node* derivedMethod = addNode(NODE_METHOD, "method", Vec2i());
+			addMember(base, baseMethod, AccessKind::PUBLIC);
+			addMember(derived, derivedMethod, AccessKind::PUBLIC);
 			addEdge(Edge::EDGE_OVERRIDE, derivedMethod, baseMethod);
 			i += 2;
 		}
 
 		{
-			addText(L"template specialization", 0, Vec2i(x, y + dy * ++i));
+			addText("template specialization", 0, Vec2i(x, y + dy * ++i));
 			Node* templateFunctionNode = addNode(
-				NODE_FUNCTION, L"template_function<typename ParameterType>", Vec2i(x, y + dy * ++i));
+				NODE_FUNCTION, "template_function<typename ParameterType>", Vec2i(x, y + dy * ++i));
 			y += 20;
 			Node* templateFunctionSpecializationNode = addNode(
 				NODE_FUNCTION,
-				L"template_function<ArgumentType>",
+				"template_function<ArgumentType>",
 				Vec2i(x, y + dy * ++i),
-				DEFINITION_IMPLICIT);
+				DefinitionKind::IMPLICIT);
 			addEdge(
 				Edge::EDGE_TEMPLATE_SPECIALIZATION,
 				templateFunctionSpecializationNode,
 				templateFunctionNode);
 
 			Node* templateNode = addNode(
-				NODE_TYPE, L"TemplateType<typename ParameterType>", Vec2i(x, y + dy * ++i));
+				NODE_TYPE, "TemplateType<typename ParameterType>", Vec2i(x, y + dy * ++i));
 			y += 30;
 			Node* templateSpecializationNode = addNode(
-				NODE_TYPE, L"TemplateType<ArgumentType>", Vec2i(x, y + dy * ++i), DEFINITION_IMPLICIT);
-			Node* argumentNode = addNode(NODE_TYPE, L"ArgumentType", Vec2i(x + 270, y + dy * i));
+				NODE_TYPE, "TemplateType<ArgumentType>", Vec2i(x, y + dy * ++i), DefinitionKind::IMPLICIT);
+			Node* argumentNode = addNode(NODE_TYPE, "ArgumentType", Vec2i(x + 270, y + dy * i));
 			addEdge(Edge::EDGE_TEMPLATE_SPECIALIZATION, templateSpecializationNode, templateNode);
 			addEdge(Edge::EDGE_TYPE_USAGE, templateSpecializationNode, argumentNode);
 		}
 
 		{
-			addText(L"template member specialization", 0, Vec2i(x, y + dy * ++i));
+			addText("template member specialization", 0, Vec2i(x, y + dy * ++i));
 			Node* templateNode = addNode(
-				NODE_TYPE, L"TemplateType<typename ParameterType>", Vec2i(x, y + dy * ++i));
-			Node* templateMethodNode = addNode(NODE_METHOD, L"method", Vec2i());
+				NODE_TYPE, "TemplateType<typename ParameterType>", Vec2i(x, y + dy * ++i));
+			Node* templateMethodNode = addNode(NODE_METHOD, "method", Vec2i());
 			addMember(templateNode, templateMethodNode);
 
 			i += 1;
 
 			Node* templateSpecializationNode = addNode(
 				NODE_TYPE,
-				L"TemplateType<ArgumentType>",
+				"TemplateType<ArgumentType>",
 				Vec2i(x, y + dy * ++i + 20),
-				DEFINITION_IMPLICIT);
+				DefinitionKind::IMPLICIT);
 			Node* templateSpecializationMethodNode = addNode(
-				NODE_METHOD, L"method", Vec2i(), DEFINITION_IMPLICIT);
+				NODE_METHOD, "method", Vec2i(), DefinitionKind::IMPLICIT);
 			addMember(templateSpecializationNode, templateSpecializationMethodNode);
 			addEdge(
 				Edge::EDGE_TEMPLATE_SPECIALIZATION,
@@ -2737,7 +2749,7 @@ void GraphController::createLegendGraph()
 	createDummyGraphAndSetActiveAndVisibility({}, graph, false);
 	m_dummyNodes = utility::concat(nodes, m_dummyNodes);
 
-	for (std::shared_ptr<DummyNode> node: m_dummyNodes)
+	for (const std::shared_ptr<DummyNode> &node: m_dummyNodes)
 	{
 		if (node->tokenId)
 		{

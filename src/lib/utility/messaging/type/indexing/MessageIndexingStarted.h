@@ -11,7 +11,7 @@ public:
 		return "MessageIndexingStarted";
 	}
 
-	MessageIndexingStarted() {}
+	MessageIndexingStarted() = default;
 };
 
 #endif	  // MESSAGE_INDEXING_STARTED_H

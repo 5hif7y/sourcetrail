@@ -2,14 +2,14 @@
 #define MESSAGE_FIND_H
 
 #include "Message.h"
-#include "TabId.h"
+#include "TabIds.h"
 
 class MessageFind: public Message<MessageFind>
 {
 public:
 	MessageFind(bool fulltext = false): findFulltext(fulltext)
 	{
-		setSchedulerId(TabId::currentTab());
+		setSchedulerId(TabIds::currentTab());
 	}
 
 	static const std::string getStaticType()

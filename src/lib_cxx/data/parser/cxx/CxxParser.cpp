@@ -1,14 +1,5 @@
 #include "CxxParser.h"
 
-#include <clang/Driver/Compilation.h>
-#include <clang/Driver/Driver.h>
-#include <clang/Driver/Options.h>
-#include <clang/Frontend/CompilerInvocation.h>
-#include <clang/Tooling/Tooling.h>
-#include <llvm/Option/ArgList.h>
-#include <llvm/Support/TargetSelect.h>
-#include <llvm/Support/VirtualFileSystem.h>
-
 #include "ASTAction.h"
 #include "ApplicationSettings.h"
 #include "CanonicalFilePathCache.h"
@@ -19,18 +10,27 @@
 #include "FileRegister.h"
 #include "IndexerCommandCxx.h"
 #include "ParserClient.h"
-#include "ResourcePaths.h"
 #include "SingleFrontendActionFactory.h"
 #include "TextAccess.h"
+#include "ToolChain.h"
 #include "logging.h"
 #include "utility.h"
 #include "utilityString.h"
+
+#include <clang/Driver/Compilation.h>
+#include <clang/Driver/Driver.h>
+#include <clang/Driver/Options.h>
+#include <clang/Frontend/CompilerInvocation.h>
+#include <clang/Tooling/Tooling.h>
+#include <llvm/Option/ArgList.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/VirtualFileSystem.h>
 
 namespace
 {
 std::vector<std::string> prependSyntaxOnlyToolArgs(const std::vector<std::string>& args)
 {
-	return utility::concat(std::vector<std::string>({"clang-tool", "-fsyntax-only"}), args);
+	return utility::concat(std::vector<std::string>({ClangCompiler::TOOL_NAME, ClangCompiler::syntaxOnlyOption()}), args);
 }
 
 std::vector<std::string> appendFilePath(const std::vector<std::string>& args, llvm::StringRef filePath)
@@ -45,7 +45,7 @@ bool runToolOnCodeWithArgs(
 	const llvm::Twine& Code,
 	const std::vector<std::string>& Args,
 	const llvm::Twine& FileName = "input.cc",
-	const clang::tooling::FileContentMappings& VirtualMappedFiles =
+	const clang::tooling::FileContentMappings& /*VirtualMappedFiles*/ =
 		clang::tooling::FileContentMappings())
 {
 	CxxParser::initializeLLVM();
@@ -75,31 +75,19 @@ bool runToolOnCodeWithArgs(
 }
 }	 // namespace
 
-std::vector<std::string> CxxParser::getCommandlineArgumentsEssential(
-	const std::vector<std::wstring>& compilerFlags)
+std::vector<std::string> CxxParser::getCommandlineArgumentsEssential(const std::vector<std::string>& compilerFlags)
 {
 	std::vector<std::string> args;
 
-	// The option -fno-delayed-template-parsing signals that templates that there should
-	// be AST elements for unused template functions as well.
-	args.push_back("-fno-delayed-template-parsing");
+	args.push_back(ClangCompiler::noDelayedTemplateParsingOption());
+	args.push_back(ClangCompiler::exceptionsOption());
+	args.push_back(ClangCompiler::compileOption());
+	args.push_back(ClangCompiler::noWarningsOption());
+	args.push_back(ClangCompiler::errorLimitOption(0));
 
-	// The option -fexceptions signals that clang should watch out for exception-related code during
-	// indexing.
-	args.push_back("-fexceptions");
-
-	// The option -c signals that no executable is built.
-	args.push_back("-c");
-
-	// The option -w disables all warnings.
-	args.push_back("-w");
-
-	// This option tells clang just to continue parsing no matter how manny errors have been thrown.
-	args.push_back("-ferror-limit=0");
-
-	for (const std::wstring& compilerFlag: compilerFlags)
+	for (const std::string& compilerFlag: compilerFlags)
 	{
-		args.push_back(utility::encodeToUtf8(compilerFlag));
+		args.push_back(compilerFlag);
 	}
 
 	return args;
@@ -131,10 +119,10 @@ CxxParser::CxxParser(
 void CxxParser::buildIndex(std::shared_ptr<IndexerCommandCxx> indexerCommand)
 {
 	clang::tooling::CompileCommand compileCommand;
-	compileCommand.Filename = utility::encodeToUtf8(indexerCommand->getSourceFilePath().wstr());
-	compileCommand.Directory = utility::encodeToUtf8(indexerCommand->getWorkingDirectory().wstr());
-	std::vector<std::wstring> args = indexerCommand->getCompilerFlags();
-	if (!args.empty() && !utility::isPrefix<std::wstring>(L"-", args.front()))
+	compileCommand.Filename = indexerCommand->getSourceFilePath().str();
+	compileCommand.Directory = indexerCommand->getWorkingDirectory().str();
+	std::vector<std::string> args = indexerCommand->getCompilerFlags();
+	if (!args.empty() && !utility::isPrefix("-", args.front()))
 	{
 		args.erase(args.begin());
 	}
@@ -146,9 +134,9 @@ void CxxParser::buildIndex(std::shared_ptr<IndexerCommandCxx> indexerCommand)
 }
 
 void CxxParser::buildIndex(
-	const std::wstring& fileName,
+	const std::string& fileName,
 	std::shared_ptr<TextAccess> fileContent,
-	std::vector<std::wstring> compilerFlags)
+	std::vector<std::string> compilerFlags)
 {
 	std::shared_ptr<CanonicalFilePathCache> canonicalFilePathCache =
 		std::make_shared<CanonicalFilePathCache>(m_fileRegister);
@@ -160,18 +148,14 @@ void CxxParser::buildIndex(
 
 	std::vector<std::string> args = getCommandlineArgumentsEssential(compilerFlags);
 
-	runToolOnCodeWithArgs(
-		diagnostics.get(), std::move(action), fileContent->getText(), args, utility::encodeToUtf8(fileName));
+	runToolOnCodeWithArgs(diagnostics.get(), std::move(action), fileContent->getText(), args, fileName);
 }
 
-void CxxParser::runTool(
-	clang::tooling::CompilationDatabase* compilationDatabase, const FilePath& sourceFilePath)
+void CxxParser::runTool(clang::tooling::CompilationDatabase* compilationDatabase, const FilePath& sourceFilePath)
 {
 	initializeLLVM();
 
-	clang::tooling::ClangTool tool(
-		*compilationDatabase,
-		std::vector<std::string>(1, utility::encodeToUtf8(sourceFilePath.wstr())));
+	clang::tooling::ClangTool tool(*compilationDatabase, std::vector<std::string>(1, sourceFilePath.str()));
 
 	std::shared_ptr<CanonicalFilePathCache> canonicalFilePathCache =
 		std::make_shared<CanonicalFilePathCache>(m_fileRegister);
@@ -198,9 +182,9 @@ void CxxParser::runTool(
 		}
 	}
 
-	clang::ASTFrontendAction* action = new ASTAction(
-		m_client, canonicalFilePathCache, m_indexerStateInfo);
-	tool.run(new SingleFrontendActionFactory(action));
+	std::unique_ptr<clang::ASTFrontendAction> action = std::make_unique<ASTAction>(m_client, canonicalFilePathCache, m_indexerStateInfo);
+	SingleFrontendActionFactory singleFrontendActionFactory(std::move(action));
+	tool.run(&singleFrontendActionFactory);
 
 	if (!m_client->hasContent())
 	{
@@ -213,7 +197,7 @@ void CxxParser::runTool(
 		{
 			Id fileId = m_client->recordFile(sourceFilePath, true);
 			m_client->recordError(
-				L"Clang Invocation errors: " + utility::decodeFromUtf8(info.errors),
+				"Clang Invocation errors: " + info.errors,
 				true,
 				true,
 				sourceFilePath,
@@ -227,7 +211,7 @@ std::shared_ptr<CxxDiagnosticConsumer> CxxParser::getDiagnostics(
 	std::shared_ptr<CanonicalFilePathCache> canonicalFilePathCache,
 	bool logErrors) const
 {
-	llvm::IntrusiveRefCntPtr<clang::DiagnosticOptions> options = new clang::DiagnosticOptions();
+	clang::DiagnosticOptions options;
 	return std::make_shared<CxxDiagnosticConsumer>(
-		llvm::errs(), &*options, m_client, canonicalFilePathCache, sourceFilePath, logErrors);
+		llvm::errs(), options, m_client, canonicalFilePathCache, sourceFilePath, logErrors);
 }

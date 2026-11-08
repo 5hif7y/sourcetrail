@@ -10,7 +10,7 @@ class FilePath;
 class SourceGroupSettingsWithIndexedHeaderPaths: public SourceGroupSettingsComponent
 {
 public:
-	virtual ~SourceGroupSettingsWithIndexedHeaderPaths() = default;
+	~SourceGroupSettingsWithIndexedHeaderPaths() override = default;
 
 	std::vector<FilePath> getIndexedHeaderPaths() const;
 	std::vector<FilePath> getIndexedHeaderPathsExpandedAndAbsolute() const;

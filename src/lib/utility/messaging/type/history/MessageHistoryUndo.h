@@ -2,7 +2,7 @@
 #define MESSAGE_HISTORY_UNDO_H
 
 #include "Message.h"
-#include "TabId.h"
+#include "TabIds.h"
 
 class MessageHistoryUndo: public Message<MessageHistoryUndo>
 {
@@ -14,7 +14,7 @@ public:
 
 	MessageHistoryUndo()
 	{
-		setSchedulerId(TabId::currentTab());
+		setSchedulerId(TabIds::currentTab());
 	}
 };
 

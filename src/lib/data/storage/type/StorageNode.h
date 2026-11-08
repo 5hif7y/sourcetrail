@@ -3,13 +3,14 @@
 
 #include <string>
 
-#include "types.h"
+#include "Id.h"
+#include "NodeKind.h"
 
 struct StorageNodeData
 {
-	StorageNodeData(): type(0), serializedName(L"") {}
+	StorageNodeData(): type(NODE_UNDEFINED) {}
 
-	StorageNodeData(int type, std::wstring serializedName)
+	StorageNodeData(NodeKind type, std::string serializedName)
 		: type(type), serializedName(std::move(serializedName))
 	{
 	}
@@ -19,15 +20,15 @@ struct StorageNodeData
 		return serializedName < other.serializedName;
 	}
 
-	int type;
-	std::wstring serializedName;
+	NodeKind type;
+	std::string serializedName;
 };
 
 struct StorageNode: public StorageNodeData
 {
-	StorageNode(): StorageNodeData(), id(0) {}
+	StorageNode():  id(0) {}
 
-	StorageNode(Id id, int type, std::wstring serializedName)
+	StorageNode(Id id, NodeKind type, std::string serializedName)
 		: StorageNodeData(type, std::move(serializedName)), id(id)
 	{
 	}

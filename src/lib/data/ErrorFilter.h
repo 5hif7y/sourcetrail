@@ -5,9 +5,7 @@
 
 struct ErrorFilter
 {
-	ErrorFilter(): error(true), fatal(true), unindexedError(true), unindexedFatal(true), limit(1000)
-	{
-	}
+	ErrorFilter() = default;
 
 	bool filter(const ErrorInfo& info) const
 	{
@@ -49,13 +47,13 @@ struct ErrorFilter
 			limit == other.limit;
 	}
 
-	bool error;
-	bool fatal;
+	bool error = true;
+	bool fatal = true;
 
-	bool unindexedError;
-	bool unindexedFatal;
+	bool unindexedError = true;
+	bool unindexedFatal = true;
 
-	size_t limit;
+	size_t limit = 1000;
 };
 
 #endif	  // ERROR_FILTER_H

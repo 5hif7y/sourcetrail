@@ -11,7 +11,7 @@
 #include "MessageIndexingStarted.h"
 #include "MessageListener.h"
 #include "MessageShowError.h"
-#include "QtThreadedFunctor.h"
+#include "ThreadFunctor.h"
 
 #include "Controller.h"
 #include "ErrorView.h"
@@ -32,7 +32,7 @@ class ErrorController
 {
 public:
 	ErrorController(StorageAccess* storageAccess);
-	~ErrorController();
+	~ErrorController() override;
 
 	void errorFilterChanged(const ErrorFilter& filter);
 	void showError(Id errorId);
@@ -60,10 +60,10 @@ private:
 
 	size_t m_errorCount = 0;
 
-	std::map<Id, bool> m_tabShowsErrors;
-	std::map<Id, FilePath> m_tabActiveFilePath;
+	std::map<TabId, bool> m_tabShowsErrors;
+	std::map<TabId, FilePath> m_tabActiveFilePath;
 
-	QtThreadedLambdaFunctor m_onQtThread;
+	std::unique_ptr<ThreadFunctor> m_onQtThread;
 	bool m_newErrorsAdded = false;
 };
 

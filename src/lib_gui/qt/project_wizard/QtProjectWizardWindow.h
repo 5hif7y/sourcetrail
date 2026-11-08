@@ -11,7 +11,7 @@ class QtProjectWizardWindow: public QtWindow
 
 public:
 	QtProjectWizardWindow(QWidget* parent, bool showSeparator = true);
-	virtual QSize sizeHint() const override;
+	QSize sizeHint() const override;
 
 	QtProjectWizardContent* content() const;
 	void setContent(QtProjectWizardContent* content);
@@ -29,14 +29,14 @@ public:
 
 protected:
 	// QtWindow implementation
-	virtual void populateWindow(QWidget* widget) override;
-	virtual void windowReady() override;
+	void populateWindow(QWidget* widget) override;
+	void windowReady() override;
 
-	virtual void handleNext() override;
-	virtual void handlePrevious() override;
+	void handleNext() override;
+	void handlePrevious() override;
 
 private:
-	QtProjectWizardContent* m_content;
+	QtProjectWizardContent* m_content = nullptr;
 	QSize m_preferredSize;
 	bool m_showSeparator;
 };

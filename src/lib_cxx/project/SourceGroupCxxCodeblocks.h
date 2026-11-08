@@ -8,7 +8,9 @@
 
 class SourceGroupSettingsCxxCodeblocks;
 
-class SourceGroupCxxCodeblocks: public SourceGroup
+#include "SourcetrailCxxExport.h"
+
+class SOURCETRAIL_CXX_EXPORT SourceGroupCxxCodeblocks: public SourceGroup
 {
 public:
 	SourceGroupCxxCodeblocks(std::shared_ptr<SourceGroupSettingsCxxCodeblocks> settings);

@@ -1,29 +1,16 @@
 #ifndef SOURCE_GROUP_SETTINGS_PYTHON_EMPTY_H
 #define SOURCE_GROUP_SETTINGS_PYTHON_EMPTY_H
 
-#include "SourceGroupSettingsWithComponents.h"
-#include "SourceGroupSettingsWithExcludeFilters.h"
-#include "SourceGroupSettingsWithPythonEnvironmentPath.h"
-#include "SourceGroupSettingsWithSourceExtensionsPython.h"
-#include "SourceGroupSettingsWithSourcePaths.h"
+#include "SourceGroupSettingsCustomCommand.h"
 
-class SourceGroupSettingsPythonEmpty
-	: public SourceGroupSettingsWithComponents<
-		  SourceGroupSettingsWithExcludeFilters,
-		  SourceGroupSettingsWithPythonEnvironmentPath,
-		  SourceGroupSettingsWithSourceExtensionsPython,
-		  SourceGroupSettingsWithSourcePaths>
+class SourceGroupSettingsPythonEmpty : public SourceGroupSettingsCustomCommand
 {
 public:
-	SourceGroupSettingsPythonEmpty(const std::string& id, const ProjectSettings* projectSettings)
-		: SourceGroupSettingsWithComponents(SOURCE_GROUP_PYTHON_EMPTY, id, projectSettings)
-	{
-	}
+	SourceGroupSettingsPythonEmpty(const std::string& id, const ProjectSettings* projectSettings);
 
-	std::shared_ptr<SourceGroupSettings> createCopy() const override
-	{
-		return std::make_shared<SourceGroupSettingsPythonEmpty>(*this);
-	}
+	std::shared_ptr<SourceGroupSettings> createCopy() const override;
+
+	void loadSettings(const ConfigManager* config) override;
 };
 
 #endif	  // SOURCE_GROUP_SETTINGS_PYTHON_EMPTY_H

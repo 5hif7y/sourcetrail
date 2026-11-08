@@ -14,12 +14,12 @@ public:
 private:
 	std::function<ValType()> m_calculator;
 	ValType m_value;
-	bool m_hasValue;
+	bool m_hasValue = false;
 };
 
 template <typename ValType>
 SingleValueCache<ValType>::SingleValueCache(std::function<ValType()> calculator)
-	: m_calculator(calculator), m_hasValue(false)
+	: m_calculator(calculator) 
 {
 }
 

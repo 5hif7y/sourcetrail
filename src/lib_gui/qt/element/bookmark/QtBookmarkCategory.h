@@ -17,10 +17,10 @@ class QtBookmarkCategory: public QFrame
 
 public:
 	QtBookmarkCategory(ControllerProxy<BookmarkController>* controllerProxy);
-	~QtBookmarkCategory();
+	~QtBookmarkCategory() override;
 
-	void setName(const std::wstring& name);
-	std::wstring getName() const;
+	void setName(const std::string& name);
+	std::string getName() const;
 
 	void setId(const Id id);
 	Id getId() const;
@@ -33,8 +33,8 @@ public slots:
 	void expandClicked();
 
 protected:
-	virtual void enterEvent(QEvent* event);
-	virtual void leaveEvent(QEvent* event);
+	void enterEvent(QEnterEvent* event) override;
+	void leaveEvent(QEvent* event) override;
 
 private slots:
 	void deleteClicked();

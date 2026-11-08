@@ -1,5 +1,16 @@
 #include "QtErrorView.h"
 
+#include "ColorScheme.h"
+#include "MessageProjectEdit.h"
+#include "QtHelpButton.h"
+#include "QtResources.h"
+#include "QtResources.h"
+#include "QtSelfRefreshIconButton.h"
+#include "QtTable.h"
+#include "QtViewWidgetWrapper.h"
+#include "TabIds.h"
+#include "utilityQt.h"
+
 #include <QBoxLayout>
 #include <QCheckBox>
 #include <QFrame>
@@ -13,23 +24,14 @@
 #include <QStandardItemModel>
 #include <QStyledItemDelegate>
 
-#include "ColorScheme.h"
-#include "MessageProjectEdit.h"
-#include "QtHelpButton.h"
-#include "QtSelfRefreshIconButton.h"
-#include "QtTable.h"
-#include "QtViewWidgetWrapper.h"
-#include "ResourcePaths.h"
-#include "TabId.h"
-#include "utilityQt.h"
+using namespace utility;
 
 QIcon QtErrorView::s_errorIcon;
 
 QtErrorView::QtErrorView(ViewLayout* viewLayout)
-	: ErrorView(viewLayout), m_controllerProxy(this, TabId::app())
+	: ErrorView(viewLayout), m_controllerProxy(this, TabIds::app())
 {
-	s_errorIcon = QIcon(QString::fromStdWString(
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"indexing_dialog/error.png").wstr()));
+	s_errorIcon = QIcon(QString::fromUtf8(QtResources::INDEXING_DIALOG_ERROR));
 
 	setWidgetWrapper(std::make_shared<QtViewWidgetWrapper>(new QFrame()));
 
@@ -62,7 +64,7 @@ QtErrorView::QtErrorView(ViewLayout* viewLayout)
 			<< QStringLiteral("Translation Unit");
 	m_model->setHorizontalHeaderLabels(headers);
 
-	connect(m_table, &QTableView::clicked, [=](const QModelIndex& index) {
+	connect(m_table, &QTableView::clicked, [=, this](const QModelIndex& index) {
 		if (index.isValid())
 		{
 			if (m_model->item(index.row(), Column::FILE) == nullptr)
@@ -70,8 +72,7 @@ QtErrorView::QtErrorView(ViewLayout* viewLayout)
 				return;
 			}
 
-			const Id errorId = static_cast<Id>(
-				m_model->item(index.row(), Column::ID)->text().toLongLong());
+			const Id errorId = qt_variant_cast<Id>(m_model->item(index.row(), Column::ID)->data(Qt::DisplayRole));
 
 			m_controllerProxy.executeAsTaskWithArgs(&ErrorController::showError, errorId);
 		}
@@ -110,7 +111,7 @@ QtErrorView::QtErrorView(ViewLayout* viewLayout)
 
 		m_allButton = new QPushButton(QLatin1String(""));
 		m_allButton->setObjectName(QStringLiteral("screen_button"));
-		connect(m_allButton, &QPushButton::clicked, [=]() {
+		connect(m_allButton, &QPushButton::clicked, [=, this]() {
 			m_errorFilter.limit = 0;
 			errorFilterChanged();
 		});
@@ -125,11 +126,11 @@ QtErrorView::QtErrorView(ViewLayout* viewLayout)
 
 	{
 		m_editButton = new QtSelfRefreshIconButton(
-			QStringLiteral("Edit Project"),
-			ResourcePaths::getGuiDirectoryPath().concatenate(L"code_view/images/edit.png"),
+			tr("Edit Project"),
+			QtResources::CODE_VIEW_EDIT,
 			"window/button");
 		m_editButton->setObjectName(QStringLiteral("screen_button"));
-		m_editButton->setToolTip(QStringLiteral("edit project"));
+		m_editButton->setToolTip(tr("edit project"));
 		connect(m_editButton, &QPushButton::clicked, []() { MessageProjectEdit().dispatch(); });
 
 		checkboxes->addWidget(m_editButton);
@@ -144,17 +145,14 @@ void QtErrorView::createWidgetWrapper() {}
 
 void QtErrorView::refreshView()
 {
-	m_onQtThread([=]() { setStyleSheet(); });
+	m_onQtThread([=, this]() { setStyleSheet(); });
 }
 
 void QtErrorView::clear()
 {
-	m_onQtThread([=]() {
-		if (!m_model->index(0, 0).data(Qt::DisplayRole).toString().isEmpty())
-		{
-			m_model->removeRows(0, m_model->rowCount());
-		}
-
+	m_onQtThread([=, this]()
+	{
+		m_model->removeRows(0, m_model->rowCount());
 		m_table->updateRows();
 
 		m_allLabel->setVisible(false);
@@ -166,7 +164,7 @@ void QtErrorView::clear()
 void QtErrorView::addErrors(
 	const std::vector<ErrorInfo>& errors, const ErrorCountInfo& errorCount, bool scrollTo)
 {
-	m_onQtThread([=]() {
+	m_onQtThread([=, this]() {
 		for (const ErrorInfo& error: errors)
 		{
 			addErrorToTable(error);
@@ -203,9 +201,9 @@ void QtErrorView::addErrors(
 
 void QtErrorView::setErrorId(Id errorId)
 {
-	m_onQtThread([=]() {
-		QList<QStandardItem*> items = m_model->findItems(
-			QString::number(errorId), Qt::MatchExactly, Column::ID);
+	m_onQtThread([=, this]() {
+		QList<QStandardItem*> items = m_model->findItems(QString::fromStdString(to_string(errorId)), 
+			Qt::MatchExactly, Column::ID);
 
 		if (items.size() == 1)
 		{
@@ -228,7 +226,7 @@ void QtErrorView::setErrorFilter(const ErrorFilter& filter)
 
 	m_errorFilter = filter;
 
-	m_onQtThread([=]() {
+	m_onQtThread([=, this]() {
 		m_showErrors->blockSignals(true);
 		m_showFatals->blockSignals(true);
 		m_showNonIndexedErrors->blockSignals(true);
@@ -294,7 +292,7 @@ void QtErrorView::addErrorToTable(const ErrorInfo& error)
 	}
 
 	QStandardItem* item = new QStandardItem();
-	item->setData(QVariant(qlonglong(error.id)), Qt::DisplayRole);
+	item->setData(QVariant::fromValue(error.id), Qt::DisplayRole);
 	m_model->setItem(rowNumber, Column::ID, item);
 
 	m_model->setItem(
@@ -308,11 +306,11 @@ void QtErrorView::addErrorToTable(const ErrorInfo& error)
 	m_model->item(rowNumber, Column::TYPE)->setIcon(s_errorIcon);
 
 	m_model->setItem(
-		rowNumber, Column::MESSAGE, new QStandardItem(QString::fromStdWString(error.message)));
+		rowNumber, Column::MESSAGE, new QStandardItem(QString::fromStdString(error.message)));
 
 	m_model->setItem(
-		rowNumber, Column::FILE, new QStandardItem(QString::fromStdWString(error.filePath)));
-	m_model->item(rowNumber, Column::FILE)->setToolTip(QString::fromStdWString(error.filePath));
+		rowNumber, Column::FILE, new QStandardItem(QString::fromStdString(error.filePath)));
+	m_model->item(rowNumber, Column::FILE)->setToolTip(QString::fromStdString(error.filePath));
 
 	item = new QStandardItem();
 	item->setData(QVariant(qlonglong(error.lineNumber)), Qt::DisplayRole);
@@ -326,9 +324,9 @@ void QtErrorView::addErrorToTable(const ErrorInfo& error)
 	m_model->setItem(
 		rowNumber,
 		Column::TRANSLATION_UNIT,
-		new QStandardItem(QString::fromStdWString(error.translationUnit)));
+		new QStandardItem(QString::fromStdString(error.translationUnit)));
 	m_model->item(rowNumber, Column::TRANSLATION_UNIT)
-		->setToolTip(QString::fromStdWString(error.translationUnit));
+		->setToolTip(QString::fromStdString(error.translationUnit));
 }
 
 QCheckBox* QtErrorView::createFilterCheckbox(const QString& name, bool checked, QBoxLayout* layout)
@@ -338,9 +336,9 @@ QCheckBox* QtErrorView::createFilterCheckbox(const QString& name, bool checked, 
 
 	connect(
 		checkbox,
-		&QCheckBox::stateChanged,
+		&QCheckBox::checkStateChanged,
 		this,
-		static_cast<void (QtErrorView::*)(int)>(&QtErrorView::errorFilterChanged));
+		qOverload<int>(&QtErrorView::errorFilterChanged));
 
 	layout->addWidget(checkbox);
 	layout->addSpacing(25);

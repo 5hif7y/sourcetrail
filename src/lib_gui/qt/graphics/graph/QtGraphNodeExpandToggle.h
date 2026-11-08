@@ -10,18 +10,18 @@ class QtGraphNodeExpandToggle: public QtGraphNode
 	Q_OBJECT
 public:
 	QtGraphNodeExpandToggle(bool expanded, int invisibleSubNodeCount);
-	virtual ~QtGraphNodeExpandToggle();
+	~QtGraphNodeExpandToggle() override;
 
 	// QtGraphNode implementation
-	virtual bool isExpandToggleNode() const;
+	bool isExpandToggleNode() const override;
 
-	virtual void onClick();
-	virtual void updateStyle();
+	void onClick() override;
+	void updateStyle() override;
 
 	bool isExpanded() const;
 
 protected:
-	virtual void matchName(const std::wstring& query, std::vector<QtGraphNode*>* matchedNodes) {}
+	void matchName(const std::string&  /*query*/, std::vector<QtGraphNode*>*  /*matchedNodes*/) override {}
 
 private:
 	QGraphicsPixmapItem* m_icon;

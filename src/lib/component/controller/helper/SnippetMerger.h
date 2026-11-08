@@ -48,8 +48,8 @@ public:
 	std::deque<Range> merge(std::vector<SnippetMerger::Range> atomicRanges) const;
 
 private:
-	Range getExpandedRegardingAtomicRanges(
-		Range range, const int snippetExpandRange, const std::vector<Range>& atomicRanges) const;
+	static Range getExpandedRegardingAtomicRanges(
+		Range range, const int snippetExpandRange, const std::vector<Range>& atomicRanges);
 
 	const int m_start;
 	const int m_end;

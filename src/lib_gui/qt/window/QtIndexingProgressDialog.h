@@ -10,7 +10,7 @@ class QtIndexingProgressDialog: public QtProgressBarDialog
 	Q_OBJECT
 
 public:
-	QtIndexingProgressDialog(bool hideable, QWidget* parent = 0);
+	QtIndexingProgressDialog(bool hideable, QWidget* parent = nullptr);
 	QSize sizeHint() const override;
 
 	void updateIndexingProgress(size_t fileCount, size_t totalFileCount, const FilePath& sourcePath);
@@ -24,8 +24,8 @@ private:
 	void onHidePressed();
 	void onStopPressed();
 
-	QLabel* m_filePathLabel;
-	QWidget* m_errorWidget;
+	QLabel* m_filePathLabel = nullptr;
+	QWidget* m_errorWidget = nullptr;
 	QString m_sourcePath;
 };
 

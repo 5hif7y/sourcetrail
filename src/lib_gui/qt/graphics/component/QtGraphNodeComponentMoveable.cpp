@@ -9,7 +9,7 @@ QtGraphNodeComponentMoveable::QtGraphNodeComponentMoveable(QtGraphNode* graphNod
 {
 }
 
-QtGraphNodeComponentMoveable::~QtGraphNodeComponentMoveable() {}
+QtGraphNodeComponentMoveable::~QtGraphNodeComponentMoveable() = default;
 
 void QtGraphNodeComponentMoveable::nodeMousePressEvent(QGraphicsSceneMouseEvent* event)
 {

@@ -1,5 +1,5 @@
 #include "ViewWidgetWrapper.h"
 
-ViewWidgetWrapper::ViewWidgetWrapper() {}
+ViewWidgetWrapper::ViewWidgetWrapper() = default;
 
-ViewWidgetWrapper::~ViewWidgetWrapper() {}
+ViewWidgetWrapper::~ViewWidgetWrapper() = default;

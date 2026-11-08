@@ -7,7 +7,7 @@
 class SourceGroupSettingsWithJavaGradle: public SourceGroupSettingsComponent
 {
 public:
-	virtual ~SourceGroupSettingsWithJavaGradle() = default;
+	~SourceGroupSettingsWithJavaGradle() override = default;
 
 	FilePath getGradleDependenciesDirectoryPath() const;
 

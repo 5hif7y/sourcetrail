@@ -12,10 +12,10 @@ bool SourceGroupFactoryModuleCxx::supports(SourceGroupType type) const
 {
 	switch (type)
 	{
-	case SOURCE_GROUP_C_EMPTY:
-	case SOURCE_GROUP_CPP_EMPTY:
-	case SOURCE_GROUP_CXX_CDB:
-	case SOURCE_GROUP_CXX_CODEBLOCKS:
+	case SourceGroupType::C_EMPTY:
+	case SourceGroupType::CXX_EMPTY:
+	case SourceGroupType::CXX_CDB:
+	case SourceGroupType::CXX_CODEBLOCKS:
 		return true;
 	default:
 		break;

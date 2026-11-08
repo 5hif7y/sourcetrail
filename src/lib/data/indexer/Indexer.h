@@ -62,7 +62,7 @@ std::shared_ptr<IntermediateStorage> Indexer<T>::index(std::shared_ptr<IndexerCo
 	}
 
 	std::shared_ptr<IntermediateStorage> storage = std::make_shared<IntermediateStorage>();
-	std::shared_ptr<ParserClientImpl> parserClient = std::make_shared<ParserClientImpl>(storage.get());
+	std::shared_ptr<ParserClientImpl> parserClient = std::make_shared<ParserClientImpl>(storage);
 
 	doIndex(castCommand, parserClient, m_indexerStateInfo);
 

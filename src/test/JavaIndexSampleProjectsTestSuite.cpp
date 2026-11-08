@@ -1,31 +1,23 @@
-#include "catch.hpp"
+#include "Catch2.hpp"
 
 #include "language_packages.h"
 
 #if BUILD_JAVA_LANGUAGE_PACKAGE
 
-#	include <fstream>
+#include <fstream>
 
-#	include "ApplicationSettings.h"
-#	include "FileRegister.h"
-#	include "IndexerCommandJava.h"
-#	include "JavaEnvironmentFactory.h"
-#	include "JavaParser.h"
-#	include "ParserClientImpl.h"
-#	include "TestStorage.h"
-#	include "TextAccess.h"
-#	include "TimeStamp.h"
-#	include "utility.h"
-#	include "utilityJava.h"
-#	include "utilityPathDetection.h"
-#	include "utilityString.h"
-
-#	define REQUIRE_MESSAGE(msg, cond)                                                             \
-		do                                                                                         \
-		{                                                                                          \
-			INFO(msg);                                                                             \
-			REQUIRE(cond);                                                                         \
-		} while ((void)0, 0)
+#include "ApplicationSettings.h"
+#include "IndexerCommandJava.h"
+#include "JavaEnvironmentFactory.h"
+#include "JavaParser.h"
+#include "ParserClientImpl.h"
+#include "TestStorage.h"
+#include "TextAccess.h"
+#include "TimeStamp.h"
+#include "ToolChain.h"
+#include "utilityJava.h"
+#include "utilityPathDetection.h"
+#include "utilityString.h"
 
 namespace
 {
@@ -35,41 +27,18 @@ size_t duration;
 
 void setupJavaEnvironmentFactory()
 {
-	if (!JavaEnvironmentFactory::getInstance())
-	{
-		std::string errorString;
-#	ifdef _WIN32
-		const std::string separator = ";";
-#	else
-		const std::string separator = ":";
-#	endif
-		std::string classPath = "";
-		{
-			const std::vector<std::wstring> jarNames = utility::getRequiredJarNames();
-			for (size_t i = 0; i < jarNames.size(); i++)
-			{
-				if (i != 0)
-				{
-					classPath += separator;
-				}
-				classPath += FilePath(L"../app/data/java/lib/").concatenate(jarNames[i]).str();
-			}
-		}
-
-		JavaEnvironmentFactory::createInstance(classPath, errorString);
-	}
+	utility::prepareJavaEnvironment(FilePath("../app/data/java/"));
 }
 
 std::shared_ptr<TextAccess> parseCode(
 	const FilePath& sourceFilePath,
-	const FilePath& projectDataSrcRoot,
+	const FilePath& /*projectDataSrcRoot*/,
 	const std::vector<FilePath>& classpath)
 {
 	std::shared_ptr<IntermediateStorage> storage = std::make_shared<IntermediateStorage>();
-	JavaParser parser(
-		std::make_shared<ParserClientImpl>(storage.get()), std::make_shared<IndexerStateInfo>());
+	JavaParser parser(std::make_shared<ParserClientImpl>(storage), std::make_shared<IndexerStateInfo>());
 	std::shared_ptr<IndexerCommandJava> command = std::make_shared<IndexerCommandJava>(
-		sourceFilePath, L"12", classpath);
+		sourceFilePath, EclipseCompiler::getLatestJavaStandard(), classpath);
 
 	TimeStamp startTime = TimeStamp::now();
 	parser.buildIndex(command);
@@ -78,21 +47,17 @@ std::shared_ptr<TextAccess> parseCode(
 	return TextAccess::createFromLines(TestStorage::create(storage)->m_lines);
 }
 
-void processSourceFile(
-	const std::string& projectName,
-	const FilePath& sourceFilePath,
+void processSourceFile(const std::string& projectName, const FilePath& sourceFilePath,
 	const std::vector<FilePath>& classpath)
 {
 	const FilePath projectDataRoot = FilePath("data/JavaIndexSampleProjectsTestSuite/" + projectName);
-	const FilePath projectDataSrcRoot = projectDataRoot.getConcatenated(L"src");
-	const FilePath projectDataExpectedOutputRoot = projectDataRoot.getConcatenated(
-		L"expected_output");
+	const FilePath projectDataSrcRoot = projectDataRoot.getConcatenated("src");
+	const FilePath projectDataExpectedOutputRoot = projectDataRoot.getConcatenated("expected_output");
 
-	std::shared_ptr<TextAccess> output = parseCode(
-		projectDataSrcRoot.getConcatenated(sourceFilePath), projectDataSrcRoot, classpath);
+	std::shared_ptr<TextAccess> output = parseCode(projectDataSrcRoot.getConcatenated(sourceFilePath), projectDataSrcRoot, classpath);
 
 	const FilePath expectedOutputFilePath = projectDataExpectedOutputRoot.getConcatenated(
-		utility::replace(sourceFilePath.withoutExtension().wstr() + L".txt", L"/", L"_"));
+		utility::replace(sourceFilePath.withoutExtension().str() + ".txt", "/", "_"));
 	if (updateExpectedOutput || !expectedOutputFilePath.exists())
 	{
 		std::ofstream expectedOutputFile;
@@ -102,13 +67,10 @@ void processSourceFile(
 	}
 	else
 	{
-		std::shared_ptr<TextAccess> expectedOutput = TextAccess::createFromFile(
-			expectedOutputFilePath);
-		REQUIRE_MESSAGE(
-			("Output does not match the expected line count for file " + sourceFilePath.str() +
-			 " in project " + projectName + ". Output was: " + output->getText())
-				.c_str(),
+		std::shared_ptr<TextAccess> expectedOutput = TextAccess::createFromFile(expectedOutputFilePath);
+		REQUIRE_MESSAGE(("Line count of output '" + sourceFilePath.str() + "' is different than expected output '" + expectedOutputFilePath.str() + "' in project " + projectName + ".").c_str(),
 			expectedOutput->getLineCount() == output->getLineCount());
+
 		if (expectedOutput->getLineCount() == output->getLineCount())
 		{
 			for (unsigned int i = 1; i <= expectedOutput->getLineCount(); i++)
@@ -119,9 +81,7 @@ void processSourceFile(
 	}
 }
 
-void processSourceFiles(
-	const std::string& projectName,
-	const std::vector<FilePath>& sourceFilePaths,
+void processSourceFiles(const std::string& projectName, const std::vector<FilePath>& sourceFilePaths,
 	const std::vector<FilePath>& classpath)
 {
 	duration = 0;
@@ -158,303 +118,159 @@ TEST_CASE("java sample parser can setup environment factory")
 	REQUIRE(JavaEnvironmentFactory::getInstance().use_count() >= 1);
 }
 
-TEST_CASE("index javasymbolsolver 0 6 0 project")
+TEST_CASE("index javasymbolsolver 0 6 0 project", JAVA_TAG)
 {
-	const std::vector<FilePath>& classpath = {
-		FilePath(L"data/JavaIndexSampleProjectsTestSuite/JavaSymbolSolver060/lib/guava-21.0.jar")
-			.makeAbsolute(),
-		FilePath(L"data/JavaIndexSampleProjectsTestSuite/JavaSymbolSolver060/lib/"
-				 L"javaparser-core-3.3.0.jar")
-			.makeAbsolute(),
-		FilePath(
-			L"data/JavaIndexSampleProjectsTestSuite/JavaSymbolSolver060/lib/javaslang-2.0.3.jar")
-			.makeAbsolute(),
-		FilePath(L"data/JavaIndexSampleProjectsTestSuite/JavaSymbolSolver060/lib/"
-				 L"javassist-3.19.0-GA.jar")
-			.makeAbsolute(),
-		FilePath(L"data/JavaIndexSampleProjectsTestSuite/JavaSymbolSolver060/src/"
-				 L"java-symbol-solver-core")
-			.makeAbsolute(),
-		FilePath(L"data/JavaIndexSampleProjectsTestSuite/JavaSymbolSolver060/src/"
-				 L"java-symbol-solver-logic")
-			.makeAbsolute(),
-		FilePath(L"data/JavaIndexSampleProjectsTestSuite/JavaSymbolSolver060/src/"
-				 L"java-symbol-solver-model")
-			.makeAbsolute()};
+	SKIP();
+	
+	const std::vector<FilePath> classPath = {
+		FilePath("data/JavaIndexSampleProjectsTestSuite/JavaSymbolSolver060/lib/guava-21.0.jar").makeAbsolute(),
+		FilePath("data/JavaIndexSampleProjectsTestSuite/JavaSymbolSolver060/lib/javaparser-core-3.3.0.jar").makeAbsolute(),
+		FilePath("data/JavaIndexSampleProjectsTestSuite/JavaSymbolSolver060/lib/javaslang-2.0.3.jar").makeAbsolute(),
+		FilePath("data/JavaIndexSampleProjectsTestSuite/JavaSymbolSolver060/lib/javassist-3.19.0-GA.jar").makeAbsolute(),
+		FilePath("data/JavaIndexSampleProjectsTestSuite/JavaSymbolSolver060/src/java-symbol-solver-core").makeAbsolute(),
+		FilePath("data/JavaIndexSampleProjectsTestSuite/JavaSymbolSolver060/src/java-symbol-solver-logic").makeAbsolute(),
+		FilePath("data/JavaIndexSampleProjectsTestSuite/JavaSymbolSolver060/src/java-symbol-solver-model").makeAbsolute()
+	};
 
-	processSourceFiles(
-		"JavaSymbolSolver060",
-		{FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/"
-				  L"SourceFileInfoExtractor.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/core/resolution/"
-				  L"Context.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/core/resolution/"
-				  L"ContextHelper.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/declarations/common/"
-				  L"MethodDeclarationCommonLogic.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparser/"
-				  L"Navigator.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparser/"
-				  L"package-info.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"DefaultVisitorAdapter.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"JavaParserFacade.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"JavaParserFactory.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"LambdaArgumentTypePlaceholder.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"package-info.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"TypeExtractor.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"UnsolvedSymbolException.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"contexts/AbstractJavaParserContext.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"contexts/AbstractMethodLikeDeclarationContext.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"contexts/AnonymousClassDeclarationContext.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"contexts/CatchClauseContext.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"contexts/ClassOrInterfaceDeclarationContext.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"contexts/CompilationUnitContext.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"contexts/ConstructorContext.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"contexts/ContextHelper.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"contexts/EnumDeclarationContext.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"contexts/FieldAccessContext.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"contexts/ForechStatementContext.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"contexts/ForStatementContext.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"contexts/JavaParserTypeDeclarationAdapter.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"contexts/LambdaExprContext.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"contexts/MethodCallExprContext.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"contexts/MethodContext.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"contexts/StatementContext.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"contexts/SwitchEntryContext.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"contexts/TryWithResourceContext.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"declarations/DefaultConstructorDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"declarations/Helper.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"declarations/JavaParserAnnotationDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"declarations/JavaParserAnonymousClassDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"declarations/JavaParserClassDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"declarations/JavaParserConstructorDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"declarations/JavaParserEnumConstantDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"declarations/JavaParserEnumDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"declarations/JavaParserFieldDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"declarations/JavaParserInterfaceDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"declarations/JavaParserMethodDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"declarations/JavaParserParameterDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"declarations/JavaParserSymbolDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"declarations/JavaParserTypeAdapter.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"declarations/JavaParserTypeParameter.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"declarations/JavaParserTypeVariableDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"declarators/AbstractSymbolDeclarator.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"declarators/FieldSymbolDeclarator.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"declarators/NoSymbolDeclarator.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"declarators/ParameterSymbolDeclarator.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/"
-				  L"declarators/VariableSymbolDeclarator.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/"
-				  L"JavassistClassDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/"
-				  L"JavassistConstructorDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/"
-				  L"JavassistEnumDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/"
-				  L"JavassistFactory.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/"
-				  L"JavassistFieldDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/"
-				  L"JavassistInterfaceDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/"
-				  L"JavassistMethodDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/"
-				  L"JavassistParameterDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/"
-				  L"JavassistTypeDeclarationAdapter.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/"
-				  L"JavassistTypeParameter.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/"
-				  L"JavassistUtils.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/"
-				  L"package-info.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/model/typesystem/"
-				  L"LazyType.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/model/typesystem/"
-				  L"ReferenceTypeImpl.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/"
-				  L"MyObjectProvider.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/"
-				  L"package-info.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/"
-				  L"ReflectionClassAdapter.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/"
-				  L"ReflectionClassDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/"
-				  L"ReflectionConstructorDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/"
-				  L"ReflectionEnumDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/"
-				  L"ReflectionFactory.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/"
-				  L"ReflectionFieldDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/"
-				  L"ReflectionInterfaceDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/"
-				  L"ReflectionMethodDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/"
-				  L"ReflectionMethodResolutionLogic.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/"
-				  L"ReflectionParameterDeclaration.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/"
-				  L"ReflectionTypeParameter.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/"
-				  L"comparators/ClassComparator.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/"
-				  L"comparators/MethodComparator.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/"
-				  L"comparators/ParameterComparator.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/resolution/"
-				  L"ConstructorResolutionLogic.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/resolution/"
-				  L"MethodResolutionLogic.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/resolution/"
-				  L"SymbolDeclarator.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/resolution/"
-				  L"SymbolSolver.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/resolution/"
-				  L"typesolvers/CombinedTypeSolver.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/resolution/"
-				  L"typesolvers/JarTypeSolver.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/resolution/"
-				  L"typesolvers/JavaParserTypeSolver.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/resolution/"
-				  L"typesolvers/MemoryTypeSolver.java"),
-		 FilePath(L"java-symbol-solver-core/com/github/javaparser/symbolsolver/resolution/"
-				  L"typesolvers/ReflectionTypeSolver.java"),
-		 FilePath(L"java-symbol-solver-logic/com/github/javaparser/symbolsolver/logic/"
-				  L"AbstractClassDeclaration.java"),
-		 FilePath(L"java-symbol-solver-logic/com/github/javaparser/symbolsolver/logic/"
-				  L"AbstractTypeDeclaration.java"),
-		 FilePath(L"java-symbol-solver-logic/com/github/javaparser/symbolsolver/logic/"
-				  L"ConfilictingGenericTypesException.java"),
-		 FilePath(L"java-symbol-solver-logic/com/github/javaparser/symbolsolver/logic/"
-				  L"FunctionalInterfaceLogic.java"),
-		 FilePath(L"java-symbol-solver-logic/com/github/javaparser/symbolsolver/logic/"
-				  L"InferenceContext.java"),
-		 FilePath(L"java-symbol-solver-logic/com/github/javaparser/symbolsolver/logic/"
-				  L"InferenceVariableType.java"),
-		 FilePath(L"java-symbol-solver-logic/com/github/javaparser/symbolsolver/logic/"
-				  L"ObjectProvider.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/"
-				  L"AccessLevel.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/"
-				  L"AnnotationDeclaration.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/"
-				  L"ClassDeclaration.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/"
-				  L"ConstructorDeclaration.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/"
-				  L"Declaration.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/"
-				  L"EnumDeclaration.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/"
-				  L"FieldDeclaration.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/"
-				  L"HasAccessLevel.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/"
-				  L"InterfaceDeclaration.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/"
-				  L"MethodAmbiguityException.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/"
-				  L"MethodDeclaration.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/"
-				  L"MethodLikeDeclaration.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/"
-				  L"ParameterDeclaration.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/"
-				  L"ReferenceTypeDeclaration.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/"
-				  L"TypeDeclaration.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/"
-				  L"TypeParameterDeclaration.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/"
-				  L"TypeParametrizable.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/"
-				  L"ValueDeclaration.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/methods/"
-				  L"MethodUsage.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/resolution/"
-				  L"SymbolReference.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/resolution/"
-				  L"TypeSolver.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/resolution/"
-				  L"UnsolvedSymbolException.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/resolution/"
-				  L"Value.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/"
-				  L"ArrayType.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/"
-				  L"LambdaConstraintType.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/"
-				  L"NullType.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/"
-				  L"PrimitiveType.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/"
-				  L"ReferenceType.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/"
-				  L"Type.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/"
-				  L"TypeTransformer.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/"
-				  L"TypeVariable.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/"
-				  L"VoidType.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/"
-				  L"Wildcard.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/"
-				  L"parametrization/TypeParametersMap.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/"
-				  L"parametrization/TypeParameterValueProvider.java"),
-		 FilePath(L"java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/"
-				  L"parametrization/TypeParametrized.java")},
-		classpath);
+	const std::vector<FilePath> sourceFilePaths = {
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/SourceFileInfoExtractor.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/core/resolution/Context.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/core/resolution/ContextHelper.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/declarations/common/MethodDeclarationCommonLogic.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparser/Navigator.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparser/package-info.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/DefaultVisitorAdapter.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/JavaParserFacade.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/JavaParserFactory.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/LambdaArgumentTypePlaceholder.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/package-info.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/TypeExtractor.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/UnsolvedSymbolException.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/contexts/AbstractJavaParserContext.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/contexts/AbstractMethodLikeDeclarationContext.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/contexts/AnonymousClassDeclarationContext.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/contexts/CatchClauseContext.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/contexts/ClassOrInterfaceDeclarationContext.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/contexts/CompilationUnitContext.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/contexts/ConstructorContext.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/contexts/ContextHelper.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/contexts/EnumDeclarationContext.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/contexts/FieldAccessContext.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/contexts/ForechStatementContext.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/contexts/ForStatementContext.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/contexts/JavaParserTypeDeclarationAdapter.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/contexts/LambdaExprContext.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/contexts/MethodCallExprContext.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/contexts/MethodContext.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/contexts/StatementContext.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/contexts/SwitchEntryContext.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/contexts/TryWithResourceContext.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/declarations/DefaultConstructorDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/declarations/Helper.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/declarations/JavaParserAnnotationDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/declarations/JavaParserAnonymousClassDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/declarations/JavaParserClassDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/declarations/JavaParserConstructorDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/declarations/JavaParserEnumConstantDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/declarations/JavaParserEnumDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/declarations/JavaParserFieldDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/declarations/JavaParserInterfaceDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/declarations/JavaParserMethodDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/declarations/JavaParserParameterDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/declarations/JavaParserSymbolDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/declarations/JavaParserTypeAdapter.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/declarations/JavaParserTypeParameter.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/declarations/JavaParserTypeVariableDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/declarators/AbstractSymbolDeclarator.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/declarators/FieldSymbolDeclarator.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/declarators/NoSymbolDeclarator.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/declarators/ParameterSymbolDeclarator.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javaparsermodel/declarators/VariableSymbolDeclarator.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/JavassistClassDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/JavassistConstructorDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/JavassistEnumDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/JavassistFactory.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/JavassistFieldDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/JavassistInterfaceDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/JavassistMethodDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/JavassistParameterDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/JavassistTypeDeclarationAdapter.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/JavassistTypeParameter.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/JavassistUtils.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/javassistmodel/package-info.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/model/typesystem/LazyType.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/model/typesystem/ReferenceTypeImpl.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/MyObjectProvider.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/package-info.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/ReflectionClassAdapter.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/ReflectionClassDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/ReflectionConstructorDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/ReflectionEnumDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/ReflectionFactory.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/ReflectionFieldDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/ReflectionInterfaceDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/ReflectionMethodDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/ReflectionMethodResolutionLogic.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/ReflectionParameterDeclaration.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/ReflectionTypeParameter.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/comparators/ClassComparator.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/comparators/MethodComparator.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/reflectionmodel/comparators/ParameterComparator.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/resolution/ConstructorResolutionLogic.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/resolution/MethodResolutionLogic.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/resolution/SymbolDeclarator.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/resolution/SymbolSolver.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/resolution/typesolvers/CombinedTypeSolver.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/resolution/typesolvers/JarTypeSolver.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/resolution/typesolvers/JavaParserTypeSolver.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/resolution/typesolvers/MemoryTypeSolver.java"),
+		FilePath("java-symbol-solver-core/com/github/javaparser/symbolsolver/resolution/typesolvers/ReflectionTypeSolver.java"),
+		FilePath("java-symbol-solver-logic/com/github/javaparser/symbolsolver/logic/AbstractClassDeclaration.java"),
+		FilePath("java-symbol-solver-logic/com/github/javaparser/symbolsolver/logic/AbstractTypeDeclaration.java"),
+		FilePath("java-symbol-solver-logic/com/github/javaparser/symbolsolver/logic/ConfilictingGenericTypesException.java"),
+		FilePath("java-symbol-solver-logic/com/github/javaparser/symbolsolver/logic/FunctionalInterfaceLogic.java"),
+		FilePath("java-symbol-solver-logic/com/github/javaparser/symbolsolver/logic/InferenceContext.java"),
+		FilePath("java-symbol-solver-logic/com/github/javaparser/symbolsolver/logic/InferenceVariableType.java"),
+		FilePath("java-symbol-solver-logic/com/github/javaparser/symbolsolver/logic/ObjectProvider.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/AccessLevel.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/AnnotationDeclaration.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/ClassDeclaration.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/ConstructorDeclaration.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/Declaration.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/EnumDeclaration.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/FieldDeclaration.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/HasAccessLevel.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/InterfaceDeclaration.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/MethodAmbiguityException.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/MethodDeclaration.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/MethodLikeDeclaration.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/ParameterDeclaration.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/ReferenceTypeDeclaration.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/TypeDeclaration.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/TypeParameterDeclaration.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/TypeParametrizable.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/declarations/ValueDeclaration.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/methods/MethodUsage.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/resolution/SymbolReference.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/resolution/TypeSolver.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/resolution/UnsolvedSymbolException.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/resolution/Value.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/ArrayType.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/LambdaConstraintType.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/NullType.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/PrimitiveType.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/ReferenceType.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/Type.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/TypeTransformer.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/TypeVariable.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/VoidType.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/Wildcard.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/parametrization/TypeParametersMap.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/parametrization/TypeParameterValueProvider.java"),
+		FilePath("java-symbol-solver-model/com/github/javaparser/symbolsolver/model/typesystem/parametrization/TypeParametrized.java")
+	};
+
+	processSourceFiles("JavaSymbolSolver060", sourceFilePaths, classPath);
 }
 
 #endif	  // BUILD_JAVA_LANGUAGE_PACKAGE

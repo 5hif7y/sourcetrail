@@ -17,13 +17,13 @@ public:
 	QtPathListBoxItem(QtPathListBox* listBox, QListWidgetItem* item, QWidget* parent = nullptr);
 
 protected:
-	virtual QtListBox* getListBox() override;
+	QtListBox* getListBox() override;
 
 private slots:
 	void handleButtonPress();
 
 private:
-	virtual void onReadOnlyChanged() override;
+	void onReadOnlyChanged() override;
 
 	QtPathListBox* m_listBox;
 	QPushButton* m_button;

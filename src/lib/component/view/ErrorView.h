@@ -12,9 +12,9 @@ class ErrorView: public View
 {
 public:
 	ErrorView(ViewLayout* viewLayout);
-	virtual ~ErrorView();
+	~ErrorView() override;
 
-	virtual std::string getName() const;
+	std::string getName() const override;
 
 	virtual void clear() = 0;
 

@@ -10,11 +10,7 @@ SourceGroupJavaEmpty::SourceGroupJavaEmpty(std::shared_ptr<SourceGroupSettingsJa
 
 bool SourceGroupJavaEmpty::prepareIndexing()
 {
-	if (!utility::prepareJavaEnvironmentAndDisplayOccurringErrors())
-	{
-		return false;
-	}
-	return true;
+	return utility::prepareJavaEnvironmentAndDisplayOccurringErrors();
 }
 
 std::vector<FilePath> SourceGroupJavaEmpty::getAllSourcePaths() const

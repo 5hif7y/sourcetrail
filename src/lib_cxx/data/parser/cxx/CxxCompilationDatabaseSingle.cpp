@@ -6,7 +6,7 @@ CxxCompilationDatabaseSingle::CxxCompilationDatabaseSingle(const clang::tooling:
 }
 
 std::vector<clang::tooling::CompileCommand> CxxCompilationDatabaseSingle::getCompileCommands(
-	llvm::StringRef FilePath) const
+	llvm::StringRef  /*FilePath*/) const
 {
 	return getAllCompileCommands();
 }

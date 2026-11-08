@@ -7,7 +7,7 @@
 class MessageTabState: public Message<MessageTabState>
 {
 public:
-	MessageTabState(Id tabId, const std::vector<SearchMatch>& searchMatches)
+	MessageTabState(TabId tabId, const std::vector<SearchMatch>& searchMatches)
 		: tabId(tabId), searchMatches(searchMatches)
 	{
 	}
@@ -17,7 +17,7 @@ public:
 		return "MessageTabState";
 	}
 
-	const Id tabId;
+	const TabId tabId;
 	const std::vector<SearchMatch> searchMatches;
 };
 

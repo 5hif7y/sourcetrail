@@ -11,19 +11,19 @@ class BookmarkButtonsView
 {
 public:
 	BookmarkButtonsView(ViewLayout* viewLayout);
-	virtual ~BookmarkButtonsView() = default;
+	~BookmarkButtonsView() override = default;
 
 	std::string getName() const override;
-
-	Id getSchedulerId() const override;
-	void setTabId(Id schedulerId);
+	
+	TabId getSchedulerId() const override;
+	void setTabId(TabId schedulerId);
 
 	virtual void setCreateButtonState(const MessageBookmarkButtonState::ButtonState& state) = 0;
 
 private:
 	void handleMessage(MessageBookmarkButtonState* message) override;
 
-	Id m_schedulerId;
+	TabId m_schedulerId;
 };
 
 #endif	  // BOOKMARK_BUTTONS_VIEW_H

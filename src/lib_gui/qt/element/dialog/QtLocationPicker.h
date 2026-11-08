@@ -13,7 +13,7 @@ class QtLocationPicker: public QWidget
 public:
 	QtLocationPicker(QWidget* parent);
 
-	virtual void paintEvent(QPaintEvent*) override;
+	void paintEvent(QPaintEvent*) override;
 
 	void setPlaceholderText(const QString& text);
 	QString getText();
@@ -41,7 +41,7 @@ private:
 	QPushButton* m_button;
 	QtLineEdit* m_data;
 
-	bool m_pickDirectory;
+	bool m_pickDirectory = false;
 	QString m_fileFilter;
 	FilePath m_relativeRootDirectory;
 };

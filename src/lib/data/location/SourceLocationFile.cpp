@@ -1,7 +1,7 @@
 #include "SourceLocationFile.h"
 
 SourceLocationFile::SourceLocationFile(
-	const FilePath& filePath, const std::wstring& language, bool isWhole, bool isComplete, bool isIndexed)
+	const FilePath& filePath, const std::string& language, bool isWhole, bool isComplete, bool isIndexed)
 	: m_filePath(filePath)
 	, m_language(language)
 	, m_isWhole(isWhole)
@@ -10,19 +10,19 @@ SourceLocationFile::SourceLocationFile(
 {
 }
 
-SourceLocationFile::~SourceLocationFile() {}
+SourceLocationFile::~SourceLocationFile() = default;
 
 const FilePath& SourceLocationFile::getFilePath() const
 {
 	return m_filePath;
 }
 
-void SourceLocationFile::setLanguage(const std::wstring& language)
+void SourceLocationFile::setLanguage(const std::string& language)
 {
 	m_language = language;
 }
 
-const std::wstring& SourceLocationFile::getLanguage() const
+const std::string& SourceLocationFile::getLanguage() const
 {
 	return m_language;
 }
@@ -229,7 +229,7 @@ std::shared_ptr<SourceLocationFile> SourceLocationFile::getFilteredByTypes(
 	size_t typeMask = 0;
 	for (LocationType type: types)
 	{
-		typeMask |= static_cast<size_t>(1) << type;
+		typeMask |= 1u << type;
 	}
 
 	std::shared_ptr<SourceLocationFile> ret = std::make_shared<SourceLocationFile>(
@@ -237,7 +237,7 @@ std::shared_ptr<SourceLocationFile> SourceLocationFile::getFilteredByTypes(
 
 	for (const std::shared_ptr<SourceLocation>& location: m_locations)
 	{
-		if ((static_cast<size_t>(1) << location->getType()) & typeMask)
+		if ((1u << location->getType()) & typeMask)
 		{
 			ret->addSourceLocationCopy(location.get());
 		}
@@ -246,23 +246,23 @@ std::shared_ptr<SourceLocationFile> SourceLocationFile::getFilteredByTypes(
 	return ret;
 }
 
-std::wostream& operator<<(std::wostream& ostream, const SourceLocationFile& file)
+std::ostream& operator<<(std::ostream& ostream, const SourceLocationFile& file)
 {
-	ostream << L"file \"" << file.getFilePath().wstr() << L"\"";
+	ostream << "file \"" << file.getFilePath().str() << "\"";
 
 	if (file.isWhole())
 	{
-		ostream << L" whole";
+		ostream << " whole";
 	}
 
 	if (file.isComplete())
 	{
-		ostream << L" complete";
+		ostream << " complete";
 	}
 
 	if (file.isIndexed())
 	{
-		ostream << L" indexed";
+		ostream << " indexed";
 	}
 
 	size_t line = 0;
@@ -280,15 +280,15 @@ std::wostream& operator<<(std::wostream& ostream, const SourceLocationFile& file
 					line++;
 				}
 
-				ostream << L'\n' << line;
+				ostream << '\n' << line;
 			}
 
-			ostream << L":  ";
+			ostream << ":  ";
 		}
 
 		ostream << *location;
 	});
 
-	ostream << L'\n';
+	ostream << '\n';
 	return ostream;
 }

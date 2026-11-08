@@ -1,9 +1,12 @@
 #include "CanonicalFilePathCache.h"
 
-#include <clang/AST/ASTContext.h>
-#include <clang/Basic/FileManager.h>
 #include "utilityClang.h"
 #include "utilityString.h"
+
+#include <clang/AST/ASTContext.h>
+#include <clang/Basic/FileManager.h>
+
+using namespace clang;
 
 CanonicalFilePathCache::CanonicalFilePathCache(std::shared_ptr<FileRegister> fileRegister)
 	: m_fileRegister(fileRegister)
@@ -31,24 +34,24 @@ FilePath CanonicalFilePathCache::getCanonicalFilePath(
 
 	FilePath filePath;
 
-	const clang::FileEntry* fileEntry = sourceManager.getFileEntryForID(fileId);
-	if (fileEntry != nullptr && fileEntry->isValid())
+	const OptionalFileEntryRef fileEntry = sourceManager.getFileEntryRefForID(fileId);
+	if (fileEntry)
 	{
-		filePath = getCanonicalFilePath(fileEntry);
+		filePath = getCanonicalFilePath(*fileEntry);
 		m_fileIdMap.emplace(fileId, filePath);
 	}
 
 	return filePath;
 }
 
-FilePath CanonicalFilePathCache::getCanonicalFilePath(const clang::FileEntry* entry)
+FilePath CanonicalFilePathCache::getCanonicalFilePath(const clang::FileEntryRef &entry)
 {
 	return getCanonicalFilePath(utility::getFileNameOfFileEntry(entry));
 }
 
-FilePath CanonicalFilePathCache::getCanonicalFilePath(const std::wstring& path)
+FilePath CanonicalFilePathCache::getCanonicalFilePath(const std::string& path)
 {
-	const std::wstring lowercasePath = utility::toLowerCase(path);
+	const std::string lowercasePath = utility::toLowerCase(path);
 
 	auto it = m_fileStringMap.find(lowercasePath);
 	if (it != m_fileStringMap.end())
@@ -57,7 +60,7 @@ FilePath CanonicalFilePathCache::getCanonicalFilePath(const std::wstring& path)
 	}
 
 	const FilePath canonicalPath = FilePath(path).makeCanonical();
-	const std::wstring lowercaseCanonicalPath = utility::toLowerCase(canonicalPath.wstr());
+	const std::string lowercaseCanonicalPath = utility::toLowerCase(canonicalPath.str());
 
 	m_fileStringMap.emplace(std::move(lowercasePath), canonicalPath);
 	m_fileStringMap.emplace(std::move(lowercaseCanonicalPath), canonicalPath);
@@ -84,7 +87,7 @@ void CanonicalFilePathCache::addFileSymbolId(const clang::FileID& fileId, const 
 {
 	m_fileIdSymbolIdMap.emplace(fileId, symbolId);
 	m_symbolIdFileIdMap.emplace(symbolId, fileId);
-	m_fileStringSymbolIdMap.emplace(utility::toLowerCase(path.wstr()), symbolId);
+	m_fileStringSymbolIdMap.emplace(utility::toLowerCase(path.str()), symbolId);
 }
 
 Id CanonicalFilePathCache::getFileSymbolId(const clang::FileID& fileId)
@@ -103,14 +106,14 @@ Id CanonicalFilePathCache::getFileSymbolId(const clang::FileID& fileId)
 	return 0;
 }
 
-Id CanonicalFilePathCache::getFileSymbolId(const clang::FileEntry* entry)
+Id CanonicalFilePathCache::getFileSymbolId(const clang::FileEntryRef &entry)
 {
 	return getFileSymbolId(utility::getFileNameOfFileEntry(entry));
 }
 
-Id CanonicalFilePathCache::getFileSymbolId(const std::wstring& path)
+Id CanonicalFilePathCache::getFileSymbolId(const std::string& path)
 {
-	std::wstring canonicalPath = utility::toLowerCase(getCanonicalFilePath(path).wstr());
+	std::string canonicalPath = utility::toLowerCase(getCanonicalFilePath(path).str());
 
 	auto it = m_fileStringSymbolIdMap.find(canonicalPath);
 	if (it != m_fileStringSymbolIdMap.end())
@@ -126,15 +129,14 @@ FilePath CanonicalFilePathCache::getDeclarationFilePath(const clang::Decl* decla
 	const clang::SourceManager& sourceManager = declaration->getASTContext().getSourceManager();
 	const clang::FileID fileId = sourceManager.getFileID(declaration->getBeginLoc());
 	const clang::FileEntry* fileEntry = sourceManager.getFileEntryForID(fileId);
-	if (fileEntry != nullptr && fileEntry->isValid())
+	if (fileEntry != nullptr)
 	{
 		return getCanonicalFilePath(fileId, sourceManager);
 	}
-	return getCanonicalFilePath(utility::decodeFromUtf8(
-		sourceManager.getPresumedLoc(declaration->getBeginLoc()).getFilename()));
+	return getCanonicalFilePath(sourceManager.getPresumedLoc(declaration->getBeginLoc()).getFilename());
 }
 
-std::wstring CanonicalFilePathCache::getDeclarationFileName(const clang::Decl* declaration)
+std::string CanonicalFilePathCache::getDeclarationFileName(const clang::Decl* declaration)
 {
 	return getDeclarationFilePath(declaration).fileName();
 }

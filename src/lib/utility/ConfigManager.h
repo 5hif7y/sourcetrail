@@ -3,6 +3,7 @@
 
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -20,7 +21,6 @@ public:
 	void clear();
 
 	bool getValue(const std::string& key, std::string& value) const;
-	bool getValue(const std::string& key, std::wstring& value) const;
 	bool getValue(const std::string& key, int& value) const;
 	bool getValue(const std::string& key, float& value) const;
 	bool getValue(const std::string& key, bool& value) const;
@@ -30,7 +30,6 @@ public:
 	T getValueOrDefault(const std::string& key, T defaultValue) const;
 
 	bool getValues(const std::string& key, std::vector<std::string>& values) const;
-	bool getValues(const std::string& key, std::vector<std::wstring>& values) const;
 	bool getValues(const std::string& key, std::vector<int>& values) const;
 	bool getValues(const std::string& key, std::vector<float>& values) const;
 	bool getValues(const std::string& key, std::vector<bool>& values) const;
@@ -40,14 +39,12 @@ public:
 	std::vector<T> getValuesOrDefaults(const std::string& key, std::vector<T> defaultValues) const;
 
 	void setValue(const std::string& key, const std::string& value);
-	void setValue(const std::string& key, const std::wstring& value);
 	void setValue(const std::string& key, const int value);
 	void setValue(const std::string& key, const float value);
 	void setValue(const std::string& key, const bool value);
 	void setValue(const std::string& key, const FilePath& value);
 
 	void setValues(const std::string& key, const std::vector<std::string>& values);
-	void setValues(const std::string& key, const std::vector<std::wstring>& values);
 	void setValues(const std::string& key, const std::vector<int>& values);
 	void setValues(const std::string& key, const std::vector<float>& values);
 	void setValues(const std::string& key, const std::vector<bool>& values);
@@ -73,7 +70,10 @@ private:
 	bool createXmlDocument(bool saveAsFile, std::string filepath, std::string& output);
 
 	std::multimap<std::string, std::string> m_values;
-	mutable bool m_warnOnEmptyKey;
+	mutable bool m_warnOnEmptyKey = true;
+	// Keys already reported as missing. getValue() is called for every indexed file,
+	// so without this the same warning is logged thousands of times (kafka: 12.357).
+	mutable std::set<std::string> m_warnedKeys;
 };
 
 template <typename T>

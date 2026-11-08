@@ -1,7 +1,5 @@
 #include "QtPreferencesWindow.h"
 
-#include "language_packages.h"
-
 #include "MessageLoadProject.h"
 #include "MessagePluginPortChange.h"
 #include "MessageRefreshUI.h"
@@ -9,11 +7,9 @@
 
 #include "Application.h"
 #include "DialogView.h"
+#include "QtPreferencesPageRegistry.h"
 #include "QtProjectWizardContentGroup.h"
-#include "QtProjectWizardContentPathsFrameworkSearchGlobal.h"
-#include "QtProjectWizardContentPathsHeaderSearchGlobal.h"
-#include "QtProjectWizardContentPreferences.h"
-#include "utilityApp.h"
+#include "UiPlugin.h"
 
 QtPreferencesWindow::QtPreferencesWindow(QWidget* parent): QtProjectWizardWindow(parent)
 {
@@ -29,30 +25,31 @@ QtPreferencesWindow::QtPreferencesWindow(QWidget* parent): QtProjectWizardWindow
 	m_appSettings.setScreenScaleFactor(appSettings->getScreenScaleFactor());
 
 
-	QtProjectWizardContentGroup* summary = new QtProjectWizardContentGroup(this);
-	summary->addContent(new QtProjectWizardContentPreferences(this));
+	st::plugin::ensureUiPluginLoaded();
 
-#if BUILD_CXX_LANGUAGE_PACKAGE
-	summary->addContent(new QtProjectWizardContentPathsHeaderSearchGlobal(this));
-	if (utility::getOsType() == OS_MAC)
+	QtProjectWizardContentGroup* summary = new QtProjectWizardContentGroup(this);
+	for (const QtPreferencesPageRegistry::Factory& factory:
+		 QtPreferencesPageRegistry::instance().pages())
 	{
-		summary->addContent(new QtProjectWizardContentPathsFrameworkSearchGlobal(this));
+		if (QtProjectWizardContent* content = factory(this))
+		{
+			summary->addContent(content);
+		}
 	}
-#endif	  // BUILD_CXX_LANGUAGE_PACKAGE
 
 	setPreferredSize(QSize(750, 500));
 	setContent(summary);
 	setScrollAble(true);
 }
 
-QtPreferencesWindow::~QtPreferencesWindow() {}
+QtPreferencesWindow::~QtPreferencesWindow() = default;
 
 void QtPreferencesWindow::windowReady()
 {
 	QtProjectWizardWindow::windowReady();
 
-	updateTitle(QStringLiteral("PREFERENCES"));
-	updateNextButton(QStringLiteral("Save"));
+	updateTitle(tr("PREFERENCES"));
+	updateNextButton(tr("Save"));
 	setPreviousVisible(false);
 
 	loadContent();
@@ -75,13 +72,11 @@ void QtPreferencesWindow::handleNext()
 
 	if (needsRestart)
 	{
-		app->getDialogView(DialogView::UseCase::PROJECT_SETUP)
-			->confirm(
-				L"<p>Please restart the application for all changes to take effect.</p><p>Note: "
-				L"These changes may harm "
-				L"the execution of the application. In case the application is not useable "
-				L"anymore, please run the "
-				L"'resetPreferences.sh' script located in your install directory.</p>");
+		app->getDialogView(DialogView::UseCase::PROJECT_SETUP)->confirm(
+			tr("<p>Please <b>restart</b> the application for all changes to take effect.</p>"
+			"<p>Note: ""These changes may harm ""the execution of the application. "
+			"In case the application is not useable ""anymore, please run the "
+			"<b>resetPreferences.sh</b> script located in your install directory.</p>").toStdString());
 	}
 
 
@@ -98,7 +93,7 @@ void QtPreferencesWindow::handleNext()
 		MessagePluginPortChange().dispatch();
 	}
 
-	app->loadSettings();
+	Application::loadSettings();
 
 	if (appSettingsChanged)
 	{

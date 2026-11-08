@@ -1,6 +1,5 @@
 #include "QtProjectWizardContentPathCxxPch.h"
-
-#include <QMessageBox>
+#include "QtMessageBox.h"
 
 #include "IndexerCommandCxx.h"
 #include "SourceGroupSettingsCxxCdb.h"
@@ -39,12 +38,12 @@ void QtProjectWizardContentPathCxxPch::populate(QGridLayout* layout, int& row)
 
 void QtProjectWizardContentPathCxxPch::load()
 {
-	m_picker->setText(QString::fromStdWString(m_settingsCxxPch->getPchInputFilePath().wstr()));
+	m_picker->setText(QString::fromStdString(m_settingsCxxPch->getPchInputFilePath().str()));
 }
 
 void QtProjectWizardContentPathCxxPch::save()
 {
-	m_settingsCxxPch->setPchInputFilePathFilePath(FilePath(m_picker->getText().toStdWString()));
+	m_settingsCxxPch->setPchInputFilePathFilePath(FilePath(m_picker->getText().toStdString()));
 }
 
 bool QtProjectWizardContentPathCxxPch::check()
@@ -52,14 +51,15 @@ bool QtProjectWizardContentPathCxxPch::check()
 	if (std::shared_ptr<SourceGroupSettingsCxxCdb> cdbSettings =
 			std::dynamic_pointer_cast<SourceGroupSettingsCxxCdb>(m_settings))
 	{
+		std::string error;
 		const FilePath cdbPath = cdbSettings->getCompilationDatabasePathExpandedAndAbsolute();
-		std::shared_ptr<clang::tooling::JSONCompilationDatabase> cdb = utility::loadCDB(cdbPath);
+		std::shared_ptr<clang::tooling::CompilationDatabase> cdb = utility::loadCDB(cdbPath, &error);
 		if (!cdb)
 		{
-			QMessageBox msgBox(m_window);
-			msgBox.setText(
-				QStringLiteral("Unable to open and read the provided compilation database file."));
-			msgBox.exec();
+			QtMessageBox msgBox(m_window);
+			msgBox.setText(tr("Unable to open and read the provided compilation database file."));
+			msgBox.setInformativeText(QString::fromStdString(error));
+			msgBox.execModal();
 			return false;
 		}
 
@@ -67,43 +67,29 @@ bool QtProjectWizardContentPathCxxPch::check()
 		{
 			if (m_settingsCxxPch->getPchInputFilePath().empty())
 			{
-				QMessageBox msgBox(m_window);
+				QtMessageBox msgBox(m_window);
 				msgBox.setText(
 					"The provided compilation database file uses precompiled headers. If you want "
 					"to make use of "
 					"precompiled headers to speed up your indexer, please specify an input at "
 					"Precompiled Header File.");
-				QPushButton* cancelButton = msgBox.addButton(
-					QStringLiteral("Cancel"), QMessageBox::ButtonRole::RejectRole);
-				QPushButton* continueButton = msgBox.addButton(
-					QStringLiteral("Continue"), QMessageBox::ButtonRole::AcceptRole);
-				msgBox.exec();
-				if (msgBox.clickedButton() == cancelButton)
-				{
-					return false;
-				}
-				return true;
+				QPushButton* cancelButton = msgBox.addButton(QStringLiteral("Cancel"), QtMessageBox::ButtonRole::RejectRole);
+				msgBox.addButton(QStringLiteral("Continue"), QtMessageBox::ButtonRole::AcceptRole);
+				return msgBox.execModal() != cancelButton;
 			}
 		}
 		else
 		{
 			if (!m_settingsCxxPch->getPchInputFilePath().empty())
 			{
-				QMessageBox msgBox(m_window);
+				QtMessageBox msgBox(m_window);
 				msgBox.setText(
 					"The provided compilation database file does not use precompiled headers. The "
 					"specified input file at "
 					"Precompiled Header File will not be used.");
-				QPushButton* cancelButton = msgBox.addButton(
-					QStringLiteral("Cancel"), QMessageBox::ButtonRole::RejectRole);
-				QPushButton* continueButton = msgBox.addButton(
-					QStringLiteral("Continue"), QMessageBox::ButtonRole::AcceptRole);
-				msgBox.exec();
-				if (msgBox.clickedButton() == cancelButton)
-				{
-					return false;
-				}
-				return true;
+				QPushButton* cancelButton = msgBox.addButton(QStringLiteral("Cancel"), QtMessageBox::ButtonRole::RejectRole);
+				msgBox.addButton(QStringLiteral("Continue"), QtMessageBox::ButtonRole::AcceptRole);
+				return msgBox.execModal() != cancelButton;
 			}
 		}
 	}

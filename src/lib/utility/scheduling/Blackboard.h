@@ -11,7 +11,7 @@
 
 struct BlackboardItemBase
 {
-	virtual ~BlackboardItemBase() {}
+	virtual ~BlackboardItemBase() = default;
 };
 
 template <typename T>
@@ -19,7 +19,7 @@ struct BlackboardItem: public BlackboardItemBase
 {
 	BlackboardItem(const T& v): value(v) {}
 
-	virtual ~BlackboardItem() {}
+	~BlackboardItem() override = default;
 
 	T value;
 };

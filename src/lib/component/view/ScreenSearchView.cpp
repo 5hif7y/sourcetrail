@@ -2,7 +2,7 @@
 
 ScreenSearchView::ScreenSearchView(ViewLayout* viewLayout): View(viewLayout) {}
 
-ScreenSearchView::~ScreenSearchView() {}
+ScreenSearchView::~ScreenSearchView() = default;
 
 std::string ScreenSearchView::getName() const
 {

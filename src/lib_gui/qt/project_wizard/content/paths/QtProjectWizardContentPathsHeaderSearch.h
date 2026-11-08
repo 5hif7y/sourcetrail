@@ -17,9 +17,9 @@ public:
 		bool indicateAsAdditional = false);
 
 	// QtProjectWizardContent implementation
-	virtual void populate(QGridLayout* layout, int& row) override;
-	virtual void load() override;
-	virtual void save() override;
+	void populate(QGridLayout* layout, int& row) override;
+	void load() override;
+	void save() override;
 
 private slots:
 	void detectIncludesButtonClicked();

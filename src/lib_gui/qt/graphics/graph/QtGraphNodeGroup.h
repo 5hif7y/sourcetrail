@@ -14,23 +14,23 @@ public:
 	QtGraphNodeGroup(
 		GraphFocusHandler* focusHandler,
 		Id tokenId,
-		const std::wstring& name,
+		const std::string& name,
 		GroupType type,
 		bool interactive);
-	virtual ~QtGraphNodeGroup();
+	~QtGraphNodeGroup() override;
 
 	// QtGraphNode implementation
-	virtual bool isGroupNode() const;
-	virtual Id getTokenId() const;
+	bool isGroupNode() const override;
+	Id getTokenId() const override;
 
-	virtual void onClick();
-	virtual void updateStyle();
+	void onClick() override;
+	void updateStyle() override;
 
-	virtual QPainterPath shape() const;
+	QPainterPath shape() const override;
 
 protected:
-	virtual void hoverLeaveEvent(QGraphicsSceneHoverEvent* event);
-	virtual void hoverMoveEvent(QGraphicsSceneHoverEvent* event);
+	void hoverLeaveEvent(QGraphicsSceneHoverEvent* event) override;
+	void hoverMoveEvent(QGraphicsSceneHoverEvent* event) override;
 
 private:
 	Id m_tokenId;

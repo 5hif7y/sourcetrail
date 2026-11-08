@@ -2,6 +2,7 @@
 
 #include <QFileDialog>
 #include <QListView>
+#include <QRegularExpression>
 #include <QTreeView>
 
 #include "ApplicationSettings.h"
@@ -9,14 +10,14 @@
 #include "QtFilesAndDirectoriesDialog.h"
 #include "utilityApp.h"
 
+using namespace std;
+
 QStringList QtFileDialog::getFileNamesAndDirectories(QWidget* parent, const FilePath& path)
 {
 	const QString dir = getDir(
-		QString::fromStdWString((path.isDirectory() ? path : path.getParentDirectory()).wstr()));
+		QString::fromStdString((path.isDirectory() ? path : path.getParentDirectory()).str()));
 
-	QFileDialog* dialog =
-		(utility::getOsType() == OS_MAC ? new QFileDialog(parent)
-										: new QtFilesAndDirectoriesDialog(parent));
+	unique_ptr<QFileDialog> dialog = (utility::Platform::isMac() ? make_unique<QFileDialog>(parent) : make_unique<QtFilesAndDirectoriesDialog>(parent));
 
 	if (!dir.isEmpty())
 	{
@@ -41,7 +42,6 @@ QStringList QtFileDialog::getFileNamesAndDirectories(QWidget* parent, const File
 	}
 
 	saveFilePickerLocation(FilePath(dialog->directory().path().toStdString()));
-	delete dialog;
 
 	return list;
 }
@@ -49,7 +49,7 @@ QStringList QtFileDialog::getFileNamesAndDirectories(QWidget* parent, const File
 QString QtFileDialog::getExistingDirectory(QWidget* parent, const QString& caption, const FilePath& dir)
 {
 	const QString dirPath = QFileDialog::getExistingDirectory(
-		parent, caption, getDir(QString::fromStdWString(dir.wstr())));
+		parent, caption, getDir(QString::fromStdString(dir.str())));
 	saveFilePickerLocation(FilePath(dirPath.toStdString()));
 	return dirPath;
 }
@@ -58,7 +58,7 @@ QString QtFileDialog::getOpenFileName(
 	QWidget* parent, const QString& caption, const FilePath& dir, const QString& filter)
 {
 	const QString filePath = QFileDialog::getOpenFileName(
-		parent, caption, getDir(QString::fromStdWString(dir.wstr())), filter);
+		parent, caption, getDir(QString::fromStdString(dir.str())), filter);
 	const FilePath dirPath = FilePath(filePath.toStdString()).getParentDirectory();
 	saveFilePickerLocation(dirPath);
 	return filePath;
@@ -67,49 +67,28 @@ QString QtFileDialog::getOpenFileName(
 QString QtFileDialog::showSaveFileDialog(
 	QWidget* parent, const QString& title, const FilePath& directory, const QString& filter)
 {
-#if defined(Q_OS_WIN) || defined(Q_OS_MAC)
+	// Workaround for: "QFileDialog::getSaveFileName() does not append the file extension of the selected filter (QWidget-based, non-native)"
+	// https://bugreports.qt.io/browse/QTBUG-27186
 
-	return QFileDialog::getSaveFileName(
-		parent, title, getDir(QString::fromStdWString(directory.wstr())), filter);
-
-#else
-	QFileDialog dialog(parent, title, getDir(QString::fromStdWString(directory.wstr())), filter);
-
-	if (parent)
-	{
-		dialog.setWindowModality(Qt::WindowModal);
-	}
-
-	QRegExp filter_regex(QStringLiteral("(?:^\\*\\.(?!.*\\()|\\(\\*\\.)(\\w+)"));
-	QStringList filters = filter.split(QStringLiteral(";;"));
-
-	if (!filters.isEmpty())
-	{
-		dialog.setNameFilters(filters);
-	}
-
+	QFileDialog dialog(parent, title, getDir(QString::fromStdString(directory.str())), filter);
+	dialog.setWindowModality(Qt::WindowModal);
 	dialog.setAcceptMode(QFileDialog::AcceptSave);
 
-	if (dialog.exec() == QDialog::Accepted)
-	{
-		QString file_name = dialog.selectedFiles().constFirst();
-		QFileInfo info(file_name);
+	if (dialog.exec() == QDialog::Accepted) {
+		QString selectedFileName = dialog.selectedFiles().constFirst();
+		QFileInfo fileInfo(selectedFileName);
 
-		if (info.suffix().isEmpty() && !dialog.selectedNameFilter().isEmpty())
-		{
-			if (filter_regex.indexIn(dialog.selectedNameFilter()) != -1)
-			{
-				QString extension = filter_regex.cap(1);
-				file_name += QStringLiteral(".") + extension;
+		if (fileInfo.suffix().isEmpty() && !dialog.selectedNameFilter().isEmpty()) {
+			QRegularExpression filterRegEx(QStringLiteral("(?:^\\*\\.(?!.*\\()|\\(\\*\\.)(\\w+)"));
+			QRegularExpressionMatch filterMatch = filterRegEx.match(dialog.selectedNameFilter());
+			if (filterMatch.hasMatch()) {
+				QString extension = filterMatch.captured(1);
+				selectedFileName += QStringLiteral(".") + extension;
 			}
 		}
-		return file_name;
-	}
-	else
-	{
+		return selectedFileName;
+	} else
 		return QString();
-	}
-#endif	  // Q_OS_MAC || Q_OS_WIN
 }
 
 QString QtFileDialog::getDir(QString dir)

@@ -7,8 +7,8 @@ class TestFileRegister: public FileRegister
 {
 public:
 	TestFileRegister();
-	virtual ~TestFileRegister();
-	virtual bool hasFilePath(const FilePath& filePath) const;
+	~TestFileRegister() override;
+	bool hasFilePath(const FilePath& filePath) const override;
 };
 
 #endif	  // TEST_FILE_MANAGER_H

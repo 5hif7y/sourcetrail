@@ -15,6 +15,10 @@ public:
 		: showProgress(showProgress), progressPercent(progressPercent)
 	{
 		setSendAsTask(false);
+		// Dispatched once per indexed file. Logging each one dominated the log
+		// (kafka: 10.796 lines) without adding information the progress dialog
+		// does not already show.
+		setIsLogged(false);
 	}
 
 	const bool showProgress;

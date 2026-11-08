@@ -1,8 +1,7 @@
 #include "QtProjectWizardContentPathsHeaderSearch.h"
+#include "QtMessageBox.h"
 
 #include <cmath>
-
-#include <QMessageBox>
 
 #include "Application.h"
 #include "ApplicationSettings.h"
@@ -20,19 +19,17 @@
 #include "SourceGroupSettingsWithSourcePaths.h"
 #include "utility.h"
 #include "utilityFile.h"
+#include "utilityString.h"
 
 QtProjectWizardContentPathsHeaderSearch::QtProjectWizardContentPathsHeaderSearch(
 	std::shared_ptr<SourceGroupSettings> settings,
 	QtProjectWizardWindow* window,
 	bool indicateAsAdditional)
-	: QtProjectWizardContentPaths(
-		  settings, window, QtPathListBox::SELECTION_POLICY_DIRECTORIES_ONLY, true)
-	, m_showDetectedIncludesResultFunctor(std::bind(
-		  &QtProjectWizardContentPathsHeaderSearch::showDetectedIncludesResult,
-		  this,
-		  std::placeholders::_1))
-	, m_showValidationResultFunctor(std::bind(
-		  &QtProjectWizardContentPathsHeaderSearch::showValidationResult, this, std::placeholders::_1))
+	: QtProjectWizardContentPaths(settings, window, QtPathListBox::SELECTION_POLICY_DIRECTORIES_ONLY, true)
+	, m_showDetectedIncludesResultFunctor([this](const std::set<FilePath> &detectedHeaderSearchPaths)
+		{ showDetectedIncludesResult(detectedHeaderSearchPaths); })
+	, m_showValidationResultFunctor([this](const std::vector<IncludeDirective> &unresolvedIncludes)
+		{ showValidationResult(unresolvedIncludes); })
 	, m_indicateAsAdditional(indicateAsAdditional)
 {
 	setTitleString(m_indicateAsAdditional ? "Additional Include Paths" : "Include Paths");
@@ -136,7 +133,7 @@ void QtProjectWizardContentPathsHeaderSearch::detectIncludesButtonClicked()
 	{
 		m_pathsDialog->setPaths(pathSettings->getSourcePaths(), true);
 	}
-	m_pathsDialog->showWindow();
+	m_pathsDialog->show();
 
 	connect(
 		m_pathsDialog.get(),
@@ -177,9 +174,13 @@ void QtProjectWizardContentPathsHeaderSearch::validateIncludesButtonClicked()
 
 				{
 					dialogView->setParentWindow(m_window);
-					dialogView->showUnknownProgressDialog(L"Processing", L"Gathering Source Files");
-					ScopedFunctor dialogHider(
-						[&dialogView]() { dialogView->hideUnknownProgressDialog(); });
+					dialogView->showUnknownProgressDialog("Processing", "Gathering Source Files");
+					
+					[[maybe_unused]]
+					ScopedFunctor dialogHider([&dialogView]()
+					{
+						dialogView->hideUnknownProgressDialog();
+					});
 
 					FileManager fileManager;
 					fileManager.update(
@@ -203,7 +204,12 @@ void QtProjectWizardContentPathsHeaderSearch::validateIncludesButtonClicked()
 				}
 				{
 					dialogView->setParentWindow(m_window);
-					ScopedFunctor dialogHider([&dialogView]() { dialogView->hideProgressDialog(); });
+					
+					[[maybe_unused]]
+					ScopedFunctor dialogHider([&dialogView]()
+					{
+						dialogView->hideProgressDialog();
+					});
 
 					unresolvedIncludes = IncludeProcessing::getUnresolvedIncludeDirectives(
 						sourceFilePaths,
@@ -212,8 +218,8 @@ void QtProjectWizardContentPathsHeaderSearch::validateIncludesButtonClicked()
 						static_cast<size_t>(log2(sourceFilePaths.size())),
 						[&](const float progress) {
 							dialogView->showProgressDialog(
-								L"Processing",
-								std::to_wstring(int(progress * sourceFilePaths.size())) + L" Files",
+								"Processing",
+								std::to_string(int(progress * sourceFilePaths.size())) + " Files",
 								int(progress * 100.0f));
 						});
 				}
@@ -231,7 +237,7 @@ void QtProjectWizardContentPathsHeaderSearch::finishedSelectDetectIncludesRootPa
 		m_pathsDialog->getPaths());
 	closedPathsDialog();
 
-	std::thread([=]() {
+	std::thread([=, this]() {
 		std::shared_ptr<SourceGroupSettingsWithSourceExtensions> extensionSettings =
 			std::dynamic_pointer_cast<SourceGroupSettingsWithSourceExtensions>(m_settings);
 		std::shared_ptr<SourceGroupSettingsWithSourcePaths> pathSettings =
@@ -251,9 +257,12 @@ void QtProjectWizardContentPathsHeaderSearch::finishedSelectDetectIncludesRootPa
 				std::vector<FilePath> headerSearchPaths;
 				{
 					dialogView->setParentWindow(m_window);
-					dialogView->showUnknownProgressDialog(L"Processing", L"Gathering Source Files");
-					ScopedFunctor dialogHider(
-						[&dialogView]() { dialogView->hideUnknownProgressDialog(); });
+					dialogView->showUnknownProgressDialog("Processing", "Gathering Source Files");
+					[[maybe_unused]]
+					ScopedFunctor dialogHider([&dialogView]()
+					{
+						dialogView->hideUnknownProgressDialog();
+					});
 
 					FileManager fileManager;
 					fileManager.update(
@@ -275,7 +284,12 @@ void QtProjectWizardContentPathsHeaderSearch::finishedSelectDetectIncludesRootPa
 				}
 				{
 					dialogView->setParentWindow(m_window);
-					ScopedFunctor dialogHider([&dialogView]() { dialogView->hideProgressDialog(); });
+					
+					[[maybe_unused]]
+					ScopedFunctor dialogHider([&dialogView]()
+					{
+						dialogView->hideProgressDialog();
+					});
 
 					detectedHeaderSearchPaths = IncludeProcessing::getHeaderSearchDirectories(
 						sourceFilePaths,
@@ -284,8 +298,8 @@ void QtProjectWizardContentPathsHeaderSearch::finishedSelectDetectIncludesRootPa
 						static_cast<size_t>(log2(sourceFilePaths.size())),
 						[&](const float progress) {
 							dialogView->showProgressDialog(
-								L"Processing",
-								std::to_wstring(int(progress * sourceFilePaths.size())) + L" Files",
+								"Processing",
+								std::to_string(int(progress * sourceFilePaths.size())) + " Files",
 								int(progress * 100.0f));
 						});
 				}
@@ -298,14 +312,14 @@ void QtProjectWizardContentPathsHeaderSearch::finishedSelectDetectIncludesRootPa
 
 void QtProjectWizardContentPathsHeaderSearch::finishedAcceptDetectedIncludePathsDialog()
 {
-	const std::vector<std::wstring> detectedPaths = utility::split<std::vector<std::wstring>>(
-		m_filesDialog->getText(), L"\n");
+	const std::vector<std::string> detectedPaths = utility::split<std::vector<std::string>>(
+		m_filesDialog->getText(), "\n");
 	closedFilesDialog();
 
 	std::vector<FilePath> headerSearchPaths = m_list->getPathsAsDisplayed();
 
 	headerSearchPaths.reserve(headerSearchPaths.size() + detectedPaths.size());
-	for (const std::wstring& detectedPath: detectedPaths)
+	for (const std::string& detectedPath: detectedPaths)
 	{
 		if (!detectedPath.empty())
 		{
@@ -345,18 +359,18 @@ void QtProjectWizardContentPathsHeaderSearch::showDetectedIncludesResult(
 
 	if (additionalHeaderSearchPaths.empty())
 	{
-		QMessageBox msgBox(m_window);
+		QtMessageBox msgBox(m_window);
 		msgBox.setText(
 			"<p>No additional include paths have been detected while searching the provided "
 			"paths.</p>");
-		msgBox.exec();
+		msgBox.execModal();
 	}
 	else
 	{
-		std::wstring detailedText = L"";
+		std::string detailedText;
 		for (const FilePath& path: additionalHeaderSearchPaths)
 		{
-			detailedText += path.wstr() + L"\n";
+			detailedText += path.str() + "\n";
 		}
 
 		m_filesDialog = new QtTextEditDialog(
@@ -373,7 +387,7 @@ void QtProjectWizardContentPathsHeaderSearch::showDetectedIncludesResult(
 		m_filesDialog->updateNextButton(QStringLiteral("Add"));
 
 		m_filesDialog->setText(detailedText);
-		m_filesDialog->showWindow();
+		m_filesDialog->show();
 
 		connect(
 			m_filesDialog,
@@ -393,31 +407,31 @@ void QtProjectWizardContentPathsHeaderSearch::showValidationResult(
 {
 	if (unresolvedIncludes.empty())
 	{
-		QMessageBox msgBox(m_window);
+		QtMessageBox msgBox(m_window);
 		msgBox.setText(QStringLiteral(
 			"<p>All include directives throughout the indexed files have been resolved.</p>"));
-		msgBox.exec();
+		msgBox.execModal();
 	}
 	else
 	{
-		std::map<std::wstring, std::map<size_t, std::wstring>> orderedIncludes;
+		std::map<std::string, std::map<size_t, std::string>> orderedIncludes;
 		for (const IncludeDirective& unresolvedInclude: unresolvedIncludes)
 		{
-			orderedIncludes[unresolvedInclude.getIncludingFile().wstr()].emplace(
+			orderedIncludes[unresolvedInclude.getIncludingFile().str()].emplace(
 				unresolvedInclude.getLineNumber(), unresolvedInclude.getDirective());
 		}
 
-		std::wstring detailedText = L"";
+		std::string detailedText;
 		for (const auto& p: orderedIncludes)
 		{
-			detailedText += p.first + L"\n";
+			detailedText += p.first + "\n";
 
 			for (const auto& p2: p.second)
 			{
-				detailedText += std::to_wstring(p2.first) + L":\t" + p2.second + L"\n";
+				detailedText += std::to_string(p2.first) + ":\t" + p2.second + "\n";
 			}
 
-			detailedText += L"\n";
+			detailedText += "\n";
 		}
 
 		m_filesDialog = new QtTextEditDialog(
@@ -438,7 +452,7 @@ void QtProjectWizardContentPathsHeaderSearch::showValidationResult(
 		m_filesDialog->setReadOnly(true);
 
 		m_filesDialog->setText(detailedText);
-		m_filesDialog->showWindow();
+		m_filesDialog->show();
 
 		connect(
 			m_filesDialog,

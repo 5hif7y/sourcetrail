@@ -3,12 +3,12 @@
 #include "TaskManager.h"
 #include "TaskScheduler.h"
 
-void Task::dispatch(Id schedulerId, std::shared_ptr<Task> task)
+void Task::dispatch(TabId schedulerId, std::shared_ptr<Task> task)
 {
 	TaskManager::getScheduler(schedulerId)->pushTask(task);
 }
 
-void Task::dispatchNext(Id schedulerId, std::shared_ptr<Task> task)
+void Task::dispatchNext(TabId schedulerId, std::shared_ptr<Task> task)
 {
 	TaskManager::getScheduler(schedulerId)->pushNextTask(task);
 }

@@ -6,7 +6,7 @@
 class GraphViewStyleImpl
 {
 public:
-	virtual ~GraphViewStyleImpl() {}
+	virtual ~GraphViewStyleImpl() = default;
 	virtual float getCharWidth(const std::string& fontName, size_t fontSize) = 0;
 	virtual float getCharHeight(const std::string& fontName, size_t fontSize) = 0;
 	virtual float getGraphViewZoomDifferenceForPlatform() = 0;

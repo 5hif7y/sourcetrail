@@ -16,7 +16,7 @@ class SourceGroupSettingsJavaMaven
 {
 public:
 	SourceGroupSettingsJavaMaven(const std::string& id, const ProjectSettings* projectSettings)
-		: SourceGroupSettingsWithComponents(SOURCE_GROUP_JAVA_MAVEN, id, projectSettings)
+		: SourceGroupSettingsWithComponents(SourceGroupType::JAVA_MAVEN, id, projectSettings)
 	{
 	}
 

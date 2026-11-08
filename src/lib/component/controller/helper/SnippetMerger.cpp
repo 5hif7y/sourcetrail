@@ -57,7 +57,7 @@ std::deque<SnippetMerger::Range> SnippetMerger::merge(std::vector<SnippetMerger:
 }
 
 SnippetMerger::Range SnippetMerger::getExpandedRegardingAtomicRanges(
-	Range range, const int snippetExpandRange, const std::vector<Range>& atomicRanges) const
+	Range range, const int snippetExpandRange, const std::vector<Range>& atomicRanges) 
 {
 	const int rangeStartThreshold = range.start.row - snippetExpandRange;
 	const int rangeEndThreshold = range.end.row + snippetExpandRange;

@@ -2,15 +2,15 @@
 
 #include "TaskScheduler.h"
 
-std::map<Id, std::shared_ptr<TaskScheduler>> TaskManager::s_schedulers;
+std::map<TabId, std::shared_ptr<TaskScheduler>> TaskManager::s_schedulers;
 std::mutex TaskManager::s_schedulersMutex;
 
-std::shared_ptr<TaskScheduler> TaskManager::createScheduler(Id schedulerId)
+std::shared_ptr<TaskScheduler> TaskManager::createScheduler(TabId schedulerId)
 {
 	return getScheduler(schedulerId);
 }
 
-void TaskManager::destroyScheduler(Id schedulerId)
+void TaskManager::destroyScheduler(TabId schedulerId)
 {
 	std::lock_guard<std::mutex> lock(s_schedulersMutex);
 
@@ -21,7 +21,7 @@ void TaskManager::destroyScheduler(Id schedulerId)
 	}
 }
 
-std::shared_ptr<TaskScheduler> TaskManager::getScheduler(Id schedulerId)
+std::shared_ptr<TaskScheduler> TaskManager::getScheduler(TabId schedulerId)
 {
 	std::lock_guard<std::mutex> lock(s_schedulersMutex);
 

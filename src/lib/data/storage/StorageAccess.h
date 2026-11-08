@@ -51,9 +51,9 @@ public:
 	virtual StorageEdge getEdgeById(Id edgeId) const = 0;
 
 	virtual std::shared_ptr<SourceLocationCollection> getFullTextSearchLocations(
-		const std::wstring& searchTerm, bool caseSensitive) const = 0;
+		const std::string& searchTerm, bool caseSensitive) const = 0;
 	virtual std::vector<SearchMatch> getAutocompletionMatches(
-		const std::wstring& query, NodeTypeSet acceptedNodeTypes, bool acceptCommands) const = 0;
+		const std::string& query, NodeTypeSet acceptedNodeTypes, bool acceptCommands) const = 0;
 	virtual std::vector<SearchMatch> getSearchMatchesForTokenIds(
 		const std::vector<Id>& tokenIds) const = 0;
 
@@ -110,16 +110,16 @@ public:
 		const std::vector<ErrorInfo>& errors) const = 0;
 
 	// todo: remove bookmark related methods from storage access
-	virtual Id addNodeBookmark(const NodeBookmark& bookmark) = 0;
-	virtual Id addEdgeBookmark(const EdgeBookmark& bookmark) = 0;
-	virtual Id addBookmarkCategory(const std::wstring& categoryName) = 0;
+	virtual void addNodeBookmark(const NodeBookmark& bookmark) = 0;
+	virtual void addEdgeBookmark(const EdgeBookmark& bookmark) = 0;
+	virtual Id addBookmarkCategory(const std::string& categoryName) = 0;
 
 	virtual void updateBookmark(
-		const Id bookmarkId,
-		const std::wstring& name,
-		const std::wstring& comment,
-		const std::wstring& categoryName) = 0;
-	virtual void removeBookmark(const Id id) = 0;
+		const BookmarkId bookmarkId,
+		const std::string& name,
+		const std::string& comment,
+		const std::string& categoryName) = 0;
+	virtual void removeBookmark(const BookmarkId bookmarkId) = 0;
 	virtual void removeBookmarkCategory(const Id id) = 0;
 
 	virtual std::vector<NodeBookmark> getAllNodeBookmarks() const = 0;
@@ -131,8 +131,8 @@ public:
 	virtual TooltipInfo getTooltipInfoForSourceLocationIdsAndLocalSymbolIds(
 		const std::vector<Id>& locationIds, const std::vector<Id>& localSymbolIds) const = 0;
 
-	virtual void setUseErrorCache(bool enabled) {}
-	virtual void addErrorsToCache(const std::vector<ErrorInfo>& newErrors, const ErrorCountInfo& errorCount)
+	virtual void setUseErrorCache(bool  /*enabled*/) {}
+	virtual void addErrorsToCache(const std::vector<ErrorInfo>&  /*newErrors*/, const ErrorCountInfo&  /*errorCount*/)
 	{
 	}
 };

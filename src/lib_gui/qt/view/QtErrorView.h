@@ -26,7 +26,7 @@ class QtErrorView
 
 public:
 	QtErrorView(ViewLayout* viewLayout);
-	~QtErrorView() = default;
+	~QtErrorView() override = default;
 
 	// View implementation
 	void createWidgetWrapper() override;

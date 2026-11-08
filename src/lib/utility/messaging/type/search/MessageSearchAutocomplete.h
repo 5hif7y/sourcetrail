@@ -4,15 +4,15 @@
 #include "Message.h"
 #include "Node.h"
 #include "NodeTypeSet.h"
-#include "TabId.h"
+#include "TabIds.h"
 
 class MessageSearchAutocomplete: public Message<MessageSearchAutocomplete>
 {
 public:
-	MessageSearchAutocomplete(const std::wstring& query, NodeTypeSet acceptedNodeTypes)
+	MessageSearchAutocomplete(const std::string& query, NodeTypeSet acceptedNodeTypes)
 		: query(query), acceptedNodeTypes(acceptedNodeTypes)
 	{
-		setSchedulerId(TabId::currentTab());
+		setSchedulerId(TabIds::currentTab());
 	}
 
 	static const std::string getStaticType()
@@ -20,22 +20,22 @@ public:
 		return "MessageSearchAutocomplete";
 	}
 
-	virtual void print(std::wostream& os) const
+	void print(std::ostream& os) const override
 	{
-		os << query << L"[";
+		os << query << "[";
 		std::vector<Id> nodeTypeIds = acceptedNodeTypes.getNodeTypeIds();
 		for (size_t i = 0; i < nodeTypeIds.size(); i++)
 		{
 			if (i != 0)
 			{
-				os << L", ";
+				os << ", ";
 			}
-			os << std::to_wstring(nodeTypeIds[i]);
+			os << to_string(nodeTypeIds[i]);
 		}
-		os << L"]";
+		os << "]";
 	}
 
-	const std::wstring query;
+	const std::string query;
 	const NodeTypeSet acceptedNodeTypes;
 };
 

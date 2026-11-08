@@ -7,10 +7,10 @@
 #include "RefreshInfo.h"
 #include "SourceGroupSettingsCEmpty.h"
 #include "SourceGroupSettingsCppEmpty.h"
-#include "SourceGroupSettingsWithCStandard.h"
 #include "SourceGroupSettingsWithCppStandard.h"
 #include "SourceGroupSettingsWithCxxPathsAndFlags.h"
 #include "TaskLambda.h"
+#include "ToolChain.h"
 #include "logging.h"
 #include "utility.h"
 #include "utilitySourceGroupCxx.h"
@@ -85,7 +85,7 @@ std::shared_ptr<IndexerCommandProvider> SourceGroupCxxEmpty::getIndexerCommandPr
 		excludeFilters = utility::toSet(settings->getExcludeFiltersExpandedAndAbsolute());
 	}
 
-	std::vector<std::wstring> compilerFlags = getBaseCompilerFlags();
+	std::vector<std::string> compilerFlags = getBaseCompilerFlags();
 	utility::append(
 		compilerFlags,
 		dynamic_cast<const SourceGroupSettingsWithCxxPathsAndFlags*>(m_settings.get())
@@ -107,7 +107,7 @@ std::shared_ptr<IndexerCommandProvider> SourceGroupCxxEmpty::getIndexerCommandPr
 				excludeFilters,
 				std::set<FilePathFilter>(),
 				m_settings->getProjectDirectoryPath(),
-				utility::concat(compilerFlags, sourcePath.wstr())));
+				utility::concat(compilerFlags, sourcePath.str())));
 		}
 	}
 
@@ -130,7 +130,7 @@ std::shared_ptr<Task> SourceGroupCxxEmpty::getPreIndexTask(
 		return std::make_shared<TaskLambda>([]() {});
 	}
 
-	std::vector<std::wstring> compilerFlags = getBaseCompilerFlags();
+	std::vector<std::string> compilerFlags = getBaseCompilerFlags();
 
 	if (std::shared_ptr<SourceGroupSettingsWithCxxPchOptions> pchSettings =
 			std::dynamic_pointer_cast<SourceGroupSettingsWithCxxPchOptions>(m_settings))
@@ -163,25 +163,22 @@ std::shared_ptr<const SourceGroupSettings> SourceGroupCxxEmpty::getSourceGroupSe
 	return m_settings;
 }
 
-std::vector<std::wstring> SourceGroupCxxEmpty::getBaseCompilerFlags() const
+std::vector<std::string> SourceGroupCxxEmpty::getBaseCompilerFlags() const
 {
-	std::vector<std::wstring> compilerFlags;
+	std::vector<std::string> compilerFlags;
 
 	std::shared_ptr<ApplicationSettings> appSettings = ApplicationSettings::getInstance();
 	std::set<FilePath> indexedPaths;
-	std::wstring targetFlag;
-	std::wstring languageStandard = SourceGroupSettingsWithCppStandard::getDefaultCppStandardStatic();
+	std::string targetFlag;
+	std::string languageStandard;
 
-	if (std::shared_ptr<SourceGroupSettingsCEmpty> settings =
-			std::dynamic_pointer_cast<SourceGroupSettingsCEmpty>(m_settings))
+	if (auto settings = std::dynamic_pointer_cast<SourceGroupSettingsCEmpty>(m_settings))
 	{
 		indexedPaths = utility::toSet(settings->getSourcePathsExpandedAndAbsolute());
 		targetFlag = settings->getTargetFlag();
 		languageStandard = settings->getCStandard();
 	}
-	else if (
-		std::shared_ptr<SourceGroupSettingsCppEmpty> settings =
-			std::dynamic_pointer_cast<SourceGroupSettingsCppEmpty>(m_settings))
+	else if (auto settings = std::dynamic_pointer_cast<SourceGroupSettingsCppEmpty>(m_settings))
 	{
 		indexedPaths = utility::toSet(settings->getSourcePathsExpandedAndAbsolute());
 		targetFlag = settings->getTargetFlag();
@@ -189,9 +186,8 @@ std::vector<std::wstring> SourceGroupCxxEmpty::getBaseCompilerFlags() const
 	}
 	else
 	{
-		LOG_ERROR(
-			L"Source group doesn't specify language standard. Falling back to \"" +
-			languageStandard + L"\".");
+		languageStandard = SourceGroupSettingsWithCppStandard::getDefaultCppStandard();
+		LOG_ERROR("Source group doesn't specify language standard. Falling back to \"" + languageStandard + "\".");
 	}
 
 	if (!targetFlag.empty())
@@ -203,21 +199,20 @@ std::vector<std::wstring> SourceGroupCxxEmpty::getBaseCompilerFlags() const
 
 	if (std::dynamic_pointer_cast<SourceGroupSettingsCEmpty>(m_settings))
 	{
-		compilerFlags.push_back(L"-x");
-		compilerFlags.push_back(L"c");
+		compilerFlags.push_back(ClangCompiler::languageOption());
+		compilerFlags.push_back(ClangCompiler::C_LANGUAGE);
 	}
 	else if (std::dynamic_pointer_cast<SourceGroupSettingsCppEmpty>(m_settings))
 	{
-		compilerFlags.push_back(L"-x");
-		compilerFlags.push_back(L"c++");
+		compilerFlags.push_back(ClangCompiler::languageOption());
+		compilerFlags.push_back(ClangCompiler::CPP_LANGUAGE);
 	}
 
-	const SourceGroupSettingsWithCxxPathsAndFlags* settingsCxx =
-		dynamic_cast<const SourceGroupSettingsWithCxxPathsAndFlags*>(m_settings.get());
+	auto settingsCxx = std::dynamic_pointer_cast<const SourceGroupSettingsWithCxxPathsAndFlags>(m_settings);
 
 	if (!settingsCxx)
 	{
-		LOG_ERROR(L"Source group doesn't specify cxx headers and flags.");
+		LOG_ERROR("Source group doesn't specify cxx headers and flags.");
 		return compilerFlags;
 	}
 

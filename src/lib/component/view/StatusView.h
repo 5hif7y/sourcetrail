@@ -10,9 +10,9 @@ class StatusView: public View
 {
 public:
 	StatusView(ViewLayout* viewLayout);
-	virtual ~StatusView();
+	~StatusView() override;
 
-	virtual std::string getName() const;
+	std::string getName() const override;
 
 	virtual void addStatus(const std::vector<Status>& status) = 0;
 	virtual void clear() = 0;

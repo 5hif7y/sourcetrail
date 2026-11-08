@@ -16,7 +16,7 @@ class QtListBoxItem: public QWidget
 
 public:
 	QtListBoxItem(QListWidgetItem* item, QWidget* parent = nullptr);
-	virtual ~QtListBoxItem() = default;
+	~QtListBoxItem() override = default;
 
 	virtual QString getText() const;
 	void setText(const QString& text);
@@ -39,7 +39,7 @@ private:
 
 	QListWidgetItem* m_item;
 	QtLineEdit* m_data;
-	bool m_readOnly;
+	bool m_readOnly = false;
 };
 
 #endif	  // QT_LIST_BOX_ITEM_H

@@ -27,7 +27,7 @@ QtFlowLayout::~QtFlowLayout()
 
 void QtFlowLayout::addItem(QLayoutItem* item)
 {
-	itemList.append(item);
+	m_itemList.append(item);
 }
 
 int QtFlowLayout::horizontalSpacing() const
@@ -56,22 +56,22 @@ int QtFlowLayout::verticalSpacing() const
 
 int QtFlowLayout::count() const
 {
-	return itemList.size();
+	return m_itemList.size();
 }
 
 QLayoutItem* QtFlowLayout::itemAt(int index) const
 {
-	return itemList.value(index);
+	return m_itemList.value(index);
 }
 
 QLayoutItem* QtFlowLayout::takeAt(int index)
 {
-	if (index >= 0 && index < itemList.size())
+	if (index >= 0 && index < m_itemList.size())
 	{
-		return itemList.takeAt(index);
+		return m_itemList.takeAt(index);
 	}
 
-	return 0;
+	return nullptr;
 }
 
 Qt::Orientations QtFlowLayout::expandingDirections() const
@@ -104,8 +104,7 @@ QSize QtFlowLayout::sizeHint() const
 QSize QtFlowLayout::minimumSize() const
 {
 	QSize size;
-	QLayoutItem* item;
-	foreach (item, itemList)
+	for (QLayoutItem *item : m_itemList)
 	{
 		size = size.expandedTo(item->minimumSize());
 	}
@@ -127,8 +126,7 @@ int QtFlowLayout::doLayout(QRect rect, bool testOnly) const
 	int y = effectiveRect.y();
 	int lineHeight = 0;
 
-	QLayoutItem* item;
-	foreach (item, itemList)
+	for (QLayoutItem *item : m_itemList)
 	{
 		QWidget* wid = item->widget();
 
@@ -177,7 +175,7 @@ int QtFlowLayout::smartSpacing(QStyle::PixelMetric pm) const
 	else if (parent->isWidgetType())
 	{
 		QWidget* pw = static_cast<QWidget*>(parent);
-		return pw->style()->pixelMetric(pm, 0, pw);
+		return pw->style()->pixelMetric(pm, nullptr, pw);
 	}
 	else
 	{

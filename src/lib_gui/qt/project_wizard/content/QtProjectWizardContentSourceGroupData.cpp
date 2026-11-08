@@ -1,14 +1,14 @@
 #include "QtProjectWizardContentSourceGroupData.h"
+#include "QtMessageBox.h"
 
 #include <QCheckBox>
 #include <QLineEdit>
-#include <QMessageBox>
 
 #include "SourceGroupSettings.h"
 
 QtProjectWizardContentSourceGroupData::QtProjectWizardContentSourceGroupData(
 	std::shared_ptr<SourceGroupSettings> settings, QtProjectWizardWindow* window)
-	: QtProjectWizardContent(window), m_settings(settings), m_name(nullptr), m_status(nullptr)
+	: QtProjectWizardContent(window), m_settings(settings) 
 {
 	setIsRequired(true);
 }
@@ -17,7 +17,7 @@ void QtProjectWizardContentSourceGroupData::populate(QGridLayout* layout, int& r
 {
 	m_name = new QLineEdit();
 	m_name->setObjectName(QStringLiteral("name"));
-	m_name->setAttribute(Qt::WA_MacShowFocusRect, 0);
+	m_name->setAttribute(Qt::WA_MacShowFocusRect, false);
 	connect(m_name, &QLineEdit::textEdited, this, &QtProjectWizardContentSourceGroupData::editedName);
 
 	layout->addWidget(
@@ -54,7 +54,7 @@ void QtProjectWizardContentSourceGroupData::load()
 {
 	m_name->setText(QString::fromStdString(m_settings->getName()));
 
-	m_status->setChecked(m_settings->getStatus() == SOURCE_GROUP_STATUS_ENABLED);
+	m_status->setChecked(m_settings->getStatus() == SourceGroupStatusType::ENABLED);
 }
 
 void QtProjectWizardContentSourceGroupData::save()
@@ -62,16 +62,16 @@ void QtProjectWizardContentSourceGroupData::save()
 	m_settings->setName(m_name->text().toStdString());
 
 	m_settings->setStatus(
-		m_status->isChecked() ? SOURCE_GROUP_STATUS_ENABLED : SOURCE_GROUP_STATUS_DISABLED);
+		m_status->isChecked() ? SourceGroupStatusType::ENABLED : SourceGroupStatusType::DISABLED);
 }
 
 bool QtProjectWizardContentSourceGroupData::check()
 {
 	if (m_name->text().isEmpty())
 	{
-		QMessageBox msgBox(m_window);
+		QtMessageBox msgBox(m_window);
 		msgBox.setText(QStringLiteral("Please enter a source group name."));
-		msgBox.exec();
+		msgBox.execModal();
 		return false;
 	}
 
@@ -88,10 +88,10 @@ void QtProjectWizardContentSourceGroupData::editedName(QString name)
 	emit nameUpdated(name);
 }
 
-void QtProjectWizardContentSourceGroupData::changedStatus(bool checked)
+void QtProjectWizardContentSourceGroupData::changedStatus(bool  /*checked*/)
 {
 	emit statusUpdated(
-		m_status->isChecked() ? SOURCE_GROUP_STATUS_ENABLED : SOURCE_GROUP_STATUS_DISABLED);
+		m_status->isChecked() ? SourceGroupStatusType::ENABLED : SourceGroupStatusType::DISABLED);
 
 	editedName(m_name->text());
 }

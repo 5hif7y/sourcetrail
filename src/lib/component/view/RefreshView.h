@@ -9,9 +9,9 @@ class RefreshView: public View
 {
 public:
 	RefreshView(ViewLayout* viewLayout);
-	virtual ~RefreshView();
+	~RefreshView() override;
 
-	virtual std::string getName() const;
+	std::string getName() const override;
 
 private:
 	RefreshController* getController();

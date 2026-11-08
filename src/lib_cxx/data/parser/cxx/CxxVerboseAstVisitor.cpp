@@ -17,7 +17,7 @@ CxxVerboseAstVisitor::CxxVerboseAstVisitor(
 	std::shared_ptr<ParserClient> client,
 	std::shared_ptr<CanonicalFilePathCache> canonicalFilePathCache,
 	std::shared_ptr<IndexerStateInfo> indexerStateInfo)
-	: base(context, preprocessor, client, canonicalFilePathCache, indexerStateInfo), m_indentation(0)
+	: CxxAstVisitor(context, preprocessor, client, canonicalFilePathCache, indexerStateInfo) 
 {
 }
 
@@ -42,14 +42,16 @@ bool CxxVerboseAstVisitor::TraverseDecl(clang::Decl* d)
 		if (m_currentFilePath != currentFilePath)
 		{
 			m_currentFilePath = currentFilePath;
-			LOG_INFO_BARE(L"Indexer - Traversing \"" + currentFilePath.wstr() + L"\"");
+			LOG_INFO_BARE("Indexer - Traversing \"" + currentFilePath.str() + "\"");
 		}
 
 		LOG_INFO_STREAM_BARE(<< "Indexer - " << stream.str());
 
 		{
+			[[maybe_unused]]
 			ScopedSwitcher<unsigned int> switcher(m_indentation, m_indentation + 1);
-			return base::TraverseDecl(d);
+			
+			return CxxAstVisitor::TraverseDecl(d);
 		}
 	}
 	return true;
@@ -65,8 +67,10 @@ bool CxxVerboseAstVisitor::TraverseStmt(clang::Stmt* stmt)
 			<< loc.startLineNumber << ":" << loc.startColumnNumber << ", " << loc.endLineNumber
 			<< ":" << loc.endColumnNumber << ">");
 		{
+			[[maybe_unused]]
 			ScopedSwitcher<unsigned int> switcher(m_indentation, m_indentation + 1);
-			return base::TraverseStmt(stmt);
+			
+			return CxxAstVisitor::TraverseStmt(stmt);
 		}
 	}
 	return true;
@@ -82,8 +86,10 @@ bool CxxVerboseAstVisitor::TraverseTypeLoc(clang::TypeLoc tl)
 			<< loc.startLineNumber << ":" << loc.startColumnNumber << ", " << loc.endLineNumber
 			<< ":" << loc.endColumnNumber << ">");
 		{
+			[[maybe_unused]]
 			ScopedSwitcher<unsigned int> switcher(m_indentation, m_indentation + 1);
-			return base::TraverseTypeLoc(tl);
+			
+			return CxxAstVisitor::TraverseTypeLoc(tl);
 		}
 	}
 	return true;
@@ -91,7 +97,7 @@ bool CxxVerboseAstVisitor::TraverseTypeLoc(clang::TypeLoc tl)
 
 std::string CxxVerboseAstVisitor::getIndentString() const
 {
-	std::string indentString = "";
+	std::string indentString;
 	for (unsigned int i = 0; i < m_indentation; i++)
 	{
 		indentString += "| ";
@@ -99,7 +105,7 @@ std::string CxxVerboseAstVisitor::getIndentString() const
 	return indentString;
 }
 
-std::string CxxVerboseAstVisitor::obfuscateName(const std::string& name) const
+std::string CxxVerboseAstVisitor::obfuscateName(const std::string& name) 
 {
 	if (name.length() <= 2)
 	{

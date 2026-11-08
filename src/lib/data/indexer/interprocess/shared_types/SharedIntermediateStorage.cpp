@@ -15,7 +15,7 @@ SharedIntermediateStorage::SharedIntermediateStorage(SharedMemory::Allocator* al
 {
 }
 
-SharedIntermediateStorage::~SharedIntermediateStorage() {}
+SharedIntermediateStorage::~SharedIntermediateStorage() = default;
 
 std::vector<StorageFile> SharedIntermediateStorage::getStorageFiles() const
 {
@@ -230,5 +230,5 @@ Id SharedIntermediateStorage::getNextId() const
 
 void SharedIntermediateStorage::setNextId(const Id nextId)
 {
-	m_nextId = static_cast<int>(nextId);
+	m_nextId = nextId;
 }

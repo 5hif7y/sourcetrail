@@ -6,13 +6,14 @@
 
 #include <QPlainTextEdit>
 
+#include "Id.h"
 #include "FilePath.h"
 #include "LocationType.h"
-#include "types.h"
 
 class QtHighlighter;
 class SourceLocation;
 class SourceLocationFile;
+class TextCodec;
 
 class QtCodeField: public QPlainTextEdit
 {
@@ -25,10 +26,10 @@ public:
 		size_t startLineNumber,
 		const std::string& code,
 		std::shared_ptr<SourceLocationFile> locationFile,
-		bool convertLocationsOnDemand = true,
+		bool convertLocationsOnDemand,
 		QWidget* parent = nullptr);
 
-	~QtCodeField();
+	~QtCodeField() override;
 
 	QSize sizeHint() const override;
 
@@ -46,7 +47,7 @@ public:
 
 protected:
 	void paintEvent(QPaintEvent* event) override;
-	void enterEvent(QEvent* event) override;
+	void enterEvent(QEnterEvent* event) override;
 	void leaveEvent(QEvent* event) override;
 
 	void mouseMoveEvent(QMouseEvent* event) override;
@@ -73,7 +74,7 @@ protected:
 		std::set<Id> tokenIds;
 		Id locationId = 0;
 
-		LocationType locationType = LOCATION_TOKEN;
+		LocationType locationType = LocationType::TOKEN;
 
 		bool isActive = false;
 		bool isFocused = false;
@@ -87,6 +88,12 @@ protected:
 		std::string text;
 	};
 
+	struct LineColumn
+	{
+		int line = 0;
+		int column = 0;
+	};
+	
 	bool annotateText(
 		const std::set<Id>& activeSymbolIds,
 		const std::set<Id>& activeLocationIds,
@@ -94,22 +101,21 @@ protected:
 		Id focusedLocationId);
 
 	void createAnnotations(std::shared_ptr<SourceLocationFile> locationFile);
-	void activateAnnotations(
-		const std::vector<const Annotation*>& annotations, bool fromMouse, int mouseOffsetX);
+	void activateAnnotations(const std::vector<const Annotation*>& annotations, bool fromMouse, int mouseOffsetX);
 
 	int toTextEditPosition(int lineNumber, int columnNumber) const;
-	std::pair<int, int> toLineColumn(int textEditPosition) const;
+	LineColumn toLineColumn(int textEditPosition) const;
 
-	int startTextEditPosition() const;
+	static int startTextEditPosition();
 	int endTextEditPosition() const;
 
 	void setHoveredAnnotations(const std::vector<const Annotation*>& annotations);
 	std::vector<QRect> getCursorRectsForAnnotation(const Annotation& annotation) const;
 
-	const AnnotationColor& getAnnotationColorForAnnotation(const Annotation& annotation);
+	static const AnnotationColor& getAnnotationColorForAnnotation(const Annotation& annotation);
 	void setTextColorForAnnotation(const Annotation& annotation, QColor color) const;
 
-	const std::string& getFocusColor();
+	static const std::string& getFocusColor();
 
 	const Annotation* getAnnotationForLocationId(Id locationId) const;
 	std::vector<const Annotation*> getInteractiveAnnotationsForLineNumber(size_t lineNumber) const;
@@ -128,12 +134,17 @@ protected slots:
 	void openInTab();
 
 private:
+	struct ColumnOffset
+	{
+		int column = 0;
+		int offset = 0;
+	};
 	static std::vector<AnnotationColor> s_annotationColors;
 	static std::string s_focusColor;
 
 	void createLineLengthCache();
-	void createMultibyteCharacterLocationCache(const QString& code);
-	int getColumnCorrectedForMultibyteCharacters(int line, int column) const;
+	void createSurrogateCharacterLocationCache(const QString& code);
+	int getColumnCorrectedForSurrogateCharacters(int line, int column) const;
 
 	const size_t m_startLineNumber;
 	const std::string m_code;
@@ -143,9 +154,9 @@ private:
 	std::shared_ptr<QtHighlighter> m_highlighter;
 
 	std::vector<int> m_lineLengths;
-	std::vector<std::vector<std::pair<int, int>>> m_multibyteCharacterLocations;
+	std::vector<std::vector<ColumnOffset>> m_surrogateCharacterLocations;
 
-	int m_endTextEditPosition;
+	int m_endTextEditPosition = 0;
 
 	Id m_openInTabLocationId;
 };

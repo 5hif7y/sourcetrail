@@ -56,7 +56,7 @@ private:
 
 	SharedMemory::Allocator* m_allocator;
 
-	int m_nextId;
+	Id m_nextId;
 };
 
 #endif	  // SHARED_INTERMEDIATE_STORAGE_H

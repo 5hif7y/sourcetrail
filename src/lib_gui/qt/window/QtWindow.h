@@ -28,7 +28,7 @@ public:
 	bool isScrollAble() const;
 
 	void updateTitle(const QString& title);
-	std::wstring getTitle() const;
+	std::string getTitle() const;
 	void updateSubTitle(const QString& subTitle);
 
 	void updateNextButton(const QString& text);
@@ -70,12 +70,12 @@ protected:
 	void addLogo();
 	QHBoxLayout* createButtons();
 
-	QLabel* m_title;
-	QLabel* m_subTitle;
+	QLabel* m_title = nullptr;
+	QLabel* m_subTitle = nullptr;
 
-	QPushButton* m_nextButton;
-	QPushButton* m_previousButton;
-	QPushButton* m_closeButton;
+	QPushButton* m_nextButton = nullptr;
+	QPushButton* m_previousButton = nullptr;
+	QPushButton* m_closeButton = nullptr;
 
 public slots:
 	void handleNextPress(bool);
@@ -83,10 +83,10 @@ public slots:
 	void handleClosePress();
 
 private:
-	bool m_cancelAble;
-	bool m_scrollAble;
+	bool m_cancelAble = true;
+	bool m_scrollAble = false;
 
-	bool m_hasLogo;
+	bool m_hasLogo = false;
 };
 
 #endif	  // QT_WINDOW_H

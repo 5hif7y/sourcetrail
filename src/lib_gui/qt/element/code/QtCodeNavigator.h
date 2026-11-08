@@ -34,7 +34,7 @@ public:
 	};
 
 	QtCodeNavigator(QWidget* parent = nullptr);
-	virtual ~QtCodeNavigator();
+	~QtCodeNavigator() override;
 
 	void addSnippetFile(const CodeFileParams& params);
 	bool addSingleFile(const CodeFileParams& params, bool useSingleFileCache);
@@ -53,8 +53,8 @@ public:
 
 	void setMode(Mode mode);
 
-	Id getSchedulerId() const override;
-	void setSchedulerId(Id schedulerId);
+	TabId getSchedulerId() const override;
+	void setSchedulerId(TabId schedulerId);
 
 	const std::set<Id>& getCurrentActiveTokenIds() const;
 	void setCurrentActiveTokenIds(const std::vector<Id>& currentActiveTokenIds);
@@ -74,7 +74,7 @@ public:
 	const std::set<Id>& getCoFocusedTokenIds() const;
 	void setCoFocusedTokenIds(const std::vector<Id>& coFocusedTokenIds);
 
-	std::wstring getErrorMessageForId(Id errorId) const;
+	std::string getErrorMessageForId(Id errorId) const;
 	void setErrorInfos(const std::vector<ErrorInfo>& errorInfos);
 
 	bool hasErrors() const;
@@ -93,7 +93,7 @@ public:
 
 	void refreshStyle();
 
-	size_t findScreenMatches(const std::wstring& query);
+	size_t findScreenMatches(const std::string& query);
 	void activateScreenMatch(size_t matchIndex);
 	void deactivateScreenMatch(size_t matchIndex);
 	bool hasScreenMatches() const;
@@ -119,11 +119,11 @@ protected:
 private slots:
 	void focusChanged(QWidget* from, QWidget* to);
 
-	void previousReference();
-	void nextReference();
+	static void previousReference();
+	static void nextReference();
 
-	void previousLocalReference();
-	void nextLocalReference();
+	static void previousLocalReference();
+	static void nextLocalReference();
 
 	void setModeList();
 	void setModeSingle();
@@ -137,10 +137,10 @@ private:
 	QtCodeFileList* m_list;
 	QtCodeFileSingle* m_single;
 
-	Mode m_mode;
-	Mode m_oldMode;
+	Mode m_mode = MODE_NONE;
+	Mode m_oldMode = MODE_NONE;
 
-	Id m_schedulerId;
+	TabId m_schedulerId;
 
 	std::set<Id> m_currentActiveTokenIds;
 	std::set<Id> m_currentActiveLocationIds;

@@ -8,7 +8,9 @@
 
 class SourceGroupSettingsCxx;
 
-class SourceGroupCxxEmpty: public SourceGroup
+#include "SourcetrailCxxExport.h"
+
+class SOURCETRAIL_CXX_EXPORT SourceGroupCxxEmpty: public SourceGroup
 {
 public:
 	SourceGroupCxxEmpty(std::shared_ptr<SourceGroupSettings> settings);
@@ -25,7 +27,7 @@ public:
 private:
 	std::shared_ptr<SourceGroupSettings> getSourceGroupSettings() override;
 	std::shared_ptr<const SourceGroupSettings> getSourceGroupSettings() const override;
-	std::vector<std::wstring> getBaseCompilerFlags() const;
+	std::vector<std::string> getBaseCompilerFlags() const;
 
 	std::shared_ptr<SourceGroupSettings> m_settings;
 };

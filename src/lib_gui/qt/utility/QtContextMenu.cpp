@@ -1,15 +1,16 @@
 #include "QtContextMenu.h"
 
+#include "MessageHistoryRedo.h"
+#include "MessageHistoryUndo.h"
+#include "logging.h"
+#include "QtActions.h"
+
 #include <QApplication>
 #include <QClipboard>
 #include <QContextMenuEvent>
 #include <QDesktopServices>
 #include <QDir>
 #include <QUrl>
-
-#include "MessageHistoryRedo.h"
-#include "MessageHistoryUndo.h"
-#include "logging.h"
 
 QtContextMenu* QtContextMenu::s_instance;
 
@@ -61,16 +62,16 @@ void QtContextMenu::addFileActions(const FilePath& filePath)
 
 QtContextMenu* QtContextMenu::getInstance()
 {
-	if (!s_instance)
+	if (s_instance == nullptr)
 	{
 		s_instance = new QtContextMenu();
 
-		s_undoAction = new QAction(tr("Back"), s_instance);
+		s_undoAction = new QAction(QtActions::back().menuText(), s_instance);
 		s_undoAction->setStatusTip(tr("Go back to last active symbol"));
 		s_undoAction->setToolTip(tr("Go back to last active symbol"));
 		connect(s_undoAction, &QAction::triggered, s_instance, &QtContextMenu::undoActionTriggered);
 
-		s_redoAction = new QAction(tr("Forward"), s_instance);
+		s_redoAction = new QAction(QtActions::forward().menuText(), s_instance);
 		s_redoAction->setStatusTip(tr("Go forward to next active symbol"));
 		s_redoAction->setToolTip(tr("Go forward to next active symbol"));
 		connect(s_redoAction, &QAction::triggered, s_instance, &QtContextMenu::redoActionTriggered);
@@ -78,20 +79,12 @@ QtContextMenu* QtContextMenu::getInstance()
 		s_copyFullPathAction = new QAction(tr("Copy Full Path"), s_instance);
 		s_copyFullPathAction->setStatusTip(tr("Copies the path of this file to the clipboard"));
 		s_copyFullPathAction->setToolTip(tr("Copies the path of this file to the clipboard"));
-		connect(
-			s_copyFullPathAction,
-			&QAction::triggered,
-			s_instance,
-			&QtContextMenu::copyFullPathActionTriggered);
+		connect(s_copyFullPathAction, &QAction::triggered, s_instance, &QtContextMenu::copyFullPathActionTriggered);
 
-		s_openContainingFolderAction = new QAction(tr("Open Containing Folder"), s_instance);
+		s_openContainingFolderAction = new QAction(tr("Open Containing Folder..."), s_instance);
 		s_openContainingFolderAction->setStatusTip(tr("Opens the folder that contains this file"));
 		s_openContainingFolderAction->setToolTip(tr("Opens the folder that contains this file"));
-		connect(
-			s_openContainingFolderAction,
-			&QAction::triggered,
-			s_instance,
-			&QtContextMenu::openContainingFolderActionTriggered);
+		connect(s_openContainingFolderAction, &QAction::triggered, s_instance, &QtContextMenu::openContainingFolderActionTriggered);
 	}
 
 	return s_instance;
@@ -120,7 +113,7 @@ void QtContextMenu::redoActionTriggered()
 void QtContextMenu::copyFullPathActionTriggered()
 {
 	QApplication::clipboard()->setText(
-		QDir::toNativeSeparators(QString::fromStdWString(s_filePath.wstr())));
+		QDir::toNativeSeparators(QString::fromStdString(s_filePath.str())));
 }
 
 void QtContextMenu::openContainingFolderActionTriggered()
@@ -129,12 +122,12 @@ void QtContextMenu::openContainingFolderActionTriggered()
 	if (dir.exists())
 	{
 		QDesktopServices::openUrl(
-			QUrl(QString::fromStdWString(L"file:///" + dir.wstr()), QUrl::TolerantMode));
+			QUrl(QString::fromStdString("file:///" + dir.str()), QUrl::TolerantMode));
 	}
 	else
 	{
-		LOG_ERROR(L"Unable to open directory: " + dir.wstr());
+		LOG_ERROR("Unable to open directory: " + dir.str());
 	}
 }
 
-QtContextMenu::QtContextMenu() {}
+QtContextMenu::QtContextMenu() = default;

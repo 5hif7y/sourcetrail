@@ -19,7 +19,7 @@ public:
 		const FilePath& iconPath,
 		const std::string& buttonKey,
 		QWidget* parent = nullptr);
-	~QtSelfRefreshIconButton() = default;
+	~QtSelfRefreshIconButton() override = default;
 
 	void setText(const QString& text);
 	void setIconPath(const FilePath& iconPath);

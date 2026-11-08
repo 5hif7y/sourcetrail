@@ -64,10 +64,10 @@ public class JavaIndexerAstVisitorClient extends AstVisitorClient
 			m_address,
 			symbolName.serialize(),
 			symbolKind.getValue(),
-			range.begin.line,
-			range.begin.column,
-			range.end.line,
-			range.end.column,
+			range.begin.line(),
+			range.begin.column(),
+			range.end.line(),
+			range.end.column(),
 			access.getValue(),
 			definitionKind.getValue());
 	}
@@ -85,14 +85,14 @@ public class JavaIndexerAstVisitorClient extends AstVisitorClient
 			m_address,
 			symbolName.serialize(),
 			symbolKind.getValue(),
-			range.begin.line,
-			range.begin.column,
-			range.end.line,
-			range.end.column,
-			scopeRange.begin.line,
-			scopeRange.begin.column,
-			scopeRange.end.line,
-			scopeRange.end.column,
+			range.begin.line(),
+			range.begin.column(),
+			range.end.line(),
+			range.end.column(),
+			scopeRange.begin.line(),
+			scopeRange.begin.column(),
+			scopeRange.end.line(),
+			scopeRange.end.column(),
 			access.getValue(),
 			definitionKind.getValue());
 	}
@@ -111,18 +111,18 @@ public class JavaIndexerAstVisitorClient extends AstVisitorClient
 			m_address,
 			symbolName.serialize(),
 			symbolKind.getValue(),
-			range.begin.line,
-			range.begin.column,
-			range.end.line,
-			range.end.column,
-			scopeRange.begin.line,
-			scopeRange.begin.column,
-			scopeRange.end.line,
-			scopeRange.end.column,
-			signatureRange.begin.line,
-			signatureRange.begin.column,
-			signatureRange.end.line,
-			signatureRange.end.column,
+			range.begin.line(),
+			range.begin.column(),
+			range.end.line(),
+			range.end.column(),
+			scopeRange.begin.line(),
+			scopeRange.begin.column(),
+			scopeRange.end.line(),
+			scopeRange.end.column(),
+			signatureRange.begin.line(),
+			signatureRange.begin.column(),
+			signatureRange.end.line(),
+			signatureRange.end.column(),
 			access.getValue(),
 			definitionKind.getValue());
 	}
@@ -149,10 +149,10 @@ public class JavaIndexerAstVisitorClient extends AstVisitorClient
 			referenceKind.getValue(),
 			serializedReferencedName,
 			contextName.serialize(),
-			range.begin.line,
-			range.begin.column,
-			range.end.line,
-			range.end.column);
+			range.begin.line(),
+			range.begin.column(),
+			range.end.line(),
+			range.end.column());
 	}
 
 	@Override public void recordQualifierLocation(NameHierarchy qualifierName, Range range)
@@ -160,10 +160,10 @@ public class JavaIndexerAstVisitorClient extends AstVisitorClient
 		JavaIndexer.recordQualifierLocation(
 			m_address,
 			qualifierName.serialize(),
-			range.begin.line,
-			range.begin.column,
-			range.end.line,
-			range.end.column);
+			range.begin.line(),
+			range.begin.column(),
+			range.end.line(),
+			range.end.column());
 	}
 
 	@Override public void recordLocalSymbol(NameHierarchy symbolName, Range range)
@@ -171,16 +171,16 @@ public class JavaIndexerAstVisitorClient extends AstVisitorClient
 		JavaIndexer.recordLocalSymbol(
 			m_address,
 			symbolName.serialize(),
-			range.begin.line,
-			range.begin.column,
-			range.end.line,
-			range.end.column);
+			range.begin.line(),
+			range.begin.column(),
+			range.end.line(),
+			range.end.column());
 	}
 
 	@Override public void recordComment(Range range)
 	{
 		JavaIndexer.recordComment(
-			m_address, range.begin.line, range.begin.column, range.end.line, range.end.column);
+			m_address, range.begin.line(), range.begin.column(), range.end.line(), range.end.column());
 	}
 
 	@Override public void recordError(String message, boolean fatal, boolean indexed, Range range)
@@ -190,9 +190,9 @@ public class JavaIndexerAstVisitorClient extends AstVisitorClient
 			message,
 			(fatal ? 1 : 0),
 			(indexed ? 1 : 0),
-			range.begin.line,
-			range.begin.column,
-			range.end.line,
-			range.end.column);
+			range.begin.line(),
+			range.begin.column(),
+			range.end.line(),
+			range.end.column());
 	}
 }

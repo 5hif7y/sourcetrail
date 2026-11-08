@@ -17,6 +17,8 @@ public:
 	size_t size() const override;
 
 private:
+	void eraseCommand(const std::shared_ptr<IndexerCommand>& command);
+
 	std::map<FilePath, std::shared_ptr<IndexerCommand>> m_commands;
 };
 

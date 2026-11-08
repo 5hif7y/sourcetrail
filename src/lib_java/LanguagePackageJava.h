@@ -6,7 +6,7 @@
 class LanguagePackageJava: public LanguagePackage
 {
 public:
-	virtual std::vector<std::shared_ptr<IndexerBase>> instantiateSupportedIndexers() const;
+	std::vector<std::shared_ptr<IndexerBase>> instantiateSupportedIndexers() const override;
 };
 
 #endif	  // LANGUAGE_PACKAGE_JAVA_H

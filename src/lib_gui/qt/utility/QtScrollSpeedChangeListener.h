@@ -16,14 +16,14 @@ public:
 	void setScrollBar(QScrollBar* scrollbar);
 
 private:
-	void handleMessage(MessageScrollSpeedChange* message);
+	void handleMessage(MessageScrollSpeedChange* message) override;
 
 	void doChangeScrollSpeed(float scrollSpeed);
 
 	QtThreadedFunctor<float> m_changeScrollSpeedFunctor;
 
-	QScrollBar* m_scrollBar;
-	int m_singleStep;
+	QScrollBar* m_scrollBar = nullptr;
+	int m_singleStep = 1;
 };
 
 #endif	  // QT_SCROLL_SPEED_CHANGE_LISTENER

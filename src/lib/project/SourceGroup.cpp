@@ -13,7 +13,7 @@ std::shared_ptr<IndexerCommandProvider> SourceGroup::getIndexerCommandProvider(c
 }
 
 std::shared_ptr<Task> SourceGroup::getPreIndexTask(
-	std::shared_ptr<StorageProvider> storageProvider, std::shared_ptr<DialogView> dialogView) const
+	std::shared_ptr<StorageProvider>  /*storageProvider*/, std::shared_ptr<DialogView>  /*dialogView*/) const
 {
 	return std::make_shared<TaskLambda>([]() {});
 }
@@ -43,11 +43,6 @@ bool SourceGroup::allowsPartialClearing() const
 	return true;
 }
 
-bool SourceGroup::allowsShallowIndexing() const
-{
-	return false;
-}
-
 std::set<FilePath> SourceGroup::filterToContainedSourceFilePath(
 	const std::set<FilePath>& sourceFilePaths) const
 {
@@ -71,7 +66,7 @@ std::set<FilePath> SourceGroup::filterToContainedFilePaths(
 	const std::set<FilePath>& filePaths,
 	const std::set<FilePath>& indexedFilePaths,
 	const std::set<FilePath>& indexedFileOrDirectoryPaths,
-	const std::vector<FilePathFilter>& excludeFilters) const
+	const std::vector<FilePathFilter>& excludeFilters) 
 {
 	std::set<FilePath> containedFilePaths;
 

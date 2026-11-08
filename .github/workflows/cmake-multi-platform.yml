@@ -1,0 +1,148 @@
+name: Plugin context
+
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  plugin-context:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S src/lib/plugin/tests -B build/plugin-context -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build/plugin-context --config Release
+
+      - name: Test
+        run: ctest --test-dir build/plugin-context -C Release --output-on-failure
+
+  language-registry:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S src/lib/settings/tests -B build/language-registry -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build/language-registry --config Release
+
+      - name: Test
+        run: ctest --test-dir build/language-registry -C Release --output-on-failure
+
+  cli-options:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S src/lib/utility/commandline/tests -B build/cli-options -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build/cli-options --config Release
+
+      - name: Test
+        run: ctest --test-dir build/cli-options -C Release --output-on-failure
+
+  ui-registry:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S src/lib_gui/tests -B build/ui-registry -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build/ui-registry --config Release
+
+      - name: Test
+        run: ctest --test-dir build/ui-registry -C Release --output-on-failure
+
+  root-ctest:
+    name: root-ctest (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgJsonGlob: 'vcpkg.json'
+          vcpkgGitCommitId: '2475cc332a47b3a63bb3de58293bdab7726613ca'
+
+      - name: Configure
+        shell: bash
+        run: |
+          triplet=x64-linux
+          arch=()
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            triplet=x64-windows
+            arch=(-A x64)
+          elif [ "$RUNNER_OS" = "macOS" ]; then
+            if [ "$(uname -m)" = "arm64" ]; then
+              triplet=arm64-osx
+            else
+              triplet=x64-osx
+            fi
+          fi
+          cmake -S . -B build/root-ctest "${arch[@]}" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+            -DVCPKG_TARGET_TRIPLET="$triplet" \
+            -DBUILD_GUI=OFF \
+            -DBUILD_CXX_LANGUAGE_PACKAGE=OFF \
+            -DBUILD_JAVA_LANGUAGE_PACKAGE=OFF \
+            -DBUILD_UNIT_TESTS_PACKAGE=OFF \
+            -DCOPY_SAMPLE_PROJECTS=OFF \
+            -DSOURCETRAIL_SHARED_CORE=ON \
+            -DBUILD_PLUGIN_CONTEXT_TESTS=ON
+
+      - name: Build
+        run: cmake --build build/root-ctest --config Release --parallel
+
+      - name: Test
+        run: ctest --test-dir build/root-ctest -C Release --output-on-failure

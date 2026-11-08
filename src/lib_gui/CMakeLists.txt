@@ -1,15 +1,16 @@
-add_files(
-	LIB_GUI
+add_library(Sourcetrail_lib_gui
+	${CMAKE_CURRENT_BINARY_DIR}/licenses.h
 
-	platform_includes/includesLinux.h
-	platform_includes/includesMac.h
-	platform_includes/includesWindows.h
+	platform/setupApp.h
+	platform/setupApp.cpp
 
 	qt/element/bookmark/QtBookmark.cpp
 	qt/element/bookmark/QtBookmark.h
 	qt/element/bookmark/QtBookmarkCategory.cpp
 	qt/element/bookmark/QtBookmarkCategory.h
 
+	qt/element/button/QtExpanderButton.h 
+	qt/element/button/QtExpanderButton.cpp
 	qt/element/button/QtHelpButton.cpp
 	qt/element/button/QtHelpButton.h
 	qt/element/button/QtHoverButton.cpp
@@ -18,6 +19,8 @@ add_files(
 	qt/element/button/QtIconButton.h
 	qt/element/button/QtIconStateButton.cpp
 	qt/element/button/QtIconStateButton.h
+	qt/element/button/QtPushButton.h 
+	qt/element/button/QtPushButton.cpp
 	qt/element/button/QtSelfRefreshIconButton.cpp
 	qt/element/button/QtSelfRefreshIconButton.h
 
@@ -81,10 +84,15 @@ add_files(
 	qt/element/dialog/QtTextEdit.cpp
 	qt/element/dialog/QtTextEdit.h
 
+	qt/element/status/QtStatusBar.cpp
+	qt/element/status/QtStatusBar.h
+	qt/element/status/QtFlatButton.h 
+	qt/element/status/QtFlatButton.cpp
+	qt/element/status/QtVerticalLine.h 
+	qt/element/status/QtVerticalLine.cpp
+	
 	qt/element/QtTooltip.cpp
 	qt/element/QtTooltip.h
-	qt/element/QtStatusBar.cpp
-	qt/element/QtStatusBar.h
 	qt/element/QtTabBar.cpp
 	qt/element/QtTabBar.h
 	qt/element/QtTable.cpp
@@ -138,8 +146,6 @@ add_files(
 	qt/network/QtIDECommunicationController.h
 	qt/network/QtNetworkFactory.cpp
 	qt/network/QtNetworkFactory.h
-	qt/network/QtRequest.cpp
-	qt/network/QtRequest.h
 	qt/network/QtTcpWrapper.cpp
 	qt/network/QtTcpWrapper.h
 
@@ -177,6 +183,7 @@ add_files(
 
 	qt/project_wizard/QtProjectWizard.cpp
 	qt/project_wizard/QtProjectWizard.h
+	qt/project_wizard/QtProjectWizardPageRegistry.h
 	qt/project_wizard/QtProjectWizardWindow.cpp
 	qt/project_wizard/QtProjectWizardWindow.h
 
@@ -196,11 +203,14 @@ add_files(
 	qt/utility/QtHelpButtonInfo.h
 	qt/utility/QtHighlighter.cpp
 	qt/utility/QtHighlighter.h
+	qt/utility/QtMessageBox.h
+	qt/utility/QtMessageBox.cpp
 	qt/utility/QtScrollSpeedChangeListener.cpp
 	qt/utility/QtScrollSpeedChangeListener.h
 	qt/utility/QtThreadedFunctor.h
-	qt/utility/QtWindowsTaskbarButton.cpp
-	qt/utility/QtWindowsTaskbarButton.h
+	qt/utility/QtThreadedFunctor.cpp
+	qt/utility/QtWindowTitleProgress.cpp
+	qt/utility/QtWindowTitleProgress.h
 	qt/utility/utilityQt.cpp
 	qt/utility/utilityQt.h
 
@@ -249,6 +259,8 @@ add_files(
 
 	qt/window/QtAbout.cpp
 	qt/window/QtAbout.h
+	qt/window/QtBookmarkWindow.cpp
+	qt/window/QtBookmarkWindow.h 
 	qt/window/QtBookmarkBrowser.cpp
 	qt/window/QtBookmarkBrowser.h
 	qt/window/QtBookmarkCreator.cpp
@@ -263,12 +275,19 @@ add_files(
 	qt/window/QtIndexingStartDialog.h
 	qt/window/QtKeyboardShortcuts.cpp
 	qt/window/QtKeyboardShortcuts.h
+	qt/window/QtActions.cpp
+	qt/window/QtActions.h
 	qt/window/QtKnownProgressDialog.cpp
 	qt/window/QtKnownProgressDialog.h
 	qt/window/QtLicenseWindow.cpp
 	qt/window/QtLicenseWindow.h
 	qt/window/QtMainWindow.cpp
 	qt/window/QtMainWindow.h
+	qt/window/QtMenuRegistry.h
+	qt/window/QtPreferencesPageRegistry.h
+	qt/window/UiPlugin.cpp
+	qt/window/UiPlugin.h
+	qt/project_wizard/SourceGroupUiRegistry.h
 	qt/window/QtPathListDialog.cpp
 	qt/window/QtPathListDialog.h
 	qt/window/QtPreferencesWindow.cpp
@@ -295,112 +314,169 @@ add_files(
 	qt/QtCoreApplication.cpp
 	qt/QtCoreApplication.h
 
-	utility/path_detector/CombinedPathDetector.cpp
-	utility/path_detector/CombinedPathDetector.h
-	utility/path_detector/PathDetector.cpp
-	utility/path_detector/PathDetector.h
+)
 
-	utility/utilityApp.cpp
-	utility/utilityApp.h
-	utility/utilityPathDetection.cpp
-	utility/utilityPathDetection.h
+target_include_directories(Sourcetrail_lib_gui
+	PUBLIC
+		platform
+		qt/element/bookmark
+		qt/element/button
+		qt/element/code
+		qt/element/history
+		qt/element/search
+		qt/element/dialog
+		qt/element/status
+		qt/element
+		qt/graphics/base
+		qt/graphics/component
+		qt/graphics/graph
+		qt/graphics
+		qt/network
+		qt/project_wizard/content/path
+		qt/project_wizard/content/paths
+		qt/project_wizard/content
+		qt/project_wizard
+		qt/utility
+		qt/view
+		qt/window
+		qt
+		utility
 )
 
 if (BUILD_CXX_LANGUAGE_PACKAGE)
-	add_files(
-		LIB_GUI
+	target_sources(Sourcetrail_lib_gui
+		PRIVATE
+			qt/project_wizard/content/path/QtProjectWizardContentPathCDB.cpp
+			qt/project_wizard/content/path/QtProjectWizardContentPathCDB.h
+			qt/project_wizard/content/path/QtProjectWizardContentPathCodeblocksProject.cpp
+			qt/project_wizard/content/path/QtProjectWizardContentPathCodeblocksProject.h
+			qt/project_wizard/content/path/QtProjectWizardContentPathCxxPch.cpp
+			qt/project_wizard/content/path/QtProjectWizardContentPathCxxPch.h
 
-		qt/project_wizard/content/path/QtProjectWizardContentPathCDB.cpp
-		qt/project_wizard/content/path/QtProjectWizardContentPathCDB.h
-		qt/project_wizard/content/path/QtProjectWizardContentPathCodeblocksProject.cpp
-		qt/project_wizard/content/path/QtProjectWizardContentPathCodeblocksProject.h
-		qt/project_wizard/content/path/QtProjectWizardContentPathCxxPch.cpp
-		qt/project_wizard/content/path/QtProjectWizardContentPathCxxPch.h
+			qt/project_wizard/content/paths/QtProjectWizardContentPathsFrameworkSearch.cpp
+			qt/project_wizard/content/paths/QtProjectWizardContentPathsFrameworkSearch.h
+			qt/project_wizard/content/paths/QtProjectWizardContentPathsFrameworkSearchGlobal.cpp
+			qt/project_wizard/content/paths/QtProjectWizardContentPathsFrameworkSearchGlobal.h
+			qt/project_wizard/content/paths/QtProjectWizardContentPathsHeaderSearch.cpp
+			qt/project_wizard/content/paths/QtProjectWizardContentPathsHeaderSearch.h
+			qt/project_wizard/content/paths/QtProjectWizardContentPathsHeaderSearchGlobal.cpp
+			qt/project_wizard/content/paths/QtProjectWizardContentPathsHeaderSearchGlobal.h
+			qt/project_wizard/content/paths/QtProjectWizardContentPathsIndexedHeaders.cpp
+			qt/project_wizard/content/paths/QtProjectWizardContentPathsIndexedHeaders.h
 
-		qt/project_wizard/content/paths/QtProjectWizardContentPathsFrameworkSearch.cpp
-		qt/project_wizard/content/paths/QtProjectWizardContentPathsFrameworkSearch.h
-		qt/project_wizard/content/paths/QtProjectWizardContentPathsFrameworkSearchGlobal.cpp
-		qt/project_wizard/content/paths/QtProjectWizardContentPathsFrameworkSearchGlobal.h
-		qt/project_wizard/content/paths/QtProjectWizardContentPathsHeaderSearch.cpp
-		qt/project_wizard/content/paths/QtProjectWizardContentPathsHeaderSearch.h
-		qt/project_wizard/content/paths/QtProjectWizardContentPathsHeaderSearchGlobal.cpp
-		qt/project_wizard/content/paths/QtProjectWizardContentPathsHeaderSearchGlobal.h
-		qt/project_wizard/content/paths/QtProjectWizardContentPathsIndexedHeaders.cpp
-		qt/project_wizard/content/paths/QtProjectWizardContentPathsIndexedHeaders.h
+			qt/project_wizard/content/QtProjectWizardContentCppStandard.cpp
+			qt/project_wizard/content/QtProjectWizardContentCppStandard.h
+			qt/project_wizard/content/QtProjectWizardContentCrossCompilationOptions.cpp
+			qt/project_wizard/content/QtProjectWizardContentCrossCompilationOptions.h
+			qt/project_wizard/content/QtProjectWizardContentCStandard.cpp
+			qt/project_wizard/content/QtProjectWizardContentCStandard.h
+			qt/project_wizard/content/QtProjectWizardContentCxxPchFlags.cpp
+			qt/project_wizard/content/QtProjectWizardContentCxxPchFlags.h
+			qt/project_wizard/content/QtProjectWizardContentFlags.cpp
+			qt/project_wizard/content/QtProjectWizardContentFlags.h
+			qt/project_wizard/content/QtProjectWizardContentVS.cpp
+			qt/project_wizard/content/QtProjectWizardContentVS.h
+	)
 
-		qt/project_wizard/content/QtProjectWizardContentCppStandard.cpp
-		qt/project_wizard/content/QtProjectWizardContentCppStandard.h
-		qt/project_wizard/content/QtProjectWizardContentCrossCompilationOptions.cpp
-		qt/project_wizard/content/QtProjectWizardContentCrossCompilationOptions.h
-		qt/project_wizard/content/QtProjectWizardContentCStandard.cpp
-		qt/project_wizard/content/QtProjectWizardContentCStandard.h
-		qt/project_wizard/content/QtProjectWizardContentCxxPchFlags.cpp
-		qt/project_wizard/content/QtProjectWizardContentCxxPchFlags.h
-		qt/project_wizard/content/QtProjectWizardContentFlags.cpp
-		qt/project_wizard/content/QtProjectWizardContentFlags.h
-		qt/project_wizard/content/QtProjectWizardContentVS.cpp
-		qt/project_wizard/content/QtProjectWizardContentVS.h
-
-		utility/path_detector/cxx_header/CxxFrameworkPathDetector.cpp
-		utility/path_detector/cxx_header/CxxFrameworkPathDetector.h
-		utility/path_detector/cxx_header/CxxHeaderPathDetector.cpp
-		utility/path_detector/cxx_header/CxxHeaderPathDetector.h
-		utility/path_detector/cxx_header/CxxVs10To14HeaderPathDetector.cpp
-		utility/path_detector/cxx_header/CxxVs10To14HeaderPathDetector.h
-		utility/path_detector/cxx_header/CxxVs15HeaderPathDetector.cpp
-		utility/path_detector/cxx_header/CxxVs15HeaderPathDetector.h
-		utility/path_detector/cxx_header/utilityCxxHeaderDetection.cpp
-		utility/path_detector/cxx_header/utilityCxxHeaderDetection.h
+	target_include_directories(Sourcetrail_lib_gui
+		PUBLIC
+			qt/project_wizard/content/path
+			qt/project_wizard/content/paths
+			${CMAKE_CURRENT_SOURCE_DIR}/../lib_cxx/project
+			${CMAKE_CURRENT_SOURCE_DIR}/../lib_cxx/data/indexer
+			${CMAKE_CURRENT_SOURCE_DIR}/../lib_cxx/utility
+			${CMAKE_CURRENT_SOURCE_DIR}/../lib_cxx/utility/codeblocks
+			${CMAKE_CURRENT_SOURCE_DIR}/../lib_cxx
+			${CMAKE_CURRENT_SOURCE_DIR}/../lib_cxx/utility/codeblocks
 	)
 endif()
 
 if (BUILD_JAVA_LANGUAGE_PACKAGE)
-	add_files(
-		LIB_GUI
+	target_sources(Sourcetrail_lib_gui
+		PRIVATE
+			qt/project_wizard/content/path/QtProjectWizardContentPathSettingsMaven.cpp
+			qt/project_wizard/content/path/QtProjectWizardContentPathSettingsMaven.h
+			qt/project_wizard/content/path/QtProjectWizardContentPathSourceGradle.cpp
+			qt/project_wizard/content/path/QtProjectWizardContentPathSourceGradle.h
+			qt/project_wizard/content/path/QtProjectWizardContentPathSourceMaven.cpp
+			qt/project_wizard/content/path/QtProjectWizardContentPathSourceMaven.h
 
-		qt/project_wizard/content/path/QtProjectWizardContentPathSettingsMaven.cpp
-		qt/project_wizard/content/path/QtProjectWizardContentPathSettingsMaven.h
-		qt/project_wizard/content/path/QtProjectWizardContentPathSourceGradle.cpp
-		qt/project_wizard/content/path/QtProjectWizardContentPathSourceGradle.h
-		qt/project_wizard/content/path/QtProjectWizardContentPathSourceMaven.cpp
-		qt/project_wizard/content/path/QtProjectWizardContentPathSourceMaven.h
+			qt/project_wizard/content/paths/QtProjectWizardContentPathsClassJava.cpp
+			qt/project_wizard/content/paths/QtProjectWizardContentPathsClassJava.h
 
-		qt/project_wizard/content/paths/QtProjectWizardContentPathsClassJava.cpp
-		qt/project_wizard/content/paths/QtProjectWizardContentPathsClassJava.h
+			qt/project_wizard/content/QtProjectWizardContentJavaStandard.cpp
+			qt/project_wizard/content/QtProjectWizardContentJavaStandard.h
+	)
 
-		qt/project_wizard/content/QtProjectWizardContentJavaStandard.cpp
-		qt/project_wizard/content/QtProjectWizardContentJavaStandard.h
-
-		utility/path_detector/java_runtime/JavaPathDetector.cpp
-		utility/path_detector/java_runtime/JavaPathDetector.h
-		utility/path_detector/java_runtime/JavaPathDetectorLinux.cpp
-		utility/path_detector/java_runtime/JavaPathDetectorLinux.h
-		utility/path_detector/java_runtime/JavaPathDetectorMac.cpp
-		utility/path_detector/java_runtime/JavaPathDetectorMac.h
-		utility/path_detector/java_runtime/JavaPathDetectorWindows.cpp
-		utility/path_detector/java_runtime/JavaPathDetectorWindows.h
-
-		utility/path_detector/jre_system_library/JreSystemLibraryPathDetector.cpp
-		utility/path_detector/jre_system_library/JreSystemLibraryPathDetector.h
-		utility/path_detector/jre_system_library/JreSystemLibraryPathDetectorLinux.cpp
-		utility/path_detector/jre_system_library/JreSystemLibraryPathDetectorLinux.h
-		utility/path_detector/jre_system_library/JreSystemLibraryPathDetectorMac.cpp
-		utility/path_detector/jre_system_library/JreSystemLibraryPathDetectorMac.h
-		utility/path_detector/jre_system_library/JreSystemLibraryPathDetectorWindows.cpp
-		utility/path_detector/jre_system_library/JreSystemLibraryPathDetectorWindows.h
-
-		utility/path_detector/maven_executable/MavenPathDetectorUnix.cpp
-		utility/path_detector/maven_executable/MavenPathDetectorUnix.h
-		utility/path_detector/maven_executable/MavenPathDetectorWindows.cpp
-		utility/path_detector/maven_executable/MavenPathDetectorWindows.h
+	target_include_directories(Sourcetrail_lib_gui
+		PUBLIC
+			qt/project_wizard/content/path
+			qt/project_wizard/content/paths
+			qt/project_wizard/content
+			${CMAKE_CURRENT_SOURCE_DIR}/../lib_java/project
+			${CMAKE_CURRENT_SOURCE_DIR}/../lib_java/utility
+			${CMAKE_CURRENT_SOURCE_DIR}/../lib_java
 	)
 endif()
 
-if (BUILD_PYTHON_LANGUAGE_PACKAGE)
-	add_files(
-		LIB_GUI
+setDefaultTargetOptions(Sourcetrail_lib_gui)
 
-		qt/project_wizard/content/path/QtProjectWizardContentPathPythonEnvironment.cpp
-		qt/project_wizard/content/path/QtProjectWizardContentPathPythonEnvironment.h
-	)
-endif()
+set_target_properties(Sourcetrail_lib_gui
+	PROPERTIES
+		AUTOMOC ON
+		UNITY_BUILD ON
+		UNITY_BUILD_BATCH_SIZE 8
+)
+
+target_include_directories(Sourcetrail_lib_gui
+	PUBLIC
+		"${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+target_link_libraries(Sourcetrail_lib_gui
+	PUBLIC
+		Sourcetrail_lib
+		AidKit_qt
+		External_lib_qt
+		Sourcetrail_res_gui
+)
+
+# Precompiled header. lib_gui is 161 translation units that all pull in Qt; without
+# a PCH every one of them re-parses the same headers (measured baseline: 343 s to
+# rebuild the target). Keep this list restricted to headers that are broadly used
+# and safe to force-include everywhere.
+target_precompile_headers(Sourcetrail_lib_gui
+	PRIVATE
+		<QtCore/QObject>
+		<QtCore/QString>
+		<QtCore/QStringList>
+		<QtCore/QVector>
+		<QtCore/QList>
+		<QtCore/QMap>
+		<QtCore/QHash>
+		<QtCore/QSet>
+		<QtCore/QVariant>
+		<QtCore/QTimer>
+		<QtWidgets/QApplication>
+		<QtWidgets/QWidget>
+		<QtWidgets/QFrame>
+		<QtWidgets/QLabel>
+		<QtWidgets/QPushButton>
+		<QtWidgets/QCheckBox>
+		<QtWidgets/QComboBox>
+		<QtWidgets/QLineEdit>
+		<QtWidgets/QVBoxLayout>
+		<QtWidgets/QHBoxLayout>
+		<QtWidgets/QGridLayout>
+		<QtWidgets/QScrollArea>
+		<QtWidgets/QDialog>
+		<QtWidgets/QMessageBox>
+		<QtWidgets/QMenu>
+		<QtGui/QAction>
+		<vector>
+		<string>
+		<map>
+		<set>
+		<memory>
+		<algorithm>
+)

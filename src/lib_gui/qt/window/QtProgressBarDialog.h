@@ -16,11 +16,11 @@ class QtProgressBarDialog: public QtIndexingDialog
 	Q_OBJECT
 
 public:
-	QtProgressBarDialog(float topRatio, bool hideable, QWidget* parent = 0);
+	QtProgressBarDialog(float topRatio, bool hideable, QWidget* parent = nullptr);
 	void updateTitle(const QString& title);
-	std::wstring getTitle() const;
+	std::string getTitle() const;
 	void updateMessage(const QString& message);
-	std::wstring getMessage() const;
+	std::string getMessage() const;
 	void setUnknownProgress();
 	void updateProgress(size_t progress);
 	size_t getProgress() const;
@@ -30,7 +30,7 @@ protected:
 	virtual void setGeometries();
 
 private:
-	QLabel* m_title;
+	QLabel* m_title = nullptr;
 	QWidget* m_top;
 	float m_topRatio;
 	QtProgressBar* m_progressBar;

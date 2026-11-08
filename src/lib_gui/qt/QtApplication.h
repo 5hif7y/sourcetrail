@@ -9,11 +9,11 @@ class QtApplication: public QApplication
 public:
 	QtApplication(int& argc, char** argv);
 
-	bool event(QEvent* event);
-	int exec();
+	bool event(QEvent* event) override;
+	static int exec();
 
 private slots:
-	void onApplicationStateChanged(Qt::ApplicationState state);
+	static void onApplicationStateChanged(Qt::ApplicationState state);
 };
 
 #endif	  // QT_APPLICATION_H

@@ -2,7 +2,6 @@
 #define FULLTEXTSEARCH_INDEX_H
 
 #include <mutex>
-#include <unordered_map>
 #include <vector>
 
 #include "SuffixArray.h"
@@ -19,7 +18,7 @@ struct FullTextSearchResult
 
 struct FullTextSearchFile
 {
-	FullTextSearchFile(Id fileId, SuffixArray array): fileId(fileId), array(array) {};
+	FullTextSearchFile(Id fileId, SuffixArray array): fileId(fileId), array(array) {}
 	Id fileId;
 	SuffixArray array;
 };
@@ -27,8 +26,8 @@ struct FullTextSearchFile
 class FullTextSearchIndex
 {
 public:
-	void addFile(Id fileId, const std::wstring& file);
-	std::vector<FullTextSearchResult> searchForTerm(const std::wstring& term) const;
+	void addFile(Id fileId, const std::string& file);
+	std::vector<FullTextSearchResult> searchForTerm(const std::string& term) const;
 
 	size_t fileCount() const;
 

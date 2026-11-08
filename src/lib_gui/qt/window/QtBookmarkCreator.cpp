@@ -6,31 +6,19 @@
 #include <QTextEdit>
 #include <QVBoxLayout>
 
-#include "BookmarkCategory.h"
 #include "MessageStatus.h"
-#include "ResourcePaths.h"
-#include "utilityQt.h"
 
-QtBookmarkCreator::QtBookmarkCreator(
-	ControllerProxy<BookmarkController>* controllerProxy, QWidget* parent, Id bookmarkId)
-	: QtWindow(false, parent)
-	, m_controllerProxy(controllerProxy)
+QtBookmarkCreator::QtBookmarkCreator(ControllerProxy<BookmarkController>* controllerProxy, QWidget* parent, BookmarkId bookmarkId)
+	: QtBookmarkWindow(controllerProxy, false, parent)
 	, m_editBookmarkId(bookmarkId)
 	, m_nodeId(0)
-{
-}
-
-QtBookmarkCreator::~QtBookmarkCreator() {}
-
-void QtBookmarkCreator::setupBookmarkCreator()
 {
 	QVBoxLayout* mainLayout = new QVBoxLayout(this);
 	mainLayout->setContentsMargins(0, 0, 0, 0);
 
 	{
 		// title
-		QLabel* title = new QLabel(
-			m_editBookmarkId ? QStringLiteral("Edit Bookmark") : QStringLiteral("Create Bookmark"));
+		QLabel* title = new QLabel(m_editBookmarkId != BookmarkId::NONE ? tr("Edit Bookmark") : tr("Create Bookmark"));
 		title->setObjectName(QStringLiteral("creator_title_label"));
 		mainLayout->addWidget(title);
 	}
@@ -40,14 +28,14 @@ void QtBookmarkCreator::setupBookmarkCreator()
 
 	{
 		// name
-		QLabel* nameLabel = new QLabel(QStringLiteral("Name"));
+		QLabel* nameLabel = new QLabel(tr("Name"));
 		nameLabel->setObjectName(QStringLiteral("creator_label"));
 		layout->addWidget(nameLabel);
 
 		m_displayName = new QLineEdit();
 		m_displayName->setObjectName(QStringLiteral("creator_name_edit"));
-		m_displayName->setPlaceholderText(QStringLiteral("Name"));
-		m_displayName->setAttribute(Qt::WA_MacShowFocusRect, 0);
+		m_displayName->setPlaceholderText(tr("Name"));
+		m_displayName->setAttribute(Qt::WA_MacShowFocusRect, false);
 		layout->addWidget(m_displayName);
 
 		connect(m_displayName, &QLineEdit::textChanged, this, &QtBookmarkCreator::onNameChanged);
@@ -57,13 +45,13 @@ void QtBookmarkCreator::setupBookmarkCreator()
 
 	{
 		// comment
-		QLabel* commentLabel = new QLabel(QStringLiteral("Comment"));
+		QLabel* commentLabel = new QLabel(tr("Comment"));
 		commentLabel->setObjectName(QStringLiteral("creator_label"));
 		layout->addWidget(commentLabel);
 
 		m_commentBox = new QTextEdit();
 		m_commentBox->setObjectName(QStringLiteral("creator_comment_box"));
-		m_commentBox->setPlaceholderText(QStringLiteral("Comment"));
+		m_commentBox->setPlaceholderText(tr("Comment"));
 		layout->addWidget(m_commentBox);
 
 		layout->addSpacing(15);
@@ -71,7 +59,7 @@ void QtBookmarkCreator::setupBookmarkCreator()
 
 	{
 		// category
-		QLabel* categoryLabel = new QLabel(QStringLiteral("Choose or Create Category"));
+		QLabel* categoryLabel = new QLabel(tr("Choose or Create Category"));
 		categoryLabel->setObjectName(QStringLiteral("creator_label"));
 		layout->addWidget(categoryLabel);
 
@@ -79,7 +67,7 @@ void QtBookmarkCreator::setupBookmarkCreator()
 		m_categoryBox->setObjectName(QStringLiteral("creator_category_box"));
 		m_categoryBox->addItem(QLatin1String(""));
 		m_categoryBox->setEditable(true);
-		m_categoryBox->lineEdit()->setPlaceholderText(QStringLiteral("Category"));
+		m_categoryBox->lineEdit()->setPlaceholderText(tr("Category"));
 		m_categoryBox->setInsertPolicy(QComboBox::InsertPolicy::InsertAtTop);
 		layout->addWidget(m_categoryBox);
 
@@ -89,44 +77,37 @@ void QtBookmarkCreator::setupBookmarkCreator()
 	{
 		layout->addLayout(createButtons());
 		setPreviousVisible(false);
-		updateNextButton(m_editBookmarkId ? QStringLiteral("Save") : QStringLiteral("Create"));
+
+		updateNextButton(m_editBookmarkId != BookmarkId::NONE ? tr("Save") : tr("Create"));
+		setNextDefault(true);
 	}
 
 	mainLayout->addLayout(layout);
 
-	refreshStyle();
+	refreshStyleSheet();
 }
 
-void QtBookmarkCreator::refreshStyle()
+void QtBookmarkCreator::setDisplayName(const std::string& name)
 {
-	setStyleSheet(
-		(utility::getStyleSheet(ResourcePaths::getGuiDirectoryPath().concatenate(L"window/window.css")) +
-		 utility::getStyleSheet(ResourcePaths::getGuiDirectoryPath().concatenate(L"bookmark_view/"
-																		L"bookmark_view.css")))
-			.c_str());
+	m_displayName->setText(QString::fromStdString(name));
 }
 
-void QtBookmarkCreator::setDisplayName(const std::wstring& name)
+void QtBookmarkCreator::setComment(const std::string& comment)
 {
-	m_displayName->setText(QString::fromStdWString(name));
-}
-
-void QtBookmarkCreator::setComment(const std::wstring& comment)
-{
-	m_commentBox->setText(QString::fromStdWString(comment));
+	m_commentBox->setText(QString::fromStdString(comment));
 }
 
 void QtBookmarkCreator::setBookmarkCategories(const std::vector<BookmarkCategory>& categories)
 {
 	for (unsigned int i = 0; i < categories.size(); i++)
 	{
-		m_categoryBox->addItem(QString::fromStdWString(categories[i].getName()));
+		m_categoryBox->addItem(QString::fromStdString(categories[i].getName()));
 	}
 }
 
 void QtBookmarkCreator::setCurrentBookmarkCategory(const BookmarkCategory& category)
 {
-	int index = m_categoryBox->findText(QString::fromStdWString(category.getName()));
+	int index = m_categoryBox->findText(QString::fromStdString(category.getName()));
 
 	if (index > -1)
 	{
@@ -134,7 +115,7 @@ void QtBookmarkCreator::setCurrentBookmarkCategory(const BookmarkCategory& categ
 	}
 	else
 	{
-		m_categoryBox->addItem(QString::fromStdWString(category.getName()));
+		m_categoryBox->addItem(QString::fromStdString(category.getName()));
 		m_categoryBox->setCurrentIndex(1);
 	}
 }
@@ -146,11 +127,11 @@ void QtBookmarkCreator::setNodeId(Id nodeId)
 
 void QtBookmarkCreator::handleNext()
 {
-	std::wstring name = m_displayName->text().toStdWString();
-	std::wstring comment = m_commentBox->toPlainText().toStdWString();
-	std::wstring category = m_categoryBox->currentText().toStdWString();
+	std::string name = m_displayName->text().toStdString();
+	std::string comment = m_commentBox->toPlainText().toStdString();
+	std::string category = m_categoryBox->currentText().toStdString();
 
-	if (m_editBookmarkId)
+	if (m_editBookmarkId != BookmarkId::NONE)
 	{
 		m_controllerProxy->executeAsTaskWithArgs(
 			&BookmarkController::editBookmark, m_editBookmarkId, name, comment, category);
@@ -160,7 +141,7 @@ void QtBookmarkCreator::handleNext()
 		m_controllerProxy->executeAsTaskWithArgs(
 			&BookmarkController::createBookmark, name, comment, category, m_nodeId);
 
-		MessageStatus(L"Creating Bookmark for active Token").dispatch();
+		MessageStatus("Creating Bookmark for active Token").dispatch();
 	}
 
 	close();

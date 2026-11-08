@@ -6,7 +6,7 @@
 class MessageProjectEdit: public Message<MessageProjectEdit>
 {
 public:
-	MessageProjectEdit() {}
+	MessageProjectEdit() = default;
 
 	static const std::string getStaticType()
 	{

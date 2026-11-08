@@ -33,9 +33,9 @@ public:
 	};
 
 	GraphView(ViewLayout* viewLayout);
-	virtual ~GraphView();
+	~GraphView() override;
 
-	virtual std::string getName() const;
+	std::string getName() const override;
 
 	virtual void rebuildGraph(
 		std::shared_ptr<Graph> graph,

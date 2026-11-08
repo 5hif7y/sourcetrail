@@ -1,28 +1,29 @@
 #ifndef CXX_QUALIFIER_FLAGS_H
 #define CXX_QUALIFIER_FLAGS_H
 
+#include <cstdint>
 #include <string>
 
 class CxxQualifierFlags
 {
 public:
-	enum QualifierType
+	enum class QualifierType : std::uint8_t
 	{
-		QUALIFIER_NONE = 0,
-		QUALIFIER_CONST = 1
+		NONE = 0,
+		
+		CONST     = 1 << 0,
+		CONSTEXPR = 1 << 1
 	};
 
-	CxxQualifierFlags();
-	CxxQualifierFlags(const char flags);
-
+	CxxQualifierFlags(QualifierType qualifier = QualifierType::NONE);
+	
 	void addQualifier(QualifierType qualifier);
-	void removeQualifier(QualifierType qualifier);
 
 	bool empty() const;
-	std::wstring toString() const;
+	std::string toString() const;
 
 private:
-	char m_flags;
+	QualifierType m_flags = QualifierType::NONE;
 };
 
-#endif	  // CXX_QUALIFIER_FLAGS_H
+#endif

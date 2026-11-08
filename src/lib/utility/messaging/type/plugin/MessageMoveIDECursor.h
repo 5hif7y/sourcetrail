@@ -17,9 +17,9 @@ public:
 		return "MessageMoveIDECursor";
 	}
 
-	virtual void print(std::wostream& os) const
+	void print(std::ostream& os) const override
 	{
-		os << filePath.wstr() << L":" << row << L":" << column;
+		os << filePath.str() << ":" << row << ":" << column;
 	}
 
 	const FilePath filePath;

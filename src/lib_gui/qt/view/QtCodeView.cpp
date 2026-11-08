@@ -1,9 +1,8 @@
 #include "QtCodeView.h"
 
 #include "CodeController.h"
-#include "ResourcePaths.h"
 #include "tracing.h"
-
+#include "QtResources.h"
 #include "ColorScheme.h"
 #include "QtCodeArea.h"
 #include "QtCodeNavigator.h"
@@ -11,12 +10,14 @@
 #include "QtViewWidgetWrapper.h"
 #include "utilityQt.h"
 
+using namespace utility;
+
 QtCodeView::QtCodeView(ViewLayout* viewLayout): CodeView(viewLayout)
 {
 	m_widget = new QtCodeNavigator();
 
-	m_widget->connect(m_widget, &QtCodeNavigator::focusIn, [this]() { setNavigationFocus(true); });
-	m_widget->connect(m_widget, &QtCodeNavigator::focusOut, [this]() { setNavigationFocus(false); });
+	QWidget::connect(m_widget, &QtCodeNavigator::focusIn, [this]() { setNavigationFocus(true); });
+	QWidget::connect(m_widget, &QtCodeNavigator::focusOut, [this]() { setNavigationFocus(false); });
 }
 
 void QtCodeView::createWidgetWrapper()
@@ -31,7 +32,7 @@ void QtCodeView::refreshView()
 		m_widget->setSchedulerId(getController()->getTabId());
 	}
 
-	m_onQtThread([=]() {
+	m_onQtThread([=, this]() {
 		TRACE("refresh");
 
 		setStyleSheet();
@@ -48,7 +49,7 @@ bool QtCodeView::isVisible() const
 	return m_widget->isVisible();
 }
 
-void QtCodeView::findMatches(ScreenSearchSender* sender, const std::wstring& query)
+void QtCodeView::findMatches(ScreenSearchSender* sender, const std::string& query)
 {
 	m_onQtThread([sender, query, this]() {
 		size_t matchCount = m_widget->findScreenMatches(query);
@@ -78,7 +79,7 @@ void QtCodeView::clearMatches()
 
 void QtCodeView::clear()
 {
-	m_onQtThread([=]() { m_widget->clear(); });
+	m_onQtThread([=, this]() { m_widget->clear(); });
 }
 
 bool QtCodeView::showsErrors() const
@@ -91,7 +92,7 @@ void QtCodeView::showSnippets(
 	const CodeParams& params,
 	const CodeScrollParams& scrollParams)
 {
-	m_onQtThread([=]() {
+	m_onQtThread([=, this]() {
 		TRACE("show snippets");
 
 		m_widget->setMode(QtCodeNavigator::MODE_LIST);
@@ -117,7 +118,7 @@ void QtCodeView::showSnippets(
 void QtCodeView::showSingleFile(
 	const CodeFileParams& file, const CodeParams& params, const CodeScrollParams& scrollParams)
 {
-	m_onQtThread([=]() {
+	m_onQtThread([=, this]() {
 		TRACE("show single file");
 
 		bool animatedScroll = !m_widget->isInListMode();
@@ -151,7 +152,7 @@ void QtCodeView::showSingleFile(
 
 void QtCodeView::updateSourceLocations(const std::vector<CodeFileParams>& files)
 {
-	m_onQtThread([=]() {
+	m_onQtThread([=, this]() {
 		TRACE("update source locations");
 
 		for (const CodeFileParams& file: files)
@@ -166,7 +167,7 @@ void QtCodeView::updateSourceLocations(const std::vector<CodeFileParams>& files)
 
 			if (file.fileParams && file.fileParams->hasAllSourceLocations)
 			{
-				m_widget->updateSourceLocations(*file.fileParams.get());
+				m_widget->updateSourceLocations(*file.fileParams);
 			}
 		}
 
@@ -176,17 +177,17 @@ void QtCodeView::updateSourceLocations(const std::vector<CodeFileParams>& files)
 
 void QtCodeView::scrollTo(const CodeScrollParams& params, bool animated)
 {
-	m_onQtThread([=]() { m_widget->scrollTo(params, animated, true); });
+	m_onQtThread([=, this]() { m_widget->scrollTo(params, animated, true); });
 }
 
 void QtCodeView::coFocusTokenIds(const std::vector<Id>& coFocusedTokenIds)
 {
-	m_onQtThread([=]() { m_widget->coFocusTokenIds(coFocusedTokenIds); });
+	m_onQtThread([=, this]() { m_widget->coFocusTokenIds(coFocusedTokenIds); });
 }
 
 void QtCodeView::deCoFocusTokenIds()
 {
-	m_onQtThread([=]() { m_widget->deCoFocusTokenIds(); });
+	m_onQtThread([=, this]() { m_widget->deCoFocusTokenIds(); });
 }
 
 bool QtCodeView::isInListMode() const
@@ -237,7 +238,7 @@ void QtCodeView::setNavigationState(const CodeParams& params)
 
 	if (params.activeLocalSymbolIds.size())
 	{
-		if (params.activeLocalSymbolType == LOCATION_TOKEN)
+		if (params.activeLocalSymbolType == LocationType::TOKEN)
 		{
 			m_widget->setCurrentActiveTokenIds(
 				params.currentActiveLocalLocationIds.size() ? std::vector<Id>()
@@ -261,11 +262,7 @@ void QtCodeView::setNavigationState(const CodeParams& params)
 
 void QtCodeView::setStyleSheet() const
 {
-	utility::setWidgetBackgroundColor(
-		m_widget, ColorScheme::getInstance()->getColor("code/background"));
+	setWidgetBackgroundColor(m_widget, ColorScheme::getInstance()->getColor("code/background"));
 
-	std::string styleSheet = utility::getStyleSheet(
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"code_view/code_view.css"));
-
-	m_widget->setStyleSheet(styleSheet.c_str());
+	m_widget->setStyleSheet(QtResources::loadStyleSheet(QtResources::CODE_VIEW_CSS));
 }

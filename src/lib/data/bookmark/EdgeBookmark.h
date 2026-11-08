@@ -7,12 +7,11 @@ class EdgeBookmark: public Bookmark
 {
 public:
 	EdgeBookmark(
-		const Id id,
-		const std::wstring& name,
-		const std::wstring& comment,
+		const BookmarkId bookmarkId,
+		const std::string& name,
+		const std::string& comment,
 		const TimeStamp& timeStamp,
 		const BookmarkCategory& category);
-	virtual ~EdgeBookmark();
 
 	void addEdgeId(const Id edgeId);
 	void setEdgeIds(const std::vector<Id>& edgesIds);

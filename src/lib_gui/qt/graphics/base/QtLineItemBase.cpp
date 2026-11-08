@@ -6,17 +6,12 @@
 
 QtLineItemBase::QtLineItemBase(QGraphicsItem* parent)
 	: QGraphicsLineItem(parent)
-	, m_showArrow(true)
-	, m_onFront(false)
-	, m_onBack(false)
-	, m_earlyBend(false)
-	, m_route(ROUTE_ANY)
 {
 	this->setAcceptHoverEvents(true);
 	this->setCursor(Qt::PointingHandCursor);
 }
 
-QtLineItemBase::~QtLineItemBase() {}
+QtLineItemBase::~QtLineItemBase() = default;
 
 void QtLineItemBase::updateLine(
 	const Vec4i& ownerRect,
@@ -318,7 +313,7 @@ QPolygon QtLineItemBase::getPath() const
 	return poly;
 }
 
-int QtLineItemBase::getDirection(QPointF a, QPointF b) const
+int QtLineItemBase::getDirection(QPointF a, QPointF b) 
 {
 	if (a.x() != b.x())
 	{
@@ -434,7 +429,7 @@ void QtLineItemBase::drawArrow(const QPolygon& poly, QPainterPath* path, QPainte
 }
 
 void QtLineItemBase::getPivotPoints(
-	Vec2f* p, const Vec4i& in, const Vec4i& out, int offset, bool target) const
+	Vec2f* p, const Vec4i& in, const Vec4i& out, int offset, bool  /*target*/) 
 {
 	float f = 1 / 2.f;
 

@@ -4,7 +4,7 @@ BaseInterprocessDataManager::BaseInterprocessDataManager(
 	const std::string& sharedMemoryName,
 	size_t initialSharedMemorySize,
 	const std::string& instanceUuid,
-	Id processId,
+	ProcessId processId,
 	bool isOwner)
 	: m_sharedMemory(
 		  sharedMemoryName,
@@ -15,7 +15,7 @@ BaseInterprocessDataManager::BaseInterprocessDataManager(
 {
 }
 
-Id BaseInterprocessDataManager::getProcessId() const
+ProcessId BaseInterprocessDataManager::getProcessId() const
 {
 	return m_processId;
 }

@@ -6,18 +6,18 @@
 #include "TooltipView.h"
 
 #include "MessageActivateSourceLocations.h"
-#include "TabId.h"
+#include "TabIds.h"
 #include "TaskDecoratorDelay.h"
 #include "TaskLambda.h"
 
 Id TooltipController::TooltipRequest::s_requestId = 1;
 
 TooltipController::TooltipController(StorageAccess* storageAccess)
-	: m_storageAccess(storageAccess), m_hideRequest(false)
+	: m_storageAccess(storageAccess) 
 {
 }
 
-TooltipController::~TooltipController() {}
+TooltipController::~TooltipController() = default;
 
 void TooltipController::clear()
 {
@@ -30,12 +30,12 @@ void TooltipController::clear()
 	getView()->hideTooltip(true);
 }
 
-void TooltipController::handleMessage(MessageActivateTokens* message)
+void TooltipController::handleMessage(MessageActivateTokens*  /*message*/)
 {
 	clear();
 }
 
-void TooltipController::handleMessage(MessageActivateLocalSymbols* message)
+void TooltipController::handleMessage(MessageActivateLocalSymbols*  /*message*/)
 {
 	clear();
 }
@@ -50,27 +50,27 @@ void TooltipController::handleMessage(MessageFocusIn* message)
 	requestTooltipShow(message->tokenIds, TooltipInfo(), message->origin);
 }
 
-void TooltipController::handleMessage(MessageFocusOut* message)
+void TooltipController::handleMessage(MessageFocusOut*  /*message*/)
 {
 	requestTooltipHide();
 }
 
-void TooltipController::handleMessage(MessageGraphNodeExpand* message)
+void TooltipController::handleMessage(MessageGraphNodeExpand*  /*message*/)
 {
 	clear();
 }
 
-void TooltipController::handleMessage(MessageScrollCode* message)
+void TooltipController::handleMessage(MessageScrollCode*  /*message*/)
 {
 	clear();
 }
 
-void TooltipController::handleMessage(MessageScrollGraph* message)
+void TooltipController::handleMessage(MessageScrollGraph*  /*message*/)
 {
 	clear();
 }
 
-void TooltipController::handleMessage(MessageTooltipHide* message)
+void TooltipController::handleMessage(MessageTooltipHide*  /*message*/)
 {
 	clear();
 }
@@ -106,7 +106,7 @@ void TooltipController::handleMessage(MessageTooltipShow* message)
 	}
 }
 
-void TooltipController::handleMessage(MessageWindowFocus* message)
+void TooltipController::handleMessage(MessageWindowFocus*  /*message*/)
 {
 	clear();
 }
@@ -145,7 +145,7 @@ void TooltipController::requestTooltipShow(
 	}
 
 	Task::dispatch(
-		TabId::app(),
+		TabIds::app(),
 		std::make_shared<TaskDecoratorDelay>(delayMS)->addChildTask(
 			std::make_shared<TaskLambda>([requestId, this]() {
 				std::unique_ptr<TooltipRequest> request;
@@ -181,7 +181,7 @@ void TooltipController::requestTooltipHide()
 	m_hideRequest = true;
 
 	Task::dispatch(
-		TabId::app(),
+		TabIds::app(),
 		std::make_shared<TaskDecoratorDelay>(500)->addChildTask(std::make_shared<TaskLambda>([this]() {
 			if (m_hideRequest)
 			{

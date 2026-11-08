@@ -2,7 +2,7 @@
 
 #include "TaskRunner.h"
 
-TaskDecorator::TaskDecorator() {}
+TaskDecorator::TaskDecorator() = default;
 
 std::shared_ptr<TaskDecorator> TaskDecorator::addChildTask(std::shared_ptr<Task> child)
 {

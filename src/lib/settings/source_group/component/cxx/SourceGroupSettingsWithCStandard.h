@@ -8,14 +8,13 @@
 class SourceGroupSettingsWithCStandard: public SourceGroupSettingsComponent
 {
 public:
-	static std::wstring getDefaultCStandardStatic();
+	static std::string getDefaultCStandard();
+	static std::vector<std::string> getAvailableCStandards();
 
-	virtual ~SourceGroupSettingsWithCStandard() = default;
+	~SourceGroupSettingsWithCStandard() override = default;
 
-	std::wstring getCStandard() const;
-	void setCStandard(const std::wstring& standard);
-
-	std::vector<std::wstring> getAvailableCStandards() const;
+	std::string getCStandard() const;
+	void setCStandard(const std::string& standard);
 
 protected:
 	bool equals(const SourceGroupSettingsBase* other) const override;
@@ -24,9 +23,7 @@ protected:
 	void save(ConfigManager* config, const std::string& key) override;
 
 private:
-	std::wstring getDefaultCStandard() const;
-
-	std::wstring m_cStandard;
+	std::string m_cStandard;
 };
 
 #endif	  // SOURCE_GROUP_SETTINGS_WITH_C_STANDARD_H

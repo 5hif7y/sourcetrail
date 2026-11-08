@@ -1,12 +1,11 @@
 #ifndef CODE_SNIPPET_PARAMS_H
 #define CODE_SNIPPET_PARAMS_H
 
-#include <memory>
-
 #include "TimeStamp.h"
-#include "types.h"
+#include "SourceLocationFile.h"
 
-class SourceLocationFile;
+#include <memory>
+#include <optional>
 
 struct CodeSnippetParams
 {
@@ -15,8 +14,8 @@ struct CodeSnippetParams
 	size_t startLineNumber = 0;
 	size_t endLineNumber = 0;
 
-	std::wstring title;
-	std::wstring footer;
+	std::string title;
+	std::string footer;
 	std::string code;
 
 	Id titleId = 0;
@@ -41,7 +40,7 @@ struct CodeFileParams
 	bool isDefinition = false;
 
 	std::vector<CodeSnippetParams> snippetParams;
-	std::shared_ptr<CodeSnippetParams> fileParams;	  // TODO: replace with std::optional
+	std::optional<CodeSnippetParams> fileParams;
 };
 
 #endif	  // CODE_SNIPPET_PARAMS_H

@@ -3,31 +3,31 @@
 
 #include <string>
 
-#include "types.h"
+#include "Bookmark.h"
 
 struct StorageBookmarkedNodeData
 {
-	StorageBookmarkedNodeData(): bookmarkId(0), serializedNodeName(L"") {}
+	StorageBookmarkedNodeData(): bookmarkId(BookmarkId::NONE) {}
 
-	StorageBookmarkedNodeData(Id bookmarkId, const std::wstring& serializedNodeName)
+	StorageBookmarkedNodeData(BookmarkId bookmarkId, const std::string& serializedNodeName)
 		: bookmarkId(bookmarkId), serializedNodeName(serializedNodeName)
 	{
 	}
 
-	Id bookmarkId;
-	std::wstring serializedNodeName;
+	BookmarkId bookmarkId;
+	std::string serializedNodeName;
 };
 
 struct StorageBookmarkedNode: public StorageBookmarkedNodeData
 {
-	StorageBookmarkedNode(): StorageBookmarkedNodeData(), id(0) {}
+	StorageBookmarkedNode():  id(0) {}
 
 	StorageBookmarkedNode(Id id, const StorageBookmarkedNodeData& data)
 		: StorageBookmarkedNodeData(data), id(id)
 	{
 	}
 
-	StorageBookmarkedNode(Id id, Id bookmarkId, const std::wstring& serializedNodeName)
+	StorageBookmarkedNode(Id id, BookmarkId bookmarkId, const std::string& serializedNodeName)
 		: StorageBookmarkedNodeData(bookmarkId, serializedNodeName), id(id)
 	{
 	}

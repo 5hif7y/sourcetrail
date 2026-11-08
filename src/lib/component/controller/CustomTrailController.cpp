@@ -16,7 +16,7 @@ void CustomTrailController::clear()
 		m_storageAccess->getAvailableNodeTypes(), m_storageAccess->getAvailableEdgeTypes());
 }
 
-void CustomTrailController::autocomplete(const std::wstring query, bool from)
+void CustomTrailController::autocomplete(const std::string query, bool from)
 {
 	NodeTypeSet nodeTypes = NodeTypeSet::all();
 	nodeTypes.remove(NodeType(NODE_MODULE));
@@ -34,17 +34,17 @@ void CustomTrailController::activateTrail(MessageActivateTrail message)
 	message.dispatch();
 }
 
-void CustomTrailController::handleMessage(MessageCustomTrailShow* message)
+void CustomTrailController::handleMessage(MessageCustomTrailShow*  /*message*/)
 {
 	getView()->showView();
 }
 
-void CustomTrailController::handleMessage(MessageIndexingFinished* message)
+void CustomTrailController::handleMessage(MessageIndexingFinished*  /*message*/)
 {
 	clear();
 }
 
-void CustomTrailController::handleMessage(MessageWindowClosed* message)
+void CustomTrailController::handleMessage(MessageWindowClosed*  /*message*/)
 {
 	getView()->hideView();
 }

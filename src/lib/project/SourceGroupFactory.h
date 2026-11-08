@@ -14,6 +14,8 @@ public:
 	static std::shared_ptr<SourceGroupFactory> getInstance();
 
 	void addModule(std::shared_ptr<SourceGroupFactoryModule> module);
+	bool removeModule(const std::shared_ptr<SourceGroupFactoryModule>& module);
+	size_t moduleCount() const;
 
 	std::vector<std::shared_ptr<SourceGroup>> createSourceGroups(
 		std::vector<std::shared_ptr<SourceGroupSettings>> allSourceGroupSettings);

@@ -16,16 +16,16 @@ public:
 		std::shared_ptr<SourceGroupSettingsCustomCommand> settings, QtProjectWizardWindow* window);
 
 	// QtProjectWizardContent implementation
-	virtual void populate(QGridLayout* layout, int& row) override;
+	void populate(QGridLayout* layout, int& row) override;
 
-	virtual void load() override;
-	virtual void save() override;
-	virtual bool check() override;
+	void load() override;
+	void save() override;
+	bool check() override;
 
 private:
 	std::shared_ptr<SourceGroupSettingsCustomCommand> m_settings;
 
-	QLineEdit* m_customCommand;
+	QLineEdit* m_customCommand = nullptr;
 	QCheckBox* m_runInParallel;
 };
 

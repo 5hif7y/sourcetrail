@@ -18,8 +18,7 @@ public:
 		size_t totalFileCount,
 		float time,
 		bool interrupted,
-		bool shallow,
-		QWidget* parent = 0);
+		QWidget* parent = nullptr);
 	QSize sizeHint() const override;
 
 	void updateErrorCount(size_t errorCount, size_t fatalCount);

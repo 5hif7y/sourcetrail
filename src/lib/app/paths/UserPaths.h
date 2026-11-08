@@ -1,8 +1,6 @@
 #ifndef USER_PATHS_H
 #define USER_PATHS_H
 
-#include <string>
-
 #include "FilePath.h"
 
 class UserPaths

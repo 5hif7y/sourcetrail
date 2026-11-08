@@ -1,9 +1,10 @@
 #ifndef QT_FILE_DIALOG_H
 #define QT_FILE_DIALOG_H
 
+#include <QtContainerFwd>
+
 class FilePath;
 class QString;
-class QStringList;
 class QWidget;
 
 class QtFileDialog

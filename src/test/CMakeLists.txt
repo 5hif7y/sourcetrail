@@ -1,10 +1,11 @@
-add_files(
-	TEST
-
+add_executable(Sourcetrail_test
 	helper/TestFileRegister.cpp
 	helper/TestFileRegister.h
 	helper/TestStorage.h
+	helper/TestStorage.cpp
 
+	Catch2.hpp
+	Catch2.cpp
 	test_main.cpp
 
 	CommandlineTestSuite.cpp
@@ -26,10 +27,11 @@ add_files(
 	MatrixDynamicBaseTestSuite.cpp
 	MessageQueueTestSuite.cpp
 	NetworkProtocolHelperTestSuite.cpp
-	PythonIndexerTestSuite.cpp
+	PlatformTestSuite.cpp
+	QtActionsTestSuite.cpp
+	QtResourcesTestSuite.cpp
 	RefreshInfoGeneratorTestSuite.cpp
 	SearchIndexTestSuite.cpp
-	SettingsMigratorTestSuite.cpp
 	SettingsTestSuite.cpp
 	SharedMemoryTestSuite.cpp
 	SourceGroupTestSuite.cpp
@@ -39,9 +41,37 @@ add_files(
 	StorageTestSuite.cpp
 	TaskSchedulerTestSuite.cpp
 	TextAccessTestSuite.cpp
+	TextCodecTestSuite.cpp
+	UtilityEnumTestSuite.cpp
 	UtilityGradleTestSuite.cpp
 	UtilityMavenTestSuite.cpp
+	ToolChainTestSuite.cpp
 	UtilityStringTestSuite.cpp
-	UtilityTestSuite.cpp
 	Vector2TestSuite.cpp
+
+	Snippet.cpp
 )
+setDefaultTargetOptions(Sourcetrail_test)
+
+target_include_directories(Sourcetrail_test
+	PRIVATE
+		helper
+)
+
+setTestOutputDirectory(Sourcetrail_test)
+
+target_link_libraries(Sourcetrail_test
+	PRIVATE
+		Sourcetrail_lib
+		Sourcetrail_res_gui
+		Catch2::Catch2
+)
+
+if (WIN32)
+	set_target_properties(Sourcetrail_test
+		PROPERTIES
+			VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/test"
+	)
+endif ()
+
+catch_discover_tests(Sourcetrail_test)

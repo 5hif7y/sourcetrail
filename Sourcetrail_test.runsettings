@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+	<!-- Configurations that affect the Test Framework -->
+	<RunConfiguration>
+		<!--
+		Catch2 doesn't support parallel execution
+		https://github.com/catchorg/Catch2/blob/devel/docs/limitations.md#running-multiple-tests-in-parallel
+		<MaxCpuCount>4</MaxCpuCount>
+		-->
+		
+		<!-- 
+		<TestSessionTimeout>60000</TestSessionTimeout> 
+		-->
+	</RunConfiguration>
+
+	<!-- Catch2 adapter -->
+	<Catch2Adapter disabled="false">
+		<FilenameFilter>.*_test.*</FilenameFilter>
+	</Catch2Adapter>
+</RunSettings>

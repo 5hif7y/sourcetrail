@@ -13,7 +13,7 @@
 #include "QtRoundedRectItem.h"
 
 QtGraphNodeGroup::QtGraphNodeGroup(
-	GraphFocusHandler* focusHandler, Id tokenId, const std::wstring& name, GroupType type, bool interactive)
+	GraphFocusHandler* focusHandler, Id tokenId, const std::string& name, GroupType type, bool interactive)
 	: QtGraphNode(focusHandler), m_tokenId(tokenId), m_type(type)
 {
 	m_isInteractive = interactive;
@@ -59,7 +59,7 @@ QtGraphNodeGroup::QtGraphNodeGroup(
 	m_background->setPolygon(path.toFillPolygon());
 }
 
-QtGraphNodeGroup::~QtGraphNodeGroup() {}
+QtGraphNodeGroup::~QtGraphNodeGroup() = default;
 
 bool QtGraphNodeGroup::isGroupNode() const
 {
@@ -116,7 +116,7 @@ QPainterPath QtGraphNodeGroup::shape() const
 	return m_path;
 }
 
-void QtGraphNodeGroup::hoverLeaveEvent(QGraphicsSceneHoverEvent* event)
+void QtGraphNodeGroup::hoverLeaveEvent(QGraphicsSceneHoverEvent*  /*event*/)
 {
 	if (m_type == GroupType::FILE || m_type == GroupType::NAMESPACE)
 	{

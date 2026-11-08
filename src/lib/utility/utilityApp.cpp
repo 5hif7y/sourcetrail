@@ -1,0 +1,381 @@
+#include "utilityApp.h"
+
+#include "ScopedFunctor.h"
+#include "logging.h"
+#include "utilityString.h"
+
+#include <aidkit/concurrent/thread_shared.hpp>
+
+#include <boost/asio/buffer.hpp>
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/read.hpp>
+
+#if BOOST_VERSION >= 108600
+	#include <boost/process/v1/args.hpp>
+	#include <boost/process/v1/async_pipe.hpp>
+	#include <boost/process/v1/child.hpp>
+	#include <boost/process/v1/env.hpp>
+	#include <boost/process/v1/io.hpp>
+	#include <boost/process/v1/search_path.hpp>
+	#include <boost/process/v1/start_dir.hpp>
+	#if BOOST_OS_WINDOWS
+		#include <boost/process/v1/windows.hpp>
+	#endif
+	namespace process_v1 = boost::process::v1;
+#else
+	#include <boost/process.hpp>
+
+	namespace process_v1 = boost::process;
+#endif
+
+#include <algorithm>
+#include <cstdint>
+#include <cstdlib>
+#include <set>
+#include <thread>
+
+#if defined(_WIN32)
+	#include <windows.h>
+#elif defined(__APPLE__)
+	#include <sys/sysctl.h>
+	#include <unistd.h>
+#elif defined(__unix__)
+	#include <unistd.h>
+#endif
+
+using namespace std;
+using namespace std::chrono;
+using namespace boost;
+using namespace boost::asio;
+using namespace aidkit;
+
+namespace utility
+{
+static_assert(INFINITE_TIMEOUT.count() > 0, "INFINITE_TIMEOUT must be a positive duration");
+
+namespace
+{
+concurrent::thread_shared<std::set<std::shared_ptr<process_v1::child>>> s_runningProcesses;
+
+bool pump_and_wait_for_process(io_context *ctx, process_v1::child *process, milliseconds timeout)
+{
+	// This function used to call 'process::child::wait_for()' which issued the warning "wait_for is unreliable".
+	// See these tickets for further information:
+	// https://github.com/klemens-morgenstern/boost-process/issues/99
+	// https://github.com/klemens-morgenstern/boost-process/issues/112
+
+	// Use adaptive polling based on the expected process lifetime:
+	// 1) Short-lived (e.g., mvn, gcc, clang): Poll frequently to detect fast completion.
+	// 2) Long-lived (e.g., indexers): Poll less often to reduce CPU overhead.
+
+	const milliseconds pollInterval = (timeout != INFINITE_TIMEOUT) ? 100ms : 500ms;
+
+	// We deliberately don't use a 'steady clock' approach so this code also works when debugging.
+
+	while (process->running() && timeout > milliseconds::zero())
+	{
+		ctx->poll();
+
+		this_thread::sleep_for(pollInterval);
+		timeout -= std::min(timeout, pollInterval);
+	}
+	ctx->poll();
+	return !process->running();
+}
+
+template <class... Args>
+std::shared_ptr<process_v1::child> make_child(const FilePath &workingDirectory, Args &&...args)
+{
+	if (workingDirectory.empty())
+	{
+		return std::make_shared<process_v1::child>(std::forward<Args>(args)...);
+	}
+	else
+	{
+		return std::make_shared<process_v1::child>(std::forward<Args>(args)..., process_v1::start_dir(workingDirectory.str()));
+	}
+}
+
+} // namespace
+
+ProcessOutput executeProcess(const std::string& command, const std::vector<std::string>& arguments, const FilePath& workingDirectory,
+	const bool waitUntilNoOutput, const milliseconds &timeout, bool logProcessOutput)
+{
+	try
+	{
+		boost::asio::io_context ctx;
+		process_v1::async_pipe ap(ctx);
+
+		process_v1::environment env = boost::this_process::environment();
+		std::vector<std::string> previousPath = env["PATH"].to_vector();
+		env["PATH"] = {"/opt/local/bin", "/usr/local/bin", "$HOME/bin"};
+		for (const std::string& entry: previousPath)
+		{
+			env["PATH"].append(entry);
+		}
+
+		std::shared_ptr<process_v1::child> process = make_child(
+			workingDirectory,
+			searchPath(command),
+			process_v1::args(arguments),
+			env,
+			process_v1::std_in.close(),
+			#if BOOST_OS_WINDOWS
+				process_v1::windows::hide,
+			#endif
+			(process_v1::std_out & process_v1::std_err) > ap
+		);
+
+		s_runningProcesses.access()->insert(process);
+
+		[[maybe_unused]]
+		ScopedFunctor remover([process]()
+		{
+			s_runningProcesses.access()->erase(process);
+		});
+
+		std::string output;
+		bool outputReceived = false;
+		std::vector<char> buf(128);
+		auto stdOutBuffer = boost::asio::buffer(buf);
+		std::string logBuffer;
+
+		std::function<void(const boost::system::error_code& ec, std::size_t n)> onStdOut =
+			[&output, &buf, &stdOutBuffer, &ap, &onStdOut, &outputReceived, &logBuffer, logProcessOutput]
+				(const boost::system::error_code& ec, std::size_t size)
+		{
+			std::string text;
+			text.reserve(size);
+			text.insert(text.end(), buf.begin(), buf.begin() + size);
+
+			if (!text.empty())
+			{
+				outputReceived = true;
+			}
+
+			output += text;
+			if (logProcessOutput)
+			{
+				logBuffer += text;
+				const bool isEndOfLine = (logBuffer.back() == '\n');
+				const std::vector<std::string> lines = splitToVector(logBuffer, "\n");
+				for (size_t i = 0; i < lines.size() - (isEndOfLine ? 0 : 1); i++)
+				{
+					LOG_INFO_BARE("Process output: " + lines[i]);
+				}
+				if (isEndOfLine)
+				{
+					logBuffer.clear();
+				}
+				else
+				{
+					logBuffer = lines.back();
+				}
+			}
+			if (!ec)
+			{
+				boost::asio::async_read(ap, stdOutBuffer, onStdOut);
+			}
+		};
+
+		boost::asio::async_read(ap, stdOutBuffer, onStdOut);
+
+		if (timeout != INFINITE_TIMEOUT)
+		{
+			const std::string commandLine = "'" + command + " " + utility::join(arguments, ' ') + "'";
+			const std::string duration = std::to_string(duration_cast<seconds>(timeout).count());
+
+			if (waitUntilNoOutput)
+			{
+				while (!pump_and_wait_for_process(&ctx, process.get(), timeout))
+				{
+					if (!outputReceived)
+					{
+						LOG_WARNING("Cancelling process " + commandLine + " because it did not generate any output during the last " + duration + " seconds.");
+						process->terminate();
+						break;
+					}
+					outputReceived = false;
+				}
+			}
+			else
+			{
+				if (!pump_and_wait_for_process(&ctx, process.get(), timeout))
+				{
+					LOG_WARNING("Cancelling process " + commandLine + " because it timed out after " + duration + " seconds.");
+					process->terminate();
+				}
+			}
+		}
+		else
+		{
+			pump_and_wait_for_process(&ctx, process.get(), INFINITE_TIMEOUT);
+			process->wait();
+		}
+
+		if (logProcessOutput)
+		{
+			for (const std::string& line: splitToVector(logBuffer, "\n"))
+			{
+				LOG_INFO_BARE("Process output: " + line);
+			}
+		}
+
+		int exitCode = process->exit_code();
+		ProcessOutput ret;
+		ret.output = trim(output);
+		ret.exitCode = exitCode;
+
+		return ret;
+	}
+	catch (const process_v1::process_error& e)
+	{
+		ProcessOutput ret;
+		ret.error = e.code().message();
+		ret.exitCode = e.code().value();
+		LOG_ERROR_BARE("Process error: " + ret.error);
+
+		return ret;
+	}
+}
+
+void killRunningProcesses()
+{
+	concurrent::access([](auto &runningProcesses)
+	{
+		for (std::shared_ptr<process_v1::child> process : runningProcesses)
+		{
+			process->terminate();
+		}
+	}, s_runningProcesses);
+}
+
+std::string getDocumentationLink()
+{
+	return "https://github.com/petermost/Sourcetrail/blob/master/DOCUMENTATION.md";
+}
+
+std::string searchPath(const std::string& bin, bool& ok)
+{
+	ok = false;
+	std::string r = process_v1::search_path(bin).generic_string();
+	if (!r.empty())
+	{
+		ok = true;
+		return r;
+	}
+	return bin;
+}
+
+std::string searchPath(const std::string& bin)
+{
+	bool ok;
+	return searchPath(bin, ok);
+}
+
+int getIdealThreadCount(bool forGui)
+{
+	const char* env = std::getenv("SOURCETRAIL_INDEXER_THREADS");
+	if (env && env[0] != '\0')
+	{
+		char* end = nullptr;
+		const long requested = std::strtol(env, &end, 10);
+		if (end != env && requested >= 1)
+		{
+			return static_cast<int>(std::min<long>(requested, 64));
+		}
+	}
+
+	int threadCount = static_cast<int>(thread::hardware_concurrency());
+	if (threadCount <= 0)
+	{
+		threadCount = 4;
+	}
+	if (forGui && Platform::isWindows())
+	{
+		threadCount -= 1; // Most likely to keep the GUI thread responsive
+	}
+	if (!forGui)
+	{
+		// Headless/embedded default: keep the number of Python/Java workers low.
+		// Desktop CLI users can raise it with SOURCETRAIL_INDEXER_THREADS.
+		threadCount = std::min(threadCount, 2);
+	}
+	return std::max(1, threadCount);
+}
+
+unsigned long long getPhysicalMemoryBytes()
+{
+#if defined(_WIN32)
+	MEMORYSTATUSEX status = {};
+	status.dwLength = sizeof(status);
+	if (GlobalMemoryStatusEx(&status))
+	{
+		return static_cast<unsigned long long>(status.ullTotalPhys);
+	}
+#elif defined(__APPLE__)
+	uint64_t memory = 0;
+	size_t size = sizeof(memory);
+	if (sysctlbyname("hw.memsize", &memory, &size, nullptr, 0) == 0)
+	{
+		return static_cast<unsigned long long>(memory);
+	}
+#elif defined(__unix__)
+	const long pages = sysconf(_SC_PHYS_PAGES);
+	const long pageSize = sysconf(_SC_PAGE_SIZE);
+	if (pages > 0 && pageSize > 0)
+	{
+		return static_cast<unsigned long long>(pages) *
+			static_cast<unsigned long long>(pageSize);
+	}
+#endif
+	return 0;
+}
+
+int getJavaHeapSizeMb()
+{
+	const char* env = std::getenv("SOURCETRAIL_JAVA_HEAP");
+	if (env && env[0] != '\0')
+	{
+		char* end = nullptr;
+		const long requested = std::strtol(env, &end, 10);
+		if (end != env && requested > 0)
+		{
+			return static_cast<int>(std::min<long>(requested, 8192));
+		}
+	}
+
+	const unsigned long long bytes = getPhysicalMemoryBytes();
+	if (bytes == 0)
+	{
+		return 2048;
+	}
+	const long long totalMb = static_cast<long long>(bytes / (1024ULL * 1024ULL));
+	const long long heapMb = totalMb / 4; // 25% of physical RAM
+	return static_cast<int>(std::max<long long>(256, std::min<long long>(2048, heapMb)));
+}
+
+}	 // namespace utility
+
+/* Not referenced anywhere!
+enum class OsType
+{
+	UNKNOWN,
+	LINUX,
+	MAC,
+	WINDOWS
+};
+
+std::string getOsTypeString()
+{
+	// WARNING: Don't change these string. The server API relies on them.
+	if constexpr (Platform::isWindows())
+		return "windows";
+	else if constexpr (Platform::isMac())
+		return "macOS";
+	else if constexpr (Platform::isLinux())
+		return "linux";
+	else
+		return "unknown";
+}
+*/

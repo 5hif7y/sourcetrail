@@ -11,7 +11,7 @@ public:
 		return "MessageErrorsAll";
 	}
 
-	MessageErrorsAll() {}
+	MessageErrorsAll() = default;
 };
 
 #endif	  // MESSAGE_ERRORS_ALL_H

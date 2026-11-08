@@ -18,7 +18,7 @@ class SourceGroupSettingsJavaEmpty
 {
 public:
 	SourceGroupSettingsJavaEmpty(const std::string& id, const ProjectSettings* projectSettings)
-		: SourceGroupSettingsWithComponents(SOURCE_GROUP_JAVA_EMPTY, id, projectSettings)
+		: SourceGroupSettingsWithComponents(SourceGroupType::JAVA_EMPTY, id, projectSettings)
 	{
 	}
 

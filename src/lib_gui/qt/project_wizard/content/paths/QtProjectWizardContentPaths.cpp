@@ -1,7 +1,7 @@
 #include "QtProjectWizardContentPaths.h"
+#include "QtMessageBox.h"
 
 #include <QComboBox>
-#include <QMessageBox>
 
 #include "SourceGroupSettings.h"
 #include "utility.h"
@@ -13,7 +13,6 @@ QtProjectWizardContentPaths::QtProjectWizardContentPaths(
 	bool checkMissingPaths)
 	: QtProjectWizardContent(window)
 	, m_settings(settings)
-	, m_makePathsRelativeToProjectFileLocation(true)
 	, m_selectionPolicy(selectionPolicy)
 	, m_checkMissingPaths(checkMissingPaths)
 {
@@ -72,7 +71,7 @@ bool QtProjectWizardContentPaths::check()
 			{
 				if (!expandedPath.exists())
 				{
-					missingPaths.append(QString::fromStdWString(expandedPath.wstr() + L"\n"));
+					missingPaths.append(QString::fromStdString(expandedPath.str() + "\n"));
 				}
 				else
 				{
@@ -88,30 +87,27 @@ bool QtProjectWizardContentPaths::check()
 
 		if (!missingPaths.isEmpty())
 		{
-			QMessageBox msgBox(m_window);
+			QtMessageBox msgBox(m_window);
 			msgBox.setText(QString("Some provided paths do not exist at \"%1\". Do you want to "
 								   "remove them before continuing?")
 							   .arg(m_titleString));
 			msgBox.setDetailedText(missingPaths);
-			QPushButton* removeButton = msgBox.addButton(
-				QStringLiteral("Remove"), QMessageBox::YesRole);
-			QPushButton* keepButton = msgBox.addButton(
-				QStringLiteral("Keep"), QMessageBox::ButtonRole::NoRole);
-			QPushButton* cancelButton = msgBox.addButton(
-				QStringLiteral("Cancel"), QMessageBox::ButtonRole::RejectRole);
+			QPushButton* removeButton = msgBox.addButton(tr("Remove"), QtMessageBox::YesRole);
+			QPushButton* keepButton = msgBox.addButton(tr("Keep"), QtMessageBox::ButtonRole::NoRole);
+			QPushButton* cancelButton = msgBox.addButton(tr("Cancel"), QtMessageBox::ButtonRole::RejectRole);
 
-			msgBox.exec();
+			QAbstractButton *clickedButton = msgBox.execModal();
 
-			if (msgBox.clickedButton() == removeButton)
+			if (clickedButton == removeButton)
 			{
 				m_list->setPaths(existingPaths);
 				save();
 			}
-			else if (msgBox.clickedButton() == keepButton)
+			else if (clickedButton == keepButton)
 			{
 				return true;
 			}
-			else if (msgBox.clickedButton() == cancelButton)
+			else if (clickedButton == cancelButton)
 			{
 				return false;
 			}
@@ -138,16 +134,16 @@ void QtProjectWizardContentPaths::addDetection(QGridLayout* layout, int row)
 		return;
 	}
 
-	QLabel* label = new QLabel(QStringLiteral("Auto detection from:"));
+	QLabel* label = new QLabel(tr("Auto detection from:"));
 
 	m_detectorBox = new QComboBox();
 
 	for (const std::string& detectorName: detectorNames)
 	{
-		m_detectorBox->addItem(detectorName.c_str());
+		m_detectorBox->addItem(QString::fromStdString(detectorName));
 	}
 
-	QPushButton* button = new QPushButton(QStringLiteral("detect"));
+	QPushButton* button = new QPushButton(tr("detect"));
 	button->setObjectName(QStringLiteral("windowButton"));
 	connect(button, &QPushButton::clicked, this, &QtProjectWizardContentPaths::detectionClicked);
 

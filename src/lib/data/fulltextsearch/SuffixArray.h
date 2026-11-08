@@ -1,36 +1,23 @@
 #ifndef SUFFIX_ARRAY_H
 #define SUFFIX_ARRAY_H
 
-#include <iostream>
 #include <string>
 #include <vector>
 
 class SuffixArray
 {
 public:
-	SuffixArray(const std::wstring& text);
-	std::vector<int> searchForTerm(const std::wstring& searchTerm) const;
-	static int cmp(const struct suffix& a, const struct suffix& b);
+	SuffixArray(const std::string& text);
 
-	void printArray() const;
-	void printLCP() const;
+	std::vector<int> searchForTerm(const std::string& searchTerm) const;
 
 private:
-	template <typename T>
-	void printArr(std::vector<T> arr) const
-	{
-		for (size_t i = 0; i < arr.size(); i++)
-		{
-			std::cout << arr[i] << " ";
-		}
-		std::cout << std::endl;
-	}
+	std::vector<int> buildSuffixes() const;
+	std::vector<int> buildLongestCommonPrefixes() const;
 
-	std::vector<int> buildLCP();
-	std::vector<int> buildSuffixArray();
-	std::vector<int> m_array;
-	std::vector<int> m_lcp;
-	std::wstring m_text;
+	const std::u32string m_text32;
+	const std::vector<int> m_suffixes;
+	const std::vector<int> m_longestCommonPrefixes;
 };
 
 #endif	  // SUFFIX_ARRAY_H

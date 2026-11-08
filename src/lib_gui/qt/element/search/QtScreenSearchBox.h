@@ -25,7 +25,7 @@ signals:
 	void focusIn();
 
 protected:
-	bool eventFilter(QObject* obj, QEvent* event);
+	bool eventFilter(QObject* obj, QEvent* event) override;
 };
 
 
@@ -36,7 +36,7 @@ class QtScreenSearchBox: public QFrame
 public:
 	QtScreenSearchBox(
 		ControllerProxy<ScreenSearchController>* controllerProxy, QWidget* parent = nullptr);
-	virtual ~QtScreenSearchBox();
+	~QtScreenSearchBox() override;
 
 	void setMatchCount(size_t matchCount);
 	void setMatchIndex(size_t matchIndex);

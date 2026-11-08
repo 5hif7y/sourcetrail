@@ -1,13 +1,13 @@
 #include "TaskGroupSelector.h"
 
-TaskGroupSelector::TaskGroupSelector(): m_taskIndex(0) {}
+TaskGroupSelector::TaskGroupSelector() = default;
 
 void TaskGroupSelector::addTask(std::shared_ptr<Task> task)
 {
 	m_taskRunners.push_back(std::make_shared<TaskRunner>(task));
 }
 
-void TaskGroupSelector::doEnter(std::shared_ptr<Blackboard> blackboard)
+void TaskGroupSelector::doEnter(std::shared_ptr<Blackboard>  /*blackboard*/)
 {
 	m_taskIndex = 0;
 }
@@ -42,9 +42,9 @@ Task::TaskState TaskGroupSelector::doUpdate(std::shared_ptr<Blackboard> blackboa
 	return STATE_RUNNING;
 }
 
-void TaskGroupSelector::doExit(std::shared_ptr<Blackboard> blackboard) {}
+void TaskGroupSelector::doExit(std::shared_ptr<Blackboard>  /*blackboard*/) {}
 
-void TaskGroupSelector::doReset(std::shared_ptr<Blackboard> blackboard)
+void TaskGroupSelector::doReset(std::shared_ptr<Blackboard>  /*blackboard*/)
 {
 	for (size_t i = 0; i < m_taskRunners.size(); i++)
 	{

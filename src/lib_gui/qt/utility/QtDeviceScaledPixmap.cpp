@@ -10,14 +10,14 @@ qreal QtDeviceScaledPixmap::devicePixelRatio()
 	return app->devicePixelRatio();
 }
 
-QtDeviceScaledPixmap::QtDeviceScaledPixmap() {}
+QtDeviceScaledPixmap::QtDeviceScaledPixmap() = default;
 
 QtDeviceScaledPixmap::QtDeviceScaledPixmap(const QString& filePath): m_pixmap(filePath)
 {
 	m_pixmap.setDevicePixelRatio(devicePixelRatio());
 }
 
-QtDeviceScaledPixmap::~QtDeviceScaledPixmap() {}
+QtDeviceScaledPixmap::~QtDeviceScaledPixmap() = default;
 
 const QPixmap& QtDeviceScaledPixmap::pixmap() const
 {
@@ -36,21 +36,23 @@ qreal QtDeviceScaledPixmap::height() const
 
 void QtDeviceScaledPixmap::scaleToWidth(int width)
 {
-	m_pixmap = m_pixmap.scaledToWidth(
-		static_cast<int>(width * devicePixelRatio()), Qt::SmoothTransformation);
+	m_pixmap = m_pixmap.scaledToWidth(static_cast<int>(width * devicePixelRatio()), Qt::SmoothTransformation);
 	m_pixmap.setDevicePixelRatio(devicePixelRatio());
 }
 
 void QtDeviceScaledPixmap::scaleToHeight(int height)
 {
-	m_pixmap = m_pixmap.scaledToHeight(
-		static_cast<int>(height * devicePixelRatio()), Qt::SmoothTransformation);
+	m_pixmap = m_pixmap.scaledToHeight(static_cast<int>(height * devicePixelRatio()), Qt::SmoothTransformation);
 	m_pixmap.setDevicePixelRatio(devicePixelRatio());
 }
 
-void QtDeviceScaledPixmap::mirror(bool horizontal, bool vertical)
+void QtDeviceScaledPixmap::mirror()
 {
-	m_pixmap = QPixmap::fromImage(m_pixmap.toImage().mirrored(horizontal, vertical));
+	#if QT_VERSION > QT_VERSION_CHECK(6, 9, 0)
+		m_pixmap = QPixmap::fromImage(m_pixmap.toImage().flipped());
+	#else
+		m_pixmap = QPixmap::fromImage(m_pixmap.toImage().mirrored());
+	#endif
 	m_pixmap.setDevicePixelRatio(devicePixelRatio());
 }
 

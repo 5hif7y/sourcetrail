@@ -9,7 +9,7 @@ class QtTable: public QTableView
 
 public:
 	QtTable(QWidget* parent = nullptr);
-	virtual ~QtTable();
+	~QtTable() override;
 
 	void updateRows();
 	int getFilledRowCount();
@@ -23,13 +23,13 @@ protected slots:
 	void columnResized(int column, int oldWidth, int newWidth);
 
 protected:
-	virtual void resizeEvent(QResizeEvent* event);
-	virtual void mousePressEvent(QMouseEvent* event);
-	virtual void mouseMoveEvent(QMouseEvent* event);
-	virtual void mouseReleaseEvent(QMouseEvent* event);
+	void resizeEvent(QResizeEvent* event) override;
+	void mousePressEvent(QMouseEvent* event) override;
+	void mouseMoveEvent(QMouseEvent* event) override;
+	void mouseReleaseEvent(QMouseEvent* event) override;
 
 private:
-	float m_rowsToFill;
+	float m_rowsToFill = 0;
 
 	int m_colIndex = -1;
 	int m_lastPos = -1;

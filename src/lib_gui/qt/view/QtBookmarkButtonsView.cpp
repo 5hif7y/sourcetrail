@@ -1,21 +1,23 @@
 #include "QtBookmarkButtonsView.h"
-
-#include <QFrame>
-#include <QHBoxLayout>
-#include <QMessageBox>
-#include <QPushButton>
-
 #include "MessageBookmarkBrowse.h"
 #include "MessageBookmarkCreate.h"
 #include "MessageBookmarkDelete.h"
 #include "MessageBookmarkEdit.h"
+#include "QtActions.h"
+#include "QtMessageBox.h"
+#include "QtResources.h"
 #include "QtSearchBarButton.h"
 #include "QtViewWidgetWrapper.h"
-#include "ResourcePaths.h"
 #include "utilityQt.h"
 
+#include <QFrame>
+#include <QHBoxLayout>
+#include <QPushButton>
+
+using namespace utility;
+
 QtBookmarkButtonsView::QtBookmarkButtonsView(ViewLayout* viewLayout)
-	: BookmarkButtonsView(viewLayout), m_createButtonState(MessageBookmarkButtonState::CANNOT_CREATE)
+	: BookmarkButtonsView(viewLayout)
 {
 	m_widget = new QFrame();
 	m_widget->setObjectName(QStringLiteral("bookmark_bar"));
@@ -26,30 +28,20 @@ QtBookmarkButtonsView::QtBookmarkButtonsView(ViewLayout* viewLayout)
 	layout->setAlignment(Qt::AlignTop);
 	m_widget->setLayout(layout);
 
-	m_createBookmarkButton = new QtSearchBarButton(
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"bookmark_view/images/edit_bookmark_icon.png"));
+	m_createBookmarkButton = new QtSearchBarButton(QtResources::BOOKMARK_VIEW_BOOKMARK_EDIT_BOOKMARK_ICON);
 	m_createBookmarkButton->setObjectName(QStringLiteral("bookmark_button"));
-	m_createBookmarkButton->setToolTip(QStringLiteral("create a bookmark for the active symbol"));
+	m_createBookmarkButton->setToolTip(QtActions::bookmarkActiveSymbol().tooltip());
 	m_createBookmarkButton->setEnabled(false);
 	layout->addWidget(m_createBookmarkButton);
 
-	connect(
-		m_createBookmarkButton,
-		&QPushButton::clicked,
-		this,
-		&QtBookmarkButtonsView::createBookmarkClicked);
+	connect(m_createBookmarkButton, &QPushButton::clicked, this, &QtBookmarkButtonsView::createBookmarkClicked);
 
-	m_showBookmarksButton = new QtSearchBarButton(
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"bookmark_view/images/bookmark_list_icon.png"));
+	m_showBookmarksButton = new QtSearchBarButton(QtResources::BOOKMARK_VIEW_BOOKMARK_LIST_ICON);
 	m_showBookmarksButton->setObjectName(QStringLiteral("show_bookmark_button"));
-	m_showBookmarksButton->setToolTip(QStringLiteral("Show bookmarks"));
+	m_showBookmarksButton->setToolTip(QtActions::bookmarkManager().tooltip());
 	layout->addWidget(m_showBookmarksButton);
 
-	connect(
-		m_showBookmarksButton,
-		&QPushButton::clicked,
-		this,
-		&QtBookmarkButtonsView::showBookmarksClicked);
+	connect(m_showBookmarksButton, &QPushButton::clicked, this, &QtBookmarkButtonsView::showBookmarksClicked);
 }
 
 void QtBookmarkButtonsView::createWidgetWrapper()
@@ -59,20 +51,18 @@ void QtBookmarkButtonsView::createWidgetWrapper()
 
 void QtBookmarkButtonsView::refreshView()
 {
-	m_onQtThread([=]() {
-		m_widget->setStyleSheet(utility::getStyleSheet(ResourcePaths::getGuiDirectoryPath().concatenate(
-														   L"bookmark_view/bookmark_view.css"))
-									.c_str());
+	m_onQtThread([=, this]()
+	{
+		m_widget->setStyleSheet(QtResources::loadStyleSheet(QtResources::BOOKMARK_VIEW_CSS));
 	});
 }
 
 void QtBookmarkButtonsView::setCreateButtonState(const MessageBookmarkButtonState::ButtonState& state)
 {
-	m_onQtThread([=]() {
+	m_onQtThread([=, this]() {
 		m_createButtonState = state;
 
-		m_createBookmarkButton->setIconPath(ResourcePaths::getGuiDirectoryPath().concatenate(
-			L"bookmark_view/images/edit_bookmark_icon.png"));
+		m_createBookmarkButton->setIconPath(QtResources::BOOKMARK_VIEW_BOOKMARK_EDIT_BOOKMARK_ICON);
 
 		if (state == MessageBookmarkButtonState::CAN_CREATE)
 		{
@@ -86,8 +76,7 @@ void QtBookmarkButtonsView::setCreateButtonState(const MessageBookmarkButtonStat
 		{
 			m_createBookmarkButton->setEnabled(true);
 
-			m_createBookmarkButton->setIconPath(ResourcePaths::getGuiDirectoryPath().concatenate(
-				L"bookmark_view/images/bookmark_active.png"));
+			m_createBookmarkButton->setIconPath(QtResources::BOOKMARK_VIEW_BOOKMARK_ACTIVE);
 		}
 		else
 		{
@@ -104,23 +93,21 @@ void QtBookmarkButtonsView::createBookmarkClicked()
 	}
 	else if (m_createButtonState == MessageBookmarkButtonState::ALREADY_CREATED)
 	{
-		QMessageBox msgBox;
-		msgBox.setText(QStringLiteral("Edit Bookmark"));
-		msgBox.setInformativeText(
-			QStringLiteral("Do you want to edit or delete the bookmark for this symbol?"));
-		msgBox.addButton(QStringLiteral("Edit"), QMessageBox::ButtonRole::YesRole);
-		msgBox.addButton(QStringLiteral("Delete"), QMessageBox::ButtonRole::NoRole);
-		QPushButton* cancelButton = msgBox.addButton(
-			QStringLiteral("Cancel"), QMessageBox::ButtonRole::RejectRole);
+		QtMessageBox msgBox;
+		msgBox.setText(tr("Edit Bookmark"));
+		msgBox.setInformativeText(tr("Do you want to edit or delete the bookmark for this symbol?"));
+		QPushButton *editButton = msgBox.addButton(tr("Edit"), QtMessageBox::ButtonRole::YesRole);
+		QPushButton *deleteButton = msgBox.addButton(tr("Delete"), QtMessageBox::ButtonRole::NoRole);
+		QPushButton* cancelButton = msgBox.addButton(tr("Cancel"), QtMessageBox::ButtonRole::RejectRole);
 		msgBox.setDefaultButton(cancelButton);
-		msgBox.setIcon(QMessageBox::Icon::Question);
-		int ret = msgBox.exec();
+		msgBox.setIcon(QtMessageBox::Icon::Question);
 
-		if (ret == 0)	 // QMessageBox::Yes
+		QAbstractButton *clickedButton = msgBox.execModal();
+		if (clickedButton == editButton)
 		{
 			MessageBookmarkEdit().dispatch();
 		}
-		else if (ret == 1)
+		else if (clickedButton == deleteButton)
 		{
 			MessageBookmarkDelete().dispatch();
 		}

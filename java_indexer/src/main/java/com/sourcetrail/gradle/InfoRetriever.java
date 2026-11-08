@@ -108,46 +108,43 @@ public class InfoRetriever
 		String taskName, String projectRootPath, String initScriptPath, List<String> additionalArguments)
 		throws GradleException
 	{
-		ProjectConnection connection =
-			GradleConnector.newConnector().forProjectDirectory(new File(projectRootPath)).connect();
-
-		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-		ByteArrayOutputStream errorStream = new ByteArrayOutputStream();
-
-		try
+		try (ProjectConnection connection =
+			GradleConnector.newConnector().forProjectDirectory(new File(projectRootPath)).connect())
 		{
-			List<String> arguments = new ArrayList<>();
-			arguments.add("--init-script");
-			arguments.add(initScriptPath);
-			arguments.add("-q");
+			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+			ByteArrayOutputStream errorStream = new ByteArrayOutputStream();
 
-			if (additionalArguments != null)
+			try
 			{
-				arguments.addAll(additionalArguments);
+				List<String> arguments = new ArrayList<>();
+				arguments.add("--init-script");
+				arguments.add(initScriptPath);
+				arguments.add("-q");
+
+				if (additionalArguments != null)
+				{
+					arguments.addAll(additionalArguments);
+				}
+
+				BuildLauncher Launcher = connection.newBuild()
+											 .forTasks(taskName)
+											 .withArguments(arguments)
+											 .setStandardOutput(new PrintStream(outputStream))
+											 .setStandardError(new PrintStream(errorStream));
+
+				Launcher.run();
+			}
+			catch (Exception e)
+			{
+				// TODO: LOGERROR
 			}
 
-			BuildLauncher Launcher = connection.newBuild()
-										 .forTasks(taskName)
-										 .withArguments(arguments)
-										 .setStandardOutput(new PrintStream(outputStream))
-										 .setStandardError(new PrintStream(errorStream));
+			if (!errorStream.toString().isEmpty())
+			{
+				throw new GradleException(errorStream.toString());
+			}
 
-			Launcher.run();
+			return outputStream.toString();
 		}
-		catch (Exception e)
-		{
-			// TODO: LOGERROR
-		}
-		finally
-		{
-			connection.close();
-		}
-
-		if (!errorStream.toString().isEmpty())
-		{
-			throw new GradleException(errorStream.toString());
-		}
-
-		return outputStream.toString();
 	}
 }

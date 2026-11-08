@@ -7,10 +7,10 @@ class QtLineItemBezier: public QtLineItemBase
 {
 public:
 	QtLineItemBezier(QGraphicsItem* parent);
-	virtual ~QtLineItemBezier();
+	~QtLineItemBezier() override;
 
-	virtual QPainterPath shape() const;
-	virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* options, QWidget* widget);
+	QPainterPath shape() const override;
+	void paint(QPainter* painter, const QStyleOptionGraphicsItem* options, QWidget* widget) override;
 
 protected:
 	QPolygon getPath() const;

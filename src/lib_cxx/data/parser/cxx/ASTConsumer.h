@@ -19,9 +19,9 @@ public:
 		std::shared_ptr<CanonicalFilePathCache> canonicalFilePathCache,
 		std::shared_ptr<IndexerStateInfo> indexerStateInfo);
 
-	virtual ~ASTConsumer() = default;
+	~ASTConsumer() override = default;
 
-	virtual void HandleTranslationUnit(clang::ASTContext& context) override;
+	void HandleTranslationUnit(clang::ASTContext& context) override;
 
 private:
 	std::shared_ptr<CxxAstVisitor> m_visitor;

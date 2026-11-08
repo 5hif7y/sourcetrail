@@ -32,12 +32,12 @@ SharedMemory::ScopedAccess::ScopedAccess(SharedMemory* memory)
 			boost::interprocess::open_or_create,
 			memory->getMemoryName().c_str(),
 			memory->getInitialMemorySize(),
-			0,
+			nullptr,
 			permissions);
 	}
 }
 
-SharedMemory::ScopedAccess::~ScopedAccess() {}
+SharedMemory::ScopedAccess::~ScopedAccess() = default;
 
 SharedMemory::Allocator* SharedMemory::ScopedAccess::getAllocator()
 {
@@ -107,6 +107,7 @@ std::string SharedMemory::checkSharedMemory(const std::string& name)
 
 	try
 	{
+		[[maybe_unused]]
 		SharedMemory memory("test_" + name, 65536 /* 64 kB */, CREATE_AND_DELETE);
 	}
 	catch (boost::interprocess::interprocess_exception& e)
@@ -150,7 +151,7 @@ SharedMemory::SharedMemory(const std::string& name, size_t initialMemorySize, Ac
 				boost::interprocess::create_only,
 				getMemoryName().c_str(),
 				initialMemorySize,
-				0,
+				nullptr,
 				permissions);
 			boost::interprocess::named_mutex(
 				boost::interprocess::create_only, getMutexName().c_str());
@@ -173,7 +174,7 @@ SharedMemory::SharedMemory(const std::string& name, size_t initialMemorySize, Ac
 				boost::interprocess::open_or_create,
 				getMemoryName().c_str(),
 				initialMemorySize,
-				0,
+				nullptr,
 				permissions);
 			boost::interprocess::named_mutex(
 				boost::interprocess::open_or_create, getMutexName().c_str());
@@ -185,6 +186,7 @@ SharedMemory::SharedMemory(const std::string& name, size_t initialMemorySize, Ac
 		{
 			boost::interprocess::named_mutex mutex(
 				boost::interprocess::open_only, getMutexName().c_str());
+			[[maybe_unused]]
 			boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(
 				mutex, boost::interprocess::try_to_lock);
 		}
@@ -243,6 +245,7 @@ bool SharedMemory::checkSharedMutex()
 		}
 
 		// locking kept failing, try to get ownership
+		[[maybe_unused]]
 		boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(
 			mutex, boost::interprocess::accept_ownership);
 		return true;
@@ -273,7 +276,7 @@ boost::interprocess::named_mutex& SharedMemory::getMutex()
 			boost::interprocess::open_only, getMutexName().c_str());
 	}
 
-	return *m_mutex.get();
+	return *m_mutex;
 }
 
 size_t SharedMemory::getInitialMemorySize() const

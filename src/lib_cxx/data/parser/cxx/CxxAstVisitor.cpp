@@ -1,17 +1,23 @@
 #include "CxxAstVisitor.h"
 
-#include <clang/AST/ASTContext.h>
-#include <clang/Lex/Preprocessor.h>
-
 #include "CanonicalFilePathCache.h"
 #include "CxxDeclNameResolver.h"
-#include "CxxTypeNameResolver.h"
 #include "IndexerStateInfo.h"
 #include "ParseLocation.h"
 #include "ParserClient.h"
 #include "logging.h"
 #include "utilityClang.h"
-#include "utilityString.h"
+
+#include <clang/AST/ASTContext.h>
+#include <clang/Lex/Preprocessor.h>
+
+#include <type_traits>
+
+using namespace clang;
+
+#define ASSERT_CRTP_OVERRIDE(functionName) \
+	static_assert(!std::is_same_v<decltype(&CxxAstVisitor::functionName), decltype(&RecursiveASTVisitor<CxxAstVisitor>::functionName)>, \
+	"CRTP Error: " #functionName " is not overriding Base implementation.")
 
 CxxAstVisitor::CxxAstVisitor(
 	clang::ASTContext* astContext,
@@ -33,28 +39,19 @@ CxxAstVisitor::CxxAstVisitor(
 {
 }
 
-template <>
-CxxAstVisitorComponentContext* CxxAstVisitor::getComponent()
+CxxAstVisitorComponentContext *CxxAstVisitor::getContextComponent()
 {
 	return &m_contextComponent;
 }
 
-template <>
-CxxAstVisitorComponentTypeRefKind* CxxAstVisitor::getComponent()
+CxxAstVisitorComponentTypeRefKind *CxxAstVisitor::getTypeRefKindComponent()
 {
 	return &m_typeRefKindComponent;
 }
 
-template <>
-CxxAstVisitorComponentDeclRefKind* CxxAstVisitor::getComponent()
+CxxAstVisitorComponentDeclRefKind *CxxAstVisitor::getDeclRefKindComponent()
 {
 	return &m_declRefKindComponent;
-}
-
-template <>
-CxxAstVisitorComponentIndexer* CxxAstVisitor::getComponent()
-{
-	return &m_indexerComponent;
 }
 
 CanonicalFilePathCache* CxxAstVisitor::getCanonicalFilePathCache() const
@@ -70,28 +67,16 @@ void CxxAstVisitor::indexDecl(clang::Decl* d)
 
 bool CxxAstVisitor::shouldVisitTemplateInstantiations() const
 {
+	ASSERT_CRTP_OVERRIDE(shouldVisitTemplateInstantiations);
+
 	return true;
 }
 
 bool CxxAstVisitor::shouldVisitImplicitCode() const
 {
-	return m_implicitCodeComponent.shouldVisitImplicitCode();
-}
+	ASSERT_CRTP_OVERRIDE(shouldVisitImplicitCode);
 
-bool CxxAstVisitor::checkIgnoresTypeLoc(const clang::TypeLoc& tl) const
-{
-	if ((!tl.getAs<clang::TagTypeLoc>().isNull()) || (!tl.getAs<clang::TypedefTypeLoc>().isNull()) ||
-		(!tl.getAs<clang::TemplateTypeParmTypeLoc>().isNull()) ||
-		(!tl.getAs<clang::TemplateSpecializationTypeLoc>().isNull()) ||
-		(!tl.getAs<clang::InjectedClassNameTypeLoc>().isNull()) ||
-		(!tl.getAs<clang::DependentNameTypeLoc>().isNull()) ||
-		(!tl.getAs<clang::DependentTemplateSpecializationTypeLoc>().isNull()) ||
-		(!tl.getAs<clang::SubstTemplateTypeParmTypeLoc>().isNull()) ||
-		(!tl.getAs<clang::BuiltinTypeLoc>().isNull()) || (!tl.getAs<clang::AutoTypeLoc>().isNull()))
-	{
-		return false;
-	}
-	return true;
+	return m_implicitCodeComponent.shouldVisitImplicitCode();
 }
 
 #define FOREACH_COMPONENT(__METHOD_CALL__)                                                         \
@@ -107,6 +92,7 @@ bool CxxAstVisitor::checkIgnoresTypeLoc(const clang::TypeLoc& tl) const
 #define DEF_TRAVERSE_CUSTOM_TYPE_PTR(__NAME_TYPE__, __PARAM_TYPE__, CODE_BEFORE, CODE_AFTER)       \
 	bool CxxAstVisitor::Traverse##__NAME_TYPE__(clang::__PARAM_TYPE__* v)                          \
 	{                                                                                              \
+		ASSERT_CRTP_OVERRIDE(Traverse##__NAME_TYPE__);                                             \
 		FOREACH_COMPONENT(beginTraverse##__NAME_TYPE__(v));                                        \
 		bool ret = true;                                                                           \
 		{                                                                                          \
@@ -123,6 +109,7 @@ bool CxxAstVisitor::checkIgnoresTypeLoc(const clang::TypeLoc& tl) const
 #define DEF_TRAVERSE_CUSTOM_TYPE(__NAME_TYPE__, __PARAM_TYPE__, CODE_BEFORE, CODE_AFTER)           \
 	bool CxxAstVisitor::Traverse##__NAME_TYPE__(clang::__PARAM_TYPE__ v)                           \
 	{                                                                                              \
+		ASSERT_CRTP_OVERRIDE(Traverse##__NAME_TYPE__);                                             \
 		FOREACH_COMPONENT(beginTraverse##__NAME_TYPE__(v));                                        \
 		bool ret = true;                                                                           \
 		{                                                                                          \
@@ -144,8 +131,10 @@ bool CxxAstVisitor::checkIgnoresTypeLoc(const clang::TypeLoc& tl) const
 
 bool CxxAstVisitor::TraverseDecl(clang::Decl* decl)
 {
+	ASSERT_CRTP_OVERRIDE(TraverseDecl);
+
 	bool traverse = true;
-	if (decl)
+	if (decl != nullptr)
 	{
 		const clang::SourceManager& sourceManager = m_astContext->getSourceManager();
 		clang::SourceLocation loc = sourceManager.getExpansionLoc(decl->getLocation());
@@ -166,7 +155,7 @@ bool CxxAstVisitor::TraverseDecl(clang::Decl* decl)
 				const bool pathIsProjectFile = m_canonicalFilePathCache->isProjectFile(
 					fileId, sourceManager);
 				const Id symbolId = m_client->recordFile(filePath, pathIsProjectFile);
-				m_client->recordFileLanguage(symbolId, L"cpp");
+				m_client->recordFileLanguage(symbolId, "cpp");
 				m_canonicalFilePathCache->addFileSymbolId(fileId, filePath, symbolId);
 			}
 
@@ -192,6 +181,8 @@ bool CxxAstVisitor::TraverseDecl(clang::Decl* decl)
 // same as Base::TraverseQualifiedTypeLoc(..) but we need to make sure to call this.TraverseTypeLoc(..)
 bool CxxAstVisitor::TraverseQualifiedTypeLoc(clang::QualifiedTypeLoc tl)
 {
+	ASSERT_CRTP_OVERRIDE(TraverseQualifiedTypeLoc);
+
 	return TraverseTypeLoc(tl.getUnqualifiedLoc());
 }
 
@@ -205,6 +196,8 @@ DEF_TRAVERSE_TYPE_PTR(Stmt, {}, {})
 // additionally: skip implicit CXXRecordDecls (this does not skip template specializations).
 bool CxxAstVisitor::TraverseCXXRecordDecl(clang::CXXRecordDecl* d)
 {
+	ASSERT_CRTP_OVERRIDE(TraverseCXXRecordDecl);
+
 	if (utility::isImplicit(d) && d->getMemberSpecializationInfo() == nullptr &&
 		!clang::isa<clang::ClassTemplateSpecializationDecl>(utility::getFirstDecl(d)))
 	{
@@ -224,7 +217,7 @@ bool CxxAstVisitor::TraverseCXXRecordDecl(clang::CXXRecordDecl* d)
 	{
 		for (const auto& base: d->bases())
 		{
-			if (!traverseCXXBaseSpecifier(base))
+			if (!traverseCXXBaseSpecifierHelper(base))
 			{
 				return false;
 			}
@@ -235,7 +228,7 @@ bool CxxAstVisitor::TraverseCXXRecordDecl(clang::CXXRecordDecl* d)
 	return true;
 }
 
-bool CxxAstVisitor::traverseCXXBaseSpecifier(const clang::CXXBaseSpecifier& d)
+bool CxxAstVisitor::traverseCXXBaseSpecifierHelper(const clang::CXXBaseSpecifier& d)
 {
 	FOREACH_COMPONENT(beginTraverseCXXBaseSpecifier());
 	bool ret = TraverseTypeLoc(d.getTypeSourceInfo()->getTypeLoc());
@@ -245,6 +238,8 @@ bool CxxAstVisitor::traverseCXXBaseSpecifier(const clang::CXXBaseSpecifier& d)
 
 bool CxxAstVisitor::TraverseCXXMethodDecl(clang::CXXMethodDecl* d)
 {
+	ASSERT_CRTP_OVERRIDE(TraverseCXXMethodDecl);
+
 	if (d->getTemplatedKind() == clang::CXXMethodDecl::TK_FunctionTemplate)
 	{
 		if (clang::CXXRecordDecl* recordDecl = d->getParent())
@@ -265,12 +260,14 @@ bool CxxAstVisitor::TraverseCXXMethodDecl(clang::CXXMethodDecl* d)
 // same as Base::TraverseTemplateTypeParmDecl(..) but we need to integrate the setter for the context info.
 bool CxxAstVisitor::TraverseTemplateTypeParmDecl(clang::TemplateTypeParmDecl* d)
 {
+	ASSERT_CRTP_OVERRIDE(TraverseTemplateTypeParmDecl);
+
 	WalkUpFromTemplateTypeParmDecl(d);
 
 	if (d->hasDefaultArgument() && !d->defaultArgumentWasInherited())
 	{
 		FOREACH_COMPONENT(beginTraverseTemplateDefaultArgumentLoc());
-		TraverseTypeLoc(d->getDefaultArgumentInfo()->getTypeLoc());
+		TraverseTypeLoc(d->getDefaultArgument().getTypeSourceInfo()->getTypeLoc());
 		FOREACH_COMPONENT(endTraverseTemplateDefaultArgumentLoc());
 	}
 
@@ -282,6 +279,8 @@ bool CxxAstVisitor::TraverseTemplateTypeParmDecl(clang::TemplateTypeParmDecl* d)
 // context info.
 bool CxxAstVisitor::TraverseTemplateTemplateParmDecl(clang::TemplateTemplateParmDecl* d)
 {
+	ASSERT_CRTP_OVERRIDE(TraverseTemplateTemplateParmDecl);
+
 	WalkUpFromTemplateTemplateParmDecl(d);
 
 	TraverseDecl(d->getTemplatedDecl());
@@ -294,7 +293,7 @@ bool CxxAstVisitor::TraverseTemplateTemplateParmDecl(clang::TemplateTemplateParm
 	}
 
 	clang::TemplateParameterList* TPL = d->getTemplateParameters();
-	if (TPL)
+	if (TPL != nullptr)
 	{
 		for (clang::TemplateParameterList::iterator I = TPL->begin(), E = TPL->end(); I != E; ++I)
 		{
@@ -306,13 +305,10 @@ bool CxxAstVisitor::TraverseTemplateTemplateParmDecl(clang::TemplateTemplateParm
 	return true;
 }
 
-bool CxxAstVisitor::VisitTranslationUnitDecl(clang::TranslationUnitDecl* d)
-{
-	return true;
-}
-
 bool CxxAstVisitor::TraverseNestedNameSpecifierLoc(clang::NestedNameSpecifierLoc loc)
 {
+	ASSERT_CRTP_OVERRIDE(TraverseNestedNameSpecifierLoc);
+
 	bool ret = true;
 	if (loc)
 	{
@@ -331,9 +327,11 @@ bool CxxAstVisitor::TraverseNestedNameSpecifierLoc(clang::NestedNameSpecifierLoc
 
 bool CxxAstVisitor::TraverseConstructorInitializer(clang::CXXCtorInitializer* init)
 {
+	ASSERT_CRTP_OVERRIDE(TraverseConstructorInitializer);
+
 	FOREACH_COMPONENT(beginTraverseConstructorInitializer(init));
 
-	bool ret = VisitConstructorInitializer(init);
+	bool ret = visitConstructorInitializerHelper(init);
 	if (ret)
 	{
 		ret = Base::TraverseConstructorInitializer(init);
@@ -346,21 +344,29 @@ bool CxxAstVisitor::TraverseConstructorInitializer(clang::CXXCtorInitializer* in
 
 bool CxxAstVisitor::TraverseCallExpr(clang::CallExpr* s)
 {
-	return TraverseCallCommon(s);
+	ASSERT_CRTP_OVERRIDE(TraverseCallExpr);
+
+	return traverseCallExprHelper(s);
 }
 
 bool CxxAstVisitor::TraverseCXXMemberCallExpr(clang::CXXMemberCallExpr* s)
 {
-	return TraverseCallCommon(s);
+	ASSERT_CRTP_OVERRIDE(TraverseCXXMemberCallExpr);
+
+	return traverseCallExprHelper(s);
 }
 
 bool CxxAstVisitor::TraverseCXXOperatorCallExpr(clang::CXXOperatorCallExpr* s)
 {
-	return TraverseCallCommon(s);
+	ASSERT_CRTP_OVERRIDE(TraverseCXXOperatorCallExpr);
+
+	return traverseCallExprHelper(s);
 }
 
 bool CxxAstVisitor::TraverseCXXConstructExpr(clang::CXXConstructExpr* s)
 {
+	ASSERT_CRTP_OVERRIDE(TraverseCXXConstructExpr);
+
 	FOREACH_COMPONENT(beginTraverseCallCommonCallee());
 	WalkUpFromCXXConstructExpr(s);
 	FOREACH_COMPONENT(endTraverseCallCommonCallee());
@@ -376,12 +382,40 @@ bool CxxAstVisitor::TraverseCXXConstructExpr(clang::CXXConstructExpr* s)
 
 DEF_TRAVERSE_TYPE_PTR(CXXTemporaryObjectExpr, {}, {})
 DEF_TRAVERSE_TYPE_PTR(LambdaExpr, {}, {})
+
+/*
+This code would also detect lambdas with concept usages, but it somehow breaks the detection/indexing
+of captured variables!
+
+bool CxxAstVisitor::TraverseLambdaExpr(clang::LambdaExpr *s)
+{
+	FOREACH_COMPONENT(beginTraverseLambdaExpr(s));
+
+	// Iterate/Walk/Traverse over the "closure type" to detect concept usages:
+
+	if (const CXXRecordDecl *closureRecordDecl = s->getLambdaClass())
+	{
+		for (Decl *decl : closureRecordDecl->decls())
+		{
+			// This will eventually call 'visitFunctionTemplateDecl':
+
+			TraverseDecl(decl);
+		}
+	}
+	FOREACH_COMPONENT(endTraverseLambdaExpr(s));
+
+	return true;
+}
+*/
+
 DEF_TRAVERSE_TYPE_PTR(FunctionDecl, {}, {})
 
 // same as base::TraverseClassTemplateSpecializationDecl but without traversing the typeloc of the
 // template specialitation itself
 bool CxxAstVisitor::TraverseClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* D)
 {
+	ASSERT_CRTP_OVERRIDE(TraverseClassTemplateSpecializationDecl);
+
 	FOREACH_COMPONENT(beginTraverseClassTemplateSpecializationDecl(D));
 
 	bool ShouldVisitChildren = true;
@@ -396,19 +430,13 @@ bool CxxAstVisitor::TraverseClassTemplateSpecializationDecl(clang::ClassTemplate
 
 	if (ReturnValue)
 	{
-		if (clang::TypeSourceInfo* TSI = D->getTypeAsWritten())
+		if (const clang::ASTTemplateArgumentListInfo *TALI = D->getTemplateArgsAsWritten())
 		{
-			clang::TypeLoc::TypeLocClass ccccc = TSI->getTypeLoc().getTypeLocClass();
-			const clang::TemplateSpecializationTypeLoc tstl =
-				TSI->getTypeLoc().getAs<clang::TemplateSpecializationTypeLoc>();
-			if (!tstl.isNull())
+			for (const clang::TemplateArgumentLoc &TAL : TALI->arguments())
 			{
-				for (unsigned I = 0, E = tstl.getNumArgs(); I != E; ++I)
+				if (!TraverseTemplateArgumentLoc(TAL))
 				{
-					if (!TraverseTemplateArgumentLoc(tstl.getArgLoc(I)))
-					{
-						ReturnValue = false;
-					}
+					ReturnValue = false;
 				}
 			}
 		}
@@ -449,15 +477,18 @@ DEF_TRAVERSE_TYPE_PTR(UnresolvedMemberExpr, {}, {})
 
 bool CxxAstVisitor::TraverseTemplateArgumentLoc(const clang::TemplateArgumentLoc& loc)
 {
+	ASSERT_CRTP_OVERRIDE(TraverseTemplateArgumentLoc);
+
 	FOREACH_COMPONENT(beginTraverseTemplateArgumentLoc(loc));
 	bool ret = Base::TraverseTemplateArgumentLoc(loc);
 	FOREACH_COMPONENT(endTraverseTemplateArgumentLoc(loc));
 	return ret;
 }
 
-bool CxxAstVisitor::TraverseLambdaCapture(
-	clang::LambdaExpr* lambdaExpr, const clang::LambdaCapture* capture, clang::Expr* Init)
+bool CxxAstVisitor::TraverseLambdaCapture( clang::LambdaExpr* lambdaExpr, const clang::LambdaCapture* capture, clang::Expr*  /*Init*/)
 {
+	ASSERT_CRTP_OVERRIDE(TraverseLambdaCapture);
+
 	FOREACH_COMPONENT(beginTraverseLambdaCapture(lambdaExpr, capture));
 	bool ret = true;
 	if (lambdaExpr->isInitCapture(capture))
@@ -468,8 +499,10 @@ bool CxxAstVisitor::TraverseLambdaCapture(
 	return ret;
 }
 
-bool CxxAstVisitor::TraverseBinComma(clang::BinaryOperator* s)
+bool CxxAstVisitor::TraverseBinaryOperator(clang::BinaryOperator* s)
 {
+	ASSERT_CRTP_OVERRIDE(TraverseBinaryOperator);
+
 	FOREACH_COMPONENT(beginTraverseBinCommaLhs());
 	TraverseStmt(s->getLHS());
 	FOREACH_COMPONENT(endTraverseBinCommaLhs());
@@ -480,15 +513,31 @@ bool CxxAstVisitor::TraverseBinComma(clang::BinaryOperator* s)
 	return true;
 }
 
-bool CxxAstVisitor::TraverseDeclarationNameInfo(clang::DeclarationNameInfo NameInfo)
+bool CxxAstVisitor::TraverseDeclarationNameInfo(clang::DeclarationNameInfo  /*NameInfo*/)
 {
+	ASSERT_CRTP_OVERRIDE(TraverseDeclarationNameInfo);
+
 	// we don't visit any children here
+	return true;
+}
+
+bool CxxAstVisitor::TraverseCompoundAssignOperator(clang::CompoundAssignOperator *s)
+{
+	ASSERT_CRTP_OVERRIDE(TraverseCompoundAssignOperator);
+
+	FOREACH_COMPONENT(beginTraverseAssignCommonLhs());
+	TraverseStmt(s->getLHS());
+	FOREACH_COMPONENT(endTraverseAssignCommonLhs());
+
+	FOREACH_COMPONENT(beginTraverseAssignCommonRhs());
+	TraverseStmt(s->getRHS());
+	FOREACH_COMPONENT(endTraverseAssignCommonRhs());
 	return true;
 }
 
 void CxxAstVisitor::traverseDeclContextHelper(clang::DeclContext* d)
 {
-	if (!d)
+	if (d == nullptr)
 	{
 		return;
 	}
@@ -504,7 +553,7 @@ void CxxAstVisitor::traverseDeclContextHelper(clang::DeclContext* d)
 	}
 }
 
-bool CxxAstVisitor::TraverseCallCommon(clang::CallExpr* s)
+bool CxxAstVisitor::traverseCallExprHelper(clang::CallExpr* s)
 {
 	FOREACH_COMPONENT(beginTraverseCallCommonCallee());
 	TraverseStmt(s->getCallee());
@@ -519,22 +568,32 @@ bool CxxAstVisitor::TraverseCallCommon(clang::CallExpr* s)
 	return true;
 }
 
-bool CxxAstVisitor::TraverseAssignCommon(clang::BinaryOperator* s)
-{
-	FOREACH_COMPONENT(beginTraverseAssignCommonLhs());
-	TraverseStmt(s->getLHS());
-	FOREACH_COMPONENT(endTraverseAssignCommonLhs());
-
-	FOREACH_COMPONENT(beginTraverseAssignCommonRhs());
-	TraverseStmt(s->getRHS());
-	FOREACH_COMPONENT(endTraverseAssignCommonRhs());
-	return true;
-}
-
 #undef DEF_TRAVERSE_CUSTOM_TYPE_PTR
 #undef DEF_TRAVERSE_CUSTOM_TYPE
 #undef DEF_TRAVERSE_TYPE_PTR
 #undef DEF_TRAVERSE_TYPE
+
+// These defines are for Clang 'Visit...' functions:
+// - They are checked whether they override a CRTP function
+
+#define DEF_VISIT_TYPE_PTR(__PARAM_TYPE__)                                                         \
+	bool CxxAstVisitor::Visit##__PARAM_TYPE__(clang::__PARAM_TYPE__* v)                            \
+	{                                                                                              \
+		ASSERT_CRTP_OVERRIDE(Visit##__PARAM_TYPE__);                                               \
+		FOREACH_COMPONENT(visit##__PARAM_TYPE__(v));                                               \
+		return true;                                                                               \
+	}
+
+#define DEF_VISIT_TYPE(__PARAM_TYPE__)                                                             \
+	bool CxxAstVisitor::Visit##__PARAM_TYPE__(clang::__PARAM_TYPE__ v)                             \
+	{                                                                                              \
+		ASSERT_CRTP_OVERRIDE(Visit##__PARAM_TYPE__);                                               \
+		FOREACH_COMPONENT(visit##__PARAM_TYPE__(v));                                               \
+		return true;                                                                               \
+	}
+
+// These defines are for user/custom defined visit functions:
+// - They are *not* checked whether they override a CRTP function
 
 #define DEF_VISIT_CUSTOM_TYPE_PTR(__NAME_TYPE__, __PARAM_TYPE__)                                   \
 	bool CxxAstVisitor::Visit##__NAME_TYPE__(clang::__PARAM_TYPE__* v)                             \
@@ -550,22 +609,27 @@ bool CxxAstVisitor::TraverseAssignCommon(clang::BinaryOperator* s)
 		return true;                                                                               \
 	}
 
-#define DEF_VISIT_TYPE_PTR(__TYPE__) DEF_VISIT_CUSTOM_TYPE_PTR(__TYPE__, __TYPE__)
+// #define DEF_VISIT_TYPE_PTR(__TYPE__) DEF_VISIT_CUSTOM_TYPE_PTR(__TYPE__, __TYPE__)
 
-#define DEF_VISIT_TYPE(__TYPE__) DEF_VISIT_CUSTOM_TYPE(__TYPE__, __TYPE__)
+// #define DEF_VISIT_TYPE(__TYPE__) DEF_VISIT_CUSTOM_TYPE(__TYPE__, __TYPE__)
 
 DEF_VISIT_TYPE_PTR(CastExpr)
-DEF_VISIT_CUSTOM_TYPE_PTR(UnaryAddrOf, UnaryOperator)
-DEF_VISIT_CUSTOM_TYPE_PTR(UnaryDeref, UnaryOperator)
+DEF_VISIT_TYPE_PTR(CStyleCastExpr)
+DEF_VISIT_TYPE_PTR(CXXFunctionalCastExpr)
+// DEF_VISIT_CUSTOM_TYPE_PTR(UnaryAddrOf, UnaryOperator)
+// DEF_VISIT_CUSTOM_TYPE_PTR(UnaryDeref, UnaryOperator)
 DEF_VISIT_TYPE_PTR(DeclStmt)
 DEF_VISIT_TYPE_PTR(ReturnStmt)
 DEF_VISIT_TYPE_PTR(CompoundStmt)
 DEF_VISIT_TYPE_PTR(InitListExpr)
 DEF_VISIT_TYPE_PTR(TagDecl)
+DEF_VISIT_TYPE_PTR(ClassTemplateDecl)
 DEF_VISIT_TYPE_PTR(ClassTemplateSpecializationDecl)
 DEF_VISIT_TYPE_PTR(FunctionDecl)
+DEF_VISIT_TYPE_PTR(FunctionTemplateDecl)
 DEF_VISIT_TYPE_PTR(CXXMethodDecl)
 DEF_VISIT_TYPE_PTR(VarDecl)
+DEF_VISIT_TYPE_PTR(DecompositionDecl)
 DEF_VISIT_TYPE_PTR(VarTemplateSpecializationDecl)
 DEF_VISIT_TYPE_PTR(FieldDecl)
 DEF_VISIT_TYPE_PTR(TypedefDecl)
@@ -578,6 +642,9 @@ DEF_VISIT_TYPE_PTR(UsingDecl)
 DEF_VISIT_TYPE_PTR(NonTypeTemplateParmDecl)
 DEF_VISIT_TYPE_PTR(TemplateTypeParmDecl)
 DEF_VISIT_TYPE_PTR(TemplateTemplateParmDecl)
+DEF_VISIT_TYPE_PTR(ConceptDecl)
+DEF_VISIT_TYPE_PTR(ConceptSpecializationExpr)
+DEF_VISIT_TYPE_PTR(ConceptReference)
 DEF_VISIT_TYPE(TypeLoc)
 DEF_VISIT_TYPE_PTR(DeclRefExpr)
 DEF_VISIT_TYPE_PTR(MemberExpr)
@@ -586,7 +653,17 @@ DEF_VISIT_TYPE_PTR(CXXConstructExpr)
 DEF_VISIT_TYPE_PTR(CXXDeleteExpr)
 DEF_VISIT_TYPE_PTR(LambdaExpr)
 DEF_VISIT_TYPE_PTR(MSAsmStmt)
-DEF_VISIT_CUSTOM_TYPE_PTR(ConstructorInitializer, CXXCtorInitializer)
+// DEF_VISIT_CUSTOM_TYPE_PTR(ConstructorInitializer, CXXCtorInitializer)
+
+bool CxxAstVisitor::visitConstructorInitializerHelper(clang::CXXCtorInitializer* init)
+{
+	FOREACH_COMPONENT(visitConstructorInitializer(init));
+	return true;
+}
+
+DEF_VISIT_TYPE_PTR(TranslationUnitDecl)
+DEF_VISIT_TYPE_PTR(ExportDecl)
+DEF_VISIT_TYPE_PTR(ImportDecl)
 
 #undef DEF_VISIT_CUSTOM_TYPE_PTR
 #undef DEF_VISIT_CUSTOM_TYPE
@@ -603,7 +680,7 @@ ParseLocation CxxAstVisitor::getParseLocationOfTagDeclBody(clang::TagDecl* decl)
 		if (clang::CXXRecordDecl* cxxDecl = clang::dyn_cast_or_null<clang::CXXRecordDecl>(decl))
 		{
 			clang::ClassTemplateDecl* templateDecl = cxxDecl->getDescribedClassTemplate();
-			if (templateDecl)
+			if (templateDecl != nullptr)
 			{
 				range = templateDecl->getSourceRange();
 			}
@@ -623,7 +700,7 @@ ParseLocation CxxAstVisitor::getParseLocationOfFunctionBody(const clang::Functio
 	{
 		clang::SourceRange range;
 		clang::FunctionTemplateDecl* templateDecl = decl->getDescribedFunctionTemplate();
-		if (templateDecl)
+		if (templateDecl != nullptr)
 		{
 			range = templateDecl->getSourceRange();
 		}
@@ -648,15 +725,28 @@ ParseLocation CxxAstVisitor::getParseLocation(const clang::SourceRange& sourceRa
 		sourceRange, m_astContext->getSourceManager(), m_preprocessor, m_canonicalFilePathCache);
 }
 
-bool CxxAstVisitor::shouldVisitStmt(const clang::Stmt* s) const
+bool CxxAstVisitor::shouldHandleTypeLoc(const clang::TypeLoc& tl) const
 {
-	if (s)
+	return tl.getAs<clang::TagTypeLoc>() ||
+		tl.getAs<clang::TypedefTypeLoc>() ||
+		tl.getAs<clang::TemplateTypeParmTypeLoc>() ||
+		tl.getAs<clang::TemplateSpecializationTypeLoc>() ||
+		tl.getAs<clang::InjectedClassNameTypeLoc>() ||
+		tl.getAs<clang::DependentNameTypeLoc>() ||
+		tl.getAs<clang::DependentTemplateSpecializationTypeLoc>() ||
+		tl.getAs<clang::SubstTemplateTypeParmTypeLoc>() ||
+		tl.getAs<clang::BuiltinTypeLoc>();
+}
+
+bool CxxAstVisitor::shouldVisitStmt(const clang::Stmt* stmt) const
+{
+	if (stmt != nullptr)
 	{
-		clang::SourceLocation loc = m_astContext->getSourceManager().getExpansionLoc(s->getBeginLoc());
+		clang::SourceLocation loc = m_astContext->getSourceManager().getExpansionLoc(stmt->getBeginLoc());
 
 		if (loc.isInvalid())
 		{
-			loc = s->getBeginLoc();
+			loc = stmt->getBeginLoc();
 		}
 
 		if (isLocatedInProjectFile(loc))
@@ -669,10 +759,9 @@ bool CxxAstVisitor::shouldVisitStmt(const clang::Stmt* s) const
 
 bool CxxAstVisitor::shouldVisitDecl(const clang::Decl* decl) const
 {
-	if (decl)
+	if (decl != nullptr)
 	{
-		clang::SourceLocation loc = m_astContext->getSourceManager().getExpansionLoc(
-			decl->getLocation());
+		clang::SourceLocation loc = m_astContext->getSourceManager().getExpansionLoc(decl->getLocation());
 
 		if (loc.isInvalid())
 		{
@@ -713,3 +802,4 @@ bool CxxAstVisitor::isLocatedInProjectFile(clang::SourceLocation loc) const
 	const clang::SourceManager& sourceManager = m_astContext->getSourceManager();
 	return m_canonicalFilePathCache->isProjectFile(sourceManager.getFileID(loc), sourceManager);
 }
+

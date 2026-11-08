@@ -9,7 +9,7 @@
 class SourceGroupSettingsWithSourcePaths: public SourceGroupSettingsComponent
 {
 public:
-	virtual ~SourceGroupSettingsWithSourcePaths() = default;
+	~SourceGroupSettingsWithSourcePaths() override = default;
 
 	std::vector<FilePath> getSourcePaths() const;
 	std::vector<FilePath> getSourcePathsExpandedAndAbsolute() const;

@@ -1,16 +1,18 @@
 #include "QtTabbedView.h"
 
+#include "ColorScheme.h"
+#include "QtSelfRefreshIconButton.h"
+#include "QtViewWidgetWrapper.h"
+#include "utilityQt.h"
+#include "QtResources.h"
+
 #include <QEvent>
 #include <QFrame>
 #include <QTabBar>
 #include <QTabWidget>
 #include <QVBoxLayout>
 
-#include "ColorScheme.h"
-#include "QtSelfRefreshIconButton.h"
-#include "QtViewWidgetWrapper.h"
-#include "ResourcePaths.h"
-#include "utilityQt.h"
+using namespace utility;
 
 QtTabbedView::QtTabbedView(ViewLayout* viewLayout, const std::string& name)
 	: TabbedView(viewLayout, name)
@@ -26,15 +28,11 @@ QtTabbedView::QtTabbedView(ViewLayout* viewLayout, const std::string& name)
 	m_widget = new QTabWidget(widget);
 	layout->addWidget(m_widget);
 
-	m_closeButton = new QtSelfRefreshIconButton(
-		QLatin1String(""),
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"screen_search_view/images/close.png"),
-		"screen_search/button",
-		widget);
+	m_closeButton = new QtSelfRefreshIconButton(QLatin1String(""), QtResources::SCREEN_SEARCH_VIEW_CLOSE, "screen_search/button", widget);
 	m_closeButton->setIconSize(QSize(15, 15));
 	m_closeButton->setStyleSheet(QStringLiteral("background: transparent; border: none;"));
 
-	widget->connect(m_closeButton, &QPushButton::clicked, [this]() { hideView(this); });
+	QWidget::connect(m_closeButton, &QPushButton::clicked, [this]() { hideView(this); });
 	m_widget->tabBar()->installEventFilter(this);
 	widget->installEventFilter(this);
 }
@@ -43,7 +41,7 @@ void QtTabbedView::createWidgetWrapper() {}
 
 void QtTabbedView::refreshView()
 {
-	m_onQtThread([=]() { setStyleSheet(); });
+	m_onQtThread([=, this]() { setStyleSheet(); });
 }
 
 void QtTabbedView::addViewWidget(View* view)
@@ -64,13 +62,9 @@ void QtTabbedView::showView(View* view)
 
 void QtTabbedView::setStyleSheet()
 {
-	utility::setWidgetBackgroundColor(
-		QtViewWidgetWrapper::getWidgetOfView(this),
-		ColorScheme::getInstance()->getColor("tab/background"));
+	setWidgetBackgroundColor(QtViewWidgetWrapper::getWidgetOfView(this), ColorScheme::getInstance()->getColor("tab/background"));
 
-	m_widget->setStyleSheet(utility::getStyleSheet(ResourcePaths::getGuiDirectoryPath().concatenate(
-													   L"tabbed_view/tabbed_view.css"))
-								.c_str());
+	m_widget->setStyleSheet(QtResources::loadStyleSheet(QtResources::TABBED_VIEW_CSS));
 }
 
 bool QtTabbedView::eventFilter(QObject* obj, QEvent* event)

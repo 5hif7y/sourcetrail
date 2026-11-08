@@ -239,7 +239,7 @@ int Bucket::getMiddleGapX() const
 
 
 BucketLayouter::BucketLayouter(Vec2i viewSize)
-	: m_viewSize(viewSize), m_i1(0), m_j1(0), m_i2(0), m_j2(0)
+	: m_viewSize(viewSize) 
 {
 	m_buckets[0][0] = Bucket(0, 0);
 }

@@ -9,14 +9,14 @@
 class MessageCloseProject: public Message<MessageCloseProject>
 {
 public:
-	MessageCloseProject() {}
+	MessageCloseProject() = default;
 
 	static const std::string getStaticType()
 	{
 		return "MessageCloseProject";
 	}
 
-	virtual void print(std::wostream& os) const {}
+	void print(std::ostream&  /*os*/) const override {}
 };
 
 #endif	  // MESSAGE_CLOSE_PROJECT_H

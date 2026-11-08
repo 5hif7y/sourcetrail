@@ -13,16 +13,13 @@ class QtIndexingStartDialog: public QtIndexingDialog
 
 signals:
 	void setMode(RefreshMode mode);
-	void setShallowIndexing(bool enabled);
 	void startIndexing(RefreshMode mode);
 
 public:
 	QtIndexingStartDialog(
 		const std::vector<RefreshMode>& enabledModes,
 		const RefreshMode initialMode,
-		bool enabledShallowOption,
-		bool initialShallowState,
-		QWidget* parent = 0);
+		QWidget* parent = nullptr);
 	QSize sizeHint() const override;
 
 	void updateRefreshInfo(const RefreshInfo& info);

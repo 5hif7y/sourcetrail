@@ -1,7 +1,49 @@
 #include "NodeTypeSet.h"
 
 #include "NodeType.h"
-#include "utility.h"
+
+using namespace std;
+
+namespace
+{
+
+std::vector<NodeType> getAllNodeTypes()
+{
+	static const vector<NodeType> s_allNodeTypes = {
+		NodeType(NODE_SYMBOL),
+		NodeType(NODE_TYPE),
+		NodeType(NODE_BUILTIN_TYPE),
+		NodeType(NODE_MODULE),
+		NodeType(NODE_NAMESPACE),
+		NodeType(NODE_PACKAGE),
+		NodeType(NODE_STRUCT),
+		NodeType(NODE_CLASS),
+		NodeType(NODE_INTERFACE),
+		NodeType(NODE_GLOBAL_VARIABLE),
+		NodeType(NODE_FIELD),
+		NodeType(NODE_FUNCTION),
+		NodeType(NODE_METHOD),
+		NodeType(NODE_ENUM),
+		NodeType(NODE_ENUM_CONSTANT),
+		NodeType(NODE_TYPEDEF),
+		NodeType(NODE_TYPE_PARAMETER),
+		NodeType(NODE_FILE),
+		NodeType(NODE_MACRO),
+		NodeType(NODE_UNION),
+		NodeType(NODE_RECORD),
+		NodeType(NODE_CONCEPT),
+		NodeType(NODE_C_CAST)
+	};
+	return s_allNodeTypes;
+}
+
+NodeTypeSet::MaskType nodeTypeToMask(const NodeType& nodeType)
+{
+	// TODO: convert to mask if ids are not power of two anymore
+	return static_cast<NodeTypeSet::MaskType>(static_cast<Id::type>(nodeType.getId()));
+}
+
+}
 
 NodeTypeSet NodeTypeSet::all()
 {
@@ -20,7 +62,15 @@ NodeTypeSet::NodeTypeSet()
 	m_nodeTypeMask = 0;
 }
 
-NodeTypeSet::NodeTypeSet(const NodeType& type): m_nodeTypeMask(nodeTypeToMask(type)) {}
+NodeTypeSet::NodeTypeSet(MaskType typeMask)
+{
+	m_nodeTypeMask = typeMask;
+}
+
+NodeTypeSet::NodeTypeSet(const NodeType& type)
+: m_nodeTypeMask(nodeTypeToMask(type)) 
+{
+}
 
 bool NodeTypeSet::operator==(const NodeTypeSet& other) const
 {
@@ -36,7 +86,7 @@ std::vector<NodeType> NodeTypeSet::getNodeTypes() const
 {
 	std::vector<NodeType> nodeTypes;
 
-	for (const NodeType& type: s_allNodeTypes)
+	for (const NodeType& type: getAllNodeTypes())
 	{
 		if (m_nodeTypeMask & nodeTypeToMask(type))
 		{
@@ -81,7 +131,7 @@ NodeTypeSet NodeTypeSet::getWithRemoved(const NodeTypeSet& typeSet) const
 
 void NodeTypeSet::keepMatching(const std::function<bool(const NodeType&)>& matcher)
 {
-	for (const NodeType& type: s_allNodeTypes)
+	for (const NodeType& type: getAllNodeTypes())
 	{
 		if (m_nodeTypeMask & nodeTypeToMask(type) && !matcher(type))
 		{
@@ -99,7 +149,7 @@ NodeTypeSet NodeTypeSet::getWithMatchingKept(const std::function<bool(const Node
 
 void NodeTypeSet::removeMatching(const std::function<bool(const NodeType&)>& matcher)
 {
-	for (const NodeType& type: s_allNodeTypes)
+	for (const NodeType& type: getAllNodeTypes())
 	{
 		if (m_nodeTypeMask & nodeTypeToMask(type) && matcher(type))
 		{
@@ -127,7 +177,7 @@ bool NodeTypeSet::contains(const NodeType& type) const
 
 bool NodeTypeSet::containsMatching(const std::function<bool(const NodeType&)>& matcher) const
 {
-	for (const NodeType& type: s_allNodeTypes)
+	for (const NodeType& type: getAllNodeTypes())
 	{
 		if (m_nodeTypeMask & nodeTypeToMask(type) && matcher(type))
 		{
@@ -146,7 +196,7 @@ std::vector<Id> NodeTypeSet::getNodeTypeIds() const
 {
 	std::vector<Id> ids;
 
-	for (const NodeType& type: s_allNodeTypes)
+	for (const NodeType& type: getAllNodeTypes())
 	{
 		if (m_nodeTypeMask & nodeTypeToMask(type))
 		{
@@ -156,20 +206,3 @@ std::vector<Id> NodeTypeSet::getNodeTypeIds() const
 
 	return ids;
 }
-
-NodeTypeSet::NodeTypeSet(NodeTypeSet::MaskType typeMask): m_nodeTypeMask(typeMask) {}
-
-NodeTypeSet::MaskType NodeTypeSet::nodeTypeToMask(const NodeType& nodeType)
-{
-	// todo: convert to mask if ids are not power of two anymore
-	return static_cast<MaskType>(nodeType.getId());
-}
-
-const std::vector<NodeType> NodeTypeSet::s_allNodeTypes = {
-	NodeType(NODE_SYMBOL),			NodeType(NODE_TYPE),		   NodeType(NODE_BUILTIN_TYPE),
-	NodeType(NODE_MODULE),			NodeType(NODE_NAMESPACE),	   NodeType(NODE_PACKAGE),
-	NodeType(NODE_STRUCT),			NodeType(NODE_CLASS),		   NodeType(NODE_INTERFACE),
-	NodeType(NODE_GLOBAL_VARIABLE), NodeType(NODE_FIELD),		   NodeType(NODE_FUNCTION),
-	NodeType(NODE_METHOD),			NodeType(NODE_ENUM),		   NodeType(NODE_ENUM_CONSTANT),
-	NodeType(NODE_TYPEDEF),			NodeType(NODE_TYPE_PARAMETER), NodeType(NODE_FILE),
-	NodeType(NODE_MACRO),			NodeType(NODE_UNION)};

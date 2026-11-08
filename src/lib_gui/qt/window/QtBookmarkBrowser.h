@@ -8,26 +8,24 @@
 #include "Bookmark.h"
 #include "BookmarkController.h"
 #include "ControllerProxy.h"
-#include "QtWindow.h"
+#include "QtBookmarkWindow.h"
 
 class QtBookmark;
 
-class QtBookmarkBrowser: public QtWindow
+class QtBookmarkBrowser: public QtBookmarkWindow
 {
 	Q_OBJECT
 
 public:
-	QtBookmarkBrowser(ControllerProxy<BookmarkController>* controllerProxy, QWidget* parent = nullptr);
-	~QtBookmarkBrowser();
+	QtBookmarkBrowser(ControllerProxy<BookmarkController> *controllerProxy, QWidget* parent = nullptr);
 
-	void setupBookmarkBrowser();
 	void setBookmarks(const std::vector<std::shared_ptr<Bookmark>>& bookmarks);
 
 protected:
-	virtual void resizeEvent(QResizeEvent* event) override;
+	void resizeEvent(QResizeEvent* event) override;
 
-	virtual void handleClose() override;
-	virtual void handleNext() override;
+	void handleClose() override;
+	void handleNext() override;
 
 private slots:
 	void filterOrOrderChanged(int index);
@@ -39,13 +37,11 @@ private:
 
 	QTreeWidgetItem* findOrCreateTreeCategory(const BookmarkCategory& category);
 
-	ControllerProxy<BookmarkController>* m_controllerProxy;
-
 	QTreeWidget* m_bookmarkTree;
 
 	QComboBox* m_filterComboBox;
 	QComboBox* m_orderComboBox;
-	std::vector<std::string> m_orderNames;
+	std::vector<QString> m_orderNames;
 
 	QWidget* m_headerBackground;
 };

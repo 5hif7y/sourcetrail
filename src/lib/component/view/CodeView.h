@@ -42,16 +42,16 @@ public:
 		std::vector<Id> activeTokenIds;
 		std::vector<Id> activeLocationIds;
 		std::vector<Id> activeLocalSymbolIds;
-		LocationType activeLocalSymbolType = LOCATION_TOKEN;
+		LocationType activeLocalSymbolType = LocationType::TOKEN;
 		std::vector<Id> currentActiveLocalLocationIds;
 
 		std::vector<ErrorInfo> errorInfos;
 	};
 
 	CodeView(ViewLayout* viewLayout);
-	virtual ~CodeView();
+	~CodeView() override;
 
-	virtual std::string getName() const;
+	std::string getName() const override;
 
 	virtual void clear() = 0;
 

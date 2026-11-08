@@ -1,8 +1,5 @@
 #include "SourceGroupCxxCdb.h"
 
-#include <clang/Tooling/JSONCompilationDatabase.h>
-#include <clang/Tooling/Tooling.h>
-
 #include "Application.h"
 #include "ApplicationSettings.h"
 #include "ClangInvocationInfo.h"
@@ -12,9 +9,13 @@
 #include "MessageStatus.h"
 #include "SourceGroupSettingsCxxCdb.h"
 #include "TaskLambda.h"
-#include "logging.h"
+#include "ToolChain.h"
 #include "utility.h"
 #include "utilitySourceGroupCxx.h"
+#include "utilityString.h"
+
+#include <clang/Tooling/JSONCompilationDatabase.h>
+#include <clang/Tooling/Tooling.h>
 
 SourceGroupCxxCdb::SourceGroupCxxCdb(std::shared_ptr<SourceGroupSettingsCxxCdb> settings)
 	: m_settings(settings)
@@ -26,12 +27,12 @@ bool SourceGroupCxxCdb::prepareIndexing()
 	FilePath cdbPath = m_settings->getCompilationDatabasePathExpandedAndAbsolute();
 	if (!cdbPath.empty() && !cdbPath.exists())
 	{
-		std::wstring error =
-			L"Can't refresh project. The compilation database of the project does not exist "
-			L"anymore: " +
-			cdbPath.wstr();
+		std::string error =
+			"Can't refresh project. The compilation database of the project does not exist "
+			"anymore: " +
+			cdbPath.str();
 		MessageStatus(error, true).dispatch();
-		Application::getInstance()->handleDialog(error, {L"Ok"});
+		Application::getInstance()->handleDialog(error, {"Ok"});
 		return false;
 	}
 	return true;
@@ -52,8 +53,7 @@ std::set<FilePath> SourceGroupCxxCdb::getAllSourceFilePaths() const
 		utility::loadCDB(m_settings->getCompilationDatabasePathExpandedAndAbsolute()));
 }
 
-std::set<FilePath> SourceGroupCxxCdb::getAllSourceFilePaths(
-	std::shared_ptr<clang::tooling::JSONCompilationDatabase> cdb) const
+std::set<FilePath> SourceGroupCxxCdb::getAllSourceFilePaths(std::shared_ptr<clang::tooling::CompilationDatabase> cdb) const
 {
 	std::set<FilePath> sourceFilePaths;
 
@@ -75,63 +75,51 @@ std::set<FilePath> SourceGroupCxxCdb::getAllSourceFilePaths(
 	return sourceFilePaths;
 }
 
-std::shared_ptr<IndexerCommandProvider> SourceGroupCxxCdb::getIndexerCommandProvider(
-	const RefreshInfo& info) const
+std::shared_ptr<IndexerCommandProvider> SourceGroupCxxCdb::getIndexerCommandProvider(const RefreshInfo &info) const
 {
-	std::shared_ptr<CxxIndexerCommandProvider> provider =
-		std::make_shared<CxxIndexerCommandProvider>();
+	std::shared_ptr<CxxIndexerCommandProvider> provider = std::make_shared<CxxIndexerCommandProvider>();
 
 	const FilePath cdbPath = m_settings->getCompilationDatabasePathExpandedAndAbsolute();
-	std::shared_ptr<clang::tooling::JSONCompilationDatabase> cdb = utility::loadCDB(cdbPath);
+	std::shared_ptr<clang::tooling::CompilationDatabase> cdb = utility::loadCDB(cdbPath);
 	if (!cdb)
 	{
 		return provider;
 	}
 
-	std::vector<std::wstring> compilerFlags = getBaseCompilerFlags();
+	std::vector<std::string> compilerFlags = getBaseCompilerFlags();
 	utility::append(compilerFlags, m_settings->getCompilerFlags());
 
-	const std::vector<std::wstring> includePchFlags = utility::getIncludePchFlags(m_settings.get());
+	const std::vector<std::string> includePchFlags = utility::getIncludePchFlags(m_settings.get());
 
-	const std::set<FilePath> indexedHeaderPaths = utility::toSet(
-		m_settings->getIndexedHeaderPathsExpandedAndAbsolute());
-	const std::set<FilePathFilter> excludeFilters = utility::toSet(
-		m_settings->getExcludeFiltersExpandedAndAbsolute());
-	const std::set<FilePath>& sourceFilePaths = getAllSourceFilePaths(cdb);
+	const std::set<FilePath> indexedHeaderPaths = utility::toSet(m_settings->getIndexedHeaderPathsExpandedAndAbsolute());
+	const std::set<FilePathFilter> excludeFilters = utility::toSet(m_settings->getExcludeFiltersExpandedAndAbsolute());
+	const std::set<FilePath> &sourceFilePaths = getAllSourceFilePaths(cdb);
 
-	for (const clang::tooling::CompileCommand& command: cdb->getAllCompileCommands())
+	for (clang::tooling::CompileCommand &command : cdb->getAllCompileCommands())
 	{
-		FilePath sourcePath = FilePath(utility::decodeFromUtf8(command.Filename)).makeCanonical();
+		FilePath sourcePath = FilePath(command.Filename).makeCanonical();
 		if (!sourcePath.isAbsolute())
 		{
-			sourcePath = FilePath(utility::decodeFromUtf8(command.Directory + '/' + command.Filename))
-							 .makeCanonical();
+			sourcePath = FilePath(command.Directory + '/' + command.Filename).makeCanonical();
 			if (!sourcePath.isAbsolute())
 			{
 				sourcePath = cdbPath.getParentDirectory().getConcatenated(sourcePath).makeCanonical();
 			}
 		}
 
-		if (info.filesToIndex.find(sourcePath) != info.filesToIndex.end() &&
-			sourceFilePaths.find(sourcePath) != sourceFilePaths.end())
+		if (info.filesToIndex.contains(sourcePath) && sourceFilePaths.contains(sourcePath))
 		{
-			std::vector<std::wstring> cdbFlags = utility::convert<std::string, std::wstring>(
-				command.CommandLine, [](const std::string& s) { return utility::decodeFromUtf8(s); });
+			replaceMsvcArguments(&command.CommandLine);
 
-			utility::removeIncludePchFlag(cdbFlags);
-
-			if (command.CommandLine.size() != cdbFlags.size())
+			std::vector<std::string> commandLine = command.CommandLine;
+			utility::removeIncludePchFlag(commandLine);
+			if (command.CommandLine.size() != commandLine.size())
 			{
-				utility::append(cdbFlags, includePchFlags);
+				utility::append(commandLine, includePchFlags);
 			}
 
-			provider->addCommand(std::make_shared<IndexerCommandCxx>(
-				sourcePath,
-				utility::concat(indexedHeaderPaths, {sourcePath}),
-				excludeFilters,
-				std::set<FilePathFilter>(),
-				FilePath(utility::decodeFromUtf8(command.Directory)),
-				utility::concat(cdbFlags, compilerFlags)));
+			provider->addCommand(std::make_shared<IndexerCommandCxx>(sourcePath, utility::concat(indexedHeaderPaths, {sourcePath}), excludeFilters,
+				std::set<FilePathFilter>(), FilePath(command.Directory), utility::concat(commandLine, compilerFlags)));
 		}
 	}
 
@@ -154,24 +142,21 @@ std::shared_ptr<Task> SourceGroupCxxCdb::getPreIndexTask(
 		return std::make_shared<TaskLambda>([]() {});
 	}
 
-	std::vector<std::wstring> compilerFlags;
+	std::vector<std::string> compilerFlags;
 
 	if (m_settings->getUseCompilerFlags())
 	{
 		const FilePath cdbPath = m_settings->getCompilationDatabasePathExpandedAndAbsolute();
-		std::shared_ptr<clang::tooling::JSONCompilationDatabase> cdb = utility::loadCDB(cdbPath);
+		std::shared_ptr<clang::tooling::CompilationDatabase> cdb = utility::loadCDB(cdbPath);
 		if (cdb)
 		{
 			const std::set<FilePath> sourceFilePaths = getAllSourceFilePaths(cdb);
 			for (const clang::tooling::CompileCommand& command: cdb->getAllCompileCommands())
 			{
-				FilePath sourcePath =
-					FilePath(utility::decodeFromUtf8(command.Filename)).makeCanonical();
+				FilePath sourcePath = FilePath(command.Filename).makeCanonical();
 				if (!sourcePath.isAbsolute())
 				{
-					sourcePath = FilePath(utility::decodeFromUtf8(
-											  command.Directory + '/' + command.Filename))
-									 .makeCanonical();
+					sourcePath = FilePath(command.Directory + '/' + command.Filename).makeCanonical();
 					if (!sourcePath.isAbsolute())
 					{
 						sourcePath =
@@ -184,10 +169,10 @@ std::shared_ptr<Task> SourceGroupCxxCdb::getPreIndexTask(
 				{
 					for (const std::string& arg: command.CommandLine)
 					{
-						if ((!compilerFlags.empty() || utility::isPrefix<std::string>("-", arg)) &&
+						if ((!compilerFlags.empty() || utility::isPrefix("-", arg)) &&
 							FilePath(arg).fileName() != sourcePath.fileName())
 						{
-							compilerFlags.emplace_back(utility::decodeFromUtf8(arg));
+							compilerFlags.emplace_back(arg);
 						}
 					}
 
@@ -195,10 +180,10 @@ std::shared_ptr<Task> SourceGroupCxxCdb::getPreIndexTask(
 					ClangInvocationInfo info = ClangInvocationInfo::getClangInvocationString(
 						&compilationDatabase);
 
-					if (info.invocation.find("\"-x\" \"c++\""))
+					if (info.invocation.find("\"" + ClangCompiler::languageOption() + "\" \"" + ClangCompiler::CPP_LANGUAGE + "\"") != 0)
 					{
-						compilerFlags.push_back(L"-x");
-						compilerFlags.push_back(L"c++");
+						compilerFlags.push_back(ClangCompiler::languageOption());
+						compilerFlags.push_back(ClangCompiler::CPP_LANGUAGE);
 					}
 					break;
 				}
@@ -228,9 +213,9 @@ std::shared_ptr<const SourceGroupSettings> SourceGroupCxxCdb::getSourceGroupSett
 	return m_settings;
 }
 
-std::vector<std::wstring> SourceGroupCxxCdb::getBaseCompilerFlags() const
+std::vector<std::string> SourceGroupCxxCdb::getBaseCompilerFlags() const
 {
-	std::vector<std::wstring> compilerFlags;
+	std::vector<std::string> compilerFlags;
 
 	std::shared_ptr<ApplicationSettings> appSettings = ApplicationSettings::getInstance();
 

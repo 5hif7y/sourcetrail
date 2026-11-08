@@ -1,0 +1,5 @@
+test.cc:16:3: Implicit dtor call: HasDtor::~HasDtor declared at test.cc:8:3
+test.cc:22:3: Implicit base class dtor call: HasDtor::~HasDtor declared at test.cc:8:3
+test.cc:25:6: Implicit dtor call: HasDtor::~HasDtor declared at test.cc:8:3
+test.cc:31:6: Implicit dtor call: HasDtor::~HasDtor declared at test.cc:8:3
+test.cc:39:6: Implicit dtor call: HasDtor::~HasDtor declared at test.cc:8:3

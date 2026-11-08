@@ -85,12 +85,9 @@ void QtStatusView::refreshView()
 
 void QtStatusView::clear()
 {
-	m_onQtThread([this]() {
-		if (!m_model->index(0, 0).data(Qt::DisplayRole).toString().isEmpty())
-		{
-			m_model->removeRows(0, m_model->rowCount());
-		}
-
+	m_onQtThread([this]()
+	{
+		m_model->removeRows(0, m_model->rowCount());
 		m_table->showFirstRow();
 
 		m_status.clear();
@@ -99,7 +96,7 @@ void QtStatusView::clear()
 
 void QtStatusView::addStatus(const std::vector<Status>& status)
 {
-	m_onQtThread([=]() {
+	m_onQtThread([=, this]() {
 		for (const Status& s: status)
 		{
 			const int rowNumber = m_table->getFilledRowCount();
@@ -115,7 +112,7 @@ void QtStatusView::addStatus(const std::vector<Status>& status)
 			m_model->setItem(
 				rowNumber,
 				STATUSVIEW_COLUMN::STATUS,
-				new QStandardItem(QString::fromStdWString(s.message)));
+				new QStandardItem(QString::fromStdString(s.message)));
 
 			if (s.type == StatusType::STATUS_ERROR)
 			{
@@ -137,7 +134,7 @@ QCheckBox* QtStatusView::createFilterCheckbox(const QString& name, QBoxLayout* l
 	QCheckBox* checkbox = new QCheckBox(name);
 	checkbox->setChecked(checked);
 
-	connect(checkbox, &QCheckBox::stateChanged, [=](int) {
+	connect(checkbox, &QCheckBox::checkStateChanged, [=, this](int) {
 		m_table->selectionModel()->clearSelection();
 
 		const StatusFilter statusMask = (m_showInfo->isChecked() ? StatusType::STATUS_INFO : 0) +

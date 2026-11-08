@@ -4,14 +4,14 @@
 #include <QPainter>
 
 QtRoundedRectItem::QtRoundedRectItem(QGraphicsItem* parent)
-	: QGraphicsRectItem(parent), m_radius(0.0f)
+	: QGraphicsRectItem(parent) 
 {
 	this->setZValue(-1.0f);
 }
 
-QtRoundedRectItem::~QtRoundedRectItem() {}
+QtRoundedRectItem::~QtRoundedRectItem() = default;
 
-void QtRoundedRectItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* options, QWidget* widget)
+void QtRoundedRectItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*  /*options*/, QWidget*  /*widget*/)
 {
 	painter->setPen(pen());
 	painter->setBrush(brush());
@@ -21,7 +21,7 @@ void QtRoundedRectItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*
 	painter->drawRoundedRect(this->rect(), m_radius, m_radius);
 }
 
-void QtRoundedRectItem::setShadow(QColor color, int blurRadius)
+void QtRoundedRectItem::setShadow(QColor color, int  /*blurRadius*/)
 {
 	QGraphicsDropShadowEffect* effect = new QGraphicsDropShadowEffect();
 	effect->setColor(color);

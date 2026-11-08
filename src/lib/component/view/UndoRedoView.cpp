@@ -4,7 +4,7 @@
 
 UndoRedoView::UndoRedoView(ViewLayout* viewLayout): View(viewLayout) {}
 
-UndoRedoView::~UndoRedoView() {}
+UndoRedoView::~UndoRedoView() = default;
 
 std::string UndoRedoView::getName() const
 {

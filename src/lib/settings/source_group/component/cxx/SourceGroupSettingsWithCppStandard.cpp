@@ -1,17 +1,20 @@
 #include "SourceGroupSettingsWithCppStandard.h"
 
-#include "ProjectSettings.h"
+#include "ConfigManager.h"
 
-std::wstring SourceGroupSettingsWithCppStandard::getDefaultCppStandardStatic()
+#include <ToolChain.h>
+
+std::string SourceGroupSettingsWithCppStandard::getDefaultCppStandard()
 {
-#ifdef __linux__
-	return L"gnu++17";
-#else
-	return L"c++17";
-#endif
+	return ClangCompiler::getLatestCppStandard();
 }
 
-std::wstring SourceGroupSettingsWithCppStandard::getCppStandard() const
+std::vector<std::string> SourceGroupSettingsWithCppStandard::getAvailableCppStandards()
+{
+	return ClangCompiler::getAvailableCppStandards();
+}
+
+std::string SourceGroupSettingsWithCppStandard::getCppStandard() const
 {
 	if (m_cppStandard.empty())
 	{
@@ -20,28 +23,9 @@ std::wstring SourceGroupSettingsWithCppStandard::getCppStandard() const
 	return m_cppStandard;
 }
 
-void SourceGroupSettingsWithCppStandard::setCppStandard(const std::wstring& standard)
+void SourceGroupSettingsWithCppStandard::setCppStandard(const std::string& standard)
 {
 	m_cppStandard = standard;
-}
-
-std::vector<std::wstring> SourceGroupSettingsWithCppStandard::getAvailableCppStandards() const
-{
-	// as defined in clang/include/clang/Frontend/LangStandards.def
-
-	return {
-		L"c++2a",
-		L"gnu++2a",
-		L"c++17",
-		L"gnu++17",
-		L"c++14",
-		L"gnu++14",
-		L"c++11",
-		L"gnu++11",
-		L"c++03",
-		L"gnu++03",
-		L"c++98",
-		L"gnu++98"};
 }
 
 bool SourceGroupSettingsWithCppStandard::equals(const SourceGroupSettingsBase* other) const
@@ -54,15 +38,10 @@ bool SourceGroupSettingsWithCppStandard::equals(const SourceGroupSettingsBase* o
 
 void SourceGroupSettingsWithCppStandard::load(const ConfigManager* config, const std::string& key)
 {
-	setCppStandard(config->getValueOrDefault<std::wstring>(key + "/cpp_standard", L""));
+	setCppStandard(config->getValueOrDefault<std::string>(key + "/cpp_standard", ""));
 }
 
 void SourceGroupSettingsWithCppStandard::save(ConfigManager* config, const std::string& key)
 {
 	config->setValue(key + "/cpp_standard", getCppStandard());
-}
-
-std::wstring SourceGroupSettingsWithCppStandard::getDefaultCppStandard() const
-{
-	return getDefaultCppStandardStatic();
 }

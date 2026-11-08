@@ -2,8 +2,6 @@
 
 #include "tinyxml.h"
 
-#include "utilityString.h"
-
 namespace Codeblocks
 {
 std::string Compiler::getXmlElementName()
@@ -28,14 +26,14 @@ std::shared_ptr<Compiler> Compiler::create(const TiXmlElement* element)
 				const char* value = addElement->Attribute("option");
 				if (value)
 				{
-					compiler->m_options.push_back(utility::decodeFromUtf8(value));
+					compiler->m_options.push_back(value);
 				}
 			}
 			{
 				const char* value = addElement->Attribute("directory");
 				if (value)
 				{
-					compiler->m_directories.push_back(utility::decodeFromUtf8(value));
+					compiler->m_directories.push_back(value);
 				}
 			}
 
@@ -46,12 +44,12 @@ std::shared_ptr<Compiler> Compiler::create(const TiXmlElement* element)
 	return compiler;
 }
 
-const std::vector<std::wstring>& Compiler::getOptions() const
+const std::vector<std::string>& Compiler::getOptions() const
 {
 	return m_options;
 }
 
-const std::vector<std::wstring>& Compiler::getDirectories() const
+const std::vector<std::string>& Compiler::getDirectories() const
 {
 	return m_directories;
 }

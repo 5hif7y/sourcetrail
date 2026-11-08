@@ -35,7 +35,7 @@ private:
 	{
 		Id id;
 		int level;
-		std::wstring name;
+		std::string name;
 
 		Vec2i pos;
 		Vec2i size;
@@ -80,7 +80,7 @@ private:
 
 	void addNode(const std::shared_ptr<DummyNode>& dummyNode);
 	void addEdge(const std::shared_ptr<DummyEdge> dummyEdge, const std::map<Id, Id>& topLevelAncestorIds);
-	void switchEdge(TrailEdge* edge);
+	static void switchEdge(TrailEdge* edge);
 
 	bool horizontalLayout() const;
 	bool invertedLayout() const;
@@ -91,7 +91,7 @@ private:
 	std::vector<std::shared_ptr<TrailEdge>> m_allEdges;
 
 	std::map<Id, TrailNode*> m_nodesById;
-	TrailNode* m_rootNode;
+	TrailNode* m_rootNode = nullptr;
 
 	std::vector<std::vector<TrailNode*>> m_nodesPerCol;
 };

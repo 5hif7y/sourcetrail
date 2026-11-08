@@ -2,6 +2,7 @@
 
 #include "ApplicationSettings.h"
 #include "MessageStatus.h"
+#include "language_packages.h"
 #include "logging.h"
 #include "utilityPathDetection.h"
 
@@ -9,17 +10,23 @@ void ApplicationSettingsPrefiller::prefillPaths(ApplicationSettings* settings)
 {
 	bool updated = false;
 
+#if BUILD_JAVA_LANGUAGE_PACKAGE
 	updated |= prefillJavaRuntimePath(settings);
 	updated |= prefillMavenExecutablePath(settings);
 	updated |= prefillJreSystemLibraryPaths(settings);
+#endif
+#if BUILD_CXX_LANGUAGE_PACKAGE
 	updated |= prefillCxxHeaderPaths(settings);
 	updated |= prefillCxxFrameworkPaths(settings);
+#endif
 
 	if (updated)
 	{
 		settings->save();
 	}
 }
+
+#if BUILD_JAVA_LANGUAGE_PACKAGE
 
 bool ApplicationSettingsPrefiller::prefillJavaRuntimePath(ApplicationSettings* settings)
 {
@@ -34,13 +41,13 @@ bool ApplicationSettingsPrefiller::prefillJavaRuntimePath(ApplicationSettings* s
 	std::vector<FilePath> paths = javaPathDetector->getPaths();
 	if (!paths.empty())
 	{
-		MessageStatus(L"Ran Java runtime path detection, found: " + paths.front().wstr()).dispatch();
+		MessageStatus("Ran Java runtime path detection, found: " + paths.front().str()).dispatch();
 
 		settings->setJavaPath(paths.front());
 	}
 	else
 	{
-		MessageStatus(L"Ran Java runtime path detection, no path found.").dispatch();
+		MessageStatus("Ran Java runtime path detection, no path found.").dispatch();
 	}
 
 	settings->setHasPrefilledJavaPath(true);
@@ -60,14 +67,14 @@ bool ApplicationSettingsPrefiller::prefillJreSystemLibraryPaths(ApplicationSetti
 	std::vector<FilePath> paths = jreSystemLibraryPathsDetector->getPaths();
 	if (!paths.empty())
 	{
-		MessageStatus(L"Ran JRE system library path detection, found: " + paths.front().wstr())
+		MessageStatus("Ran JRE system library path detection, found: " + paths.front().str())
 			.dispatch();
 
 		settings->setJreSystemLibraryPaths(paths);
 	}
 	else
 	{
-		MessageStatus(L"Ran JRE system library path detection, no path found.").dispatch();
+		MessageStatus("Ran JRE system library path detection, no path found.").dispatch();
 	}
 
 	settings->setHasPrefilledJreSystemLibraryPaths(true);
@@ -87,18 +94,22 @@ bool ApplicationSettingsPrefiller::prefillMavenExecutablePath(ApplicationSetting
 	std::vector<FilePath> paths = mavenPathDetector->getPaths();
 	if (!paths.empty())
 	{
-		MessageStatus(L"Ran Maven executable path detection, found: " + paths.front().wstr()).dispatch();
+		MessageStatus("Ran Maven executable path detection, found: " + paths.front().str()).dispatch();
 
 		settings->setMavenPath(paths.front());
 	}
 	else
 	{
-		MessageStatus(L"Ran Maven executable path detection, no path found.").dispatch();
+		MessageStatus("Ran Maven executable path detection, no path found.").dispatch();
 	}
 
 	settings->setHasPrefilledMavenPath(true);
 	return true;
 }
+
+#endif	// BUILD_JAVA_LANGUAGE_PACKAGE
+
+#if BUILD_CXX_LANGUAGE_PACKAGE
 
 bool ApplicationSettingsPrefiller::prefillCxxHeaderPaths(ApplicationSettings* settings)
 {
@@ -113,8 +124,8 @@ bool ApplicationSettingsPrefiller::prefillCxxHeaderPaths(ApplicationSettings* se
 	if (!paths.empty())
 	{
 		MessageStatus(
-			L"Ran C/C++ header path detection, found " + std::to_wstring(paths.size()) + L" path" +
-			(paths.size() == 1 ? L"" : L"s"))
+			"Ran C/C++ header path detection, found " + std::to_string(paths.size()) + " path" +
+			(paths.size() == 1 ? "" : "s"))
 			.dispatch();
 
 		settings->setHeaderSearchPaths(paths);
@@ -138,8 +149,8 @@ bool ApplicationSettingsPrefiller::prefillCxxFrameworkPaths(ApplicationSettings*
 	if (!paths.empty())
 	{
 		MessageStatus(
-			L"Ran C/C++ framework path detection, found " + std::to_wstring(paths.size()) +
-			L" path" + (paths.size() == 1 ? L"" : L"s"))
+			"Ran C/C++ framework path detection, found " + std::to_string(paths.size()) +
+			" path" + (paths.size() == 1 ? "" : "s"))
 			.dispatch();
 
 		settings->setFrameworkSearchPaths(paths);
@@ -148,3 +159,5 @@ bool ApplicationSettingsPrefiller::prefillCxxFrameworkPaths(ApplicationSettings*
 	settings->setHasPrefilledFrameworkSearchPaths(true);
 	return true;
 }
+
+#endif	// BUILD_CXX_LANGUAGE_PACKAGE

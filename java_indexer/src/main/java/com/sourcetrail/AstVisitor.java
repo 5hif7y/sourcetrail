@@ -16,6 +16,7 @@ import java.util.Optional;
 import java.util.Stack;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
+import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
 import org.eclipse.jdt.core.dom.Annotation;
 import org.eclipse.jdt.core.dom.AnnotationTypeDeclaration;
 import org.eclipse.jdt.core.dom.AnnotationTypeMemberDeclaration;
@@ -53,6 +54,7 @@ import org.eclipse.jdt.core.dom.ParameterizedType;
 import org.eclipse.jdt.core.dom.PrimitiveType;
 import org.eclipse.jdt.core.dom.QualifiedName;
 import org.eclipse.jdt.core.dom.QualifiedType;
+import org.eclipse.jdt.core.dom.RecordDeclaration;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SimpleType;
 import org.eclipse.jdt.core.dom.SingleMemberAnnotation;
@@ -127,23 +129,10 @@ public abstract class AstVisitor extends ASTVisitor
 
 	@Override public boolean visit(AnnotationTypeDeclaration node)
 	{
-		DeclName symbolName = DeclNameResolver.getQualifiedDeclName(
-			node, m_filePath, m_compilationUnit);
-		Range scopeRange = getRange(node);
-
-		m_client.recordSymbolWithLocationAndScope(
-			symbolName.toNameHierarchy(),
-			SymbolKind.ANNOTATION,
-			getRange(node.getName()),
-			scopeRange,
-			AccessKind.fromModifiers(node.getModifiers()),
-			DefinitionKind.EXPLICIT);
-
-		scopeRange.begin = m_fileContent.findStartPosition("{", scopeRange.begin);
-		recordScope(scopeRange);
-
-		m_contextStack.push(Arrays.asList(symbolName));
-
+		recordAbstractTypeDeclaration(
+			node,
+			SymbolKind.ANNOTATION
+		);
 		return true;
 	}
 
@@ -180,23 +169,10 @@ public abstract class AstVisitor extends ASTVisitor
 
 	@Override public boolean visit(TypeDeclaration node)
 	{
-		DeclName symbolName = DeclNameResolver.getQualifiedDeclName(
-			node, m_filePath, m_compilationUnit);
-		Range scopeRange = getRange(node);
-
-		m_client.recordSymbolWithLocationAndScope(
-			symbolName.toNameHierarchy(),
-			node.isInterface() ? SymbolKind.INTERFACE : SymbolKind.CLASS,
-			getRange(node.getName()),
-			scopeRange,
-			AccessKind.fromModifiers(node.getModifiers()),
-			DefinitionKind.EXPLICIT);
-
-		scopeRange.begin = m_fileContent.findStartPosition("{", scopeRange.begin);
-		recordScope(scopeRange);
-
-		m_contextStack.push(Arrays.asList(symbolName));
-
+		recordAbstractTypeDeclaration(
+			node, 
+			node.isInterface() ? SymbolKind.INTERFACE : SymbolKind.CLASS
+		);
 		return true;
 	}
 
@@ -205,6 +181,21 @@ public abstract class AstVisitor extends ASTVisitor
 		m_contextStack.pop();
 	}
 
+	@Override
+	public boolean visit(RecordDeclaration node)
+	{
+		recordAbstractTypeDeclaration(
+			node,
+			SymbolKind.RECORD
+		);
+		return true;
+	}
+
+	@Override
+	public void endVisit(RecordDeclaration node)
+	{
+		m_contextStack.pop();
+	}
 
 	@Override public boolean visit(TypeParameter node)
 	{
@@ -231,26 +222,13 @@ public abstract class AstVisitor extends ASTVisitor
 		m_contextStack.pop();
 	}
 
-
+	
 	@Override public boolean visit(EnumDeclaration node)
 	{
-		DeclName symbolName = DeclNameResolver.getQualifiedDeclName(
-			node, m_filePath, m_compilationUnit);
-		Range scopeRange = getRange(node);
-
-		m_client.recordSymbolWithLocationAndScope(
-			symbolName.toNameHierarchy(),
-			SymbolKind.ENUM,
-			getRange(node.getName()),
-			scopeRange,
-			AccessKind.fromModifiers(node.getModifiers()),
-			DefinitionKind.EXPLICIT);
-
-		scopeRange.begin = m_fileContent.findStartPosition("{", scopeRange.begin);
-		recordScope(scopeRange);
-
-		m_contextStack.push(Arrays.asList(symbolName));
-
+		recordAbstractTypeDeclaration(
+			node, 
+			SymbolKind.ENUM 
+		);
 		return true;
 	}
 
@@ -260,7 +238,7 @@ public abstract class AstVisitor extends ASTVisitor
 	}
 
 
-	public boolean visit(EnumConstantDeclaration node)
+	@Override public boolean visit(EnumConstantDeclaration node)
 	{
 		DeclName symbolName = DeclNameResolver.getQualifiedDeclName(
 			node, m_filePath, m_compilationUnit);
@@ -980,8 +958,28 @@ public abstract class AstVisitor extends ASTVisitor
 
 	// --- utility methods ---
 
+	private void recordAbstractTypeDeclaration(AbstractTypeDeclaration node, SymbolKind symbolKind)
+	{
+		DeclName symbolName = DeclNameResolver.getQualifiedDeclName(
+			node, m_filePath, m_compilationUnit);
+		Range scopeRange = getRange(node);
+
+		m_client.recordSymbolWithLocationAndScope(
+			symbolName.toNameHierarchy(),
+			symbolKind,
+			getRange(node.getName()),
+			scopeRange,
+			AccessKind.fromModifiers(node.getModifiers()),
+			DefinitionKind.EXPLICIT);
+
+		scopeRange.begin = m_fileContent.findStartPosition("{", scopeRange.begin);
+		recordScope(scopeRange);
+
+		m_contextStack.push(Arrays.asList(symbolName));
+	}
+
 	private void recordReferenceToMethodDeclaration(
-		IMethodBinding methodBinding, Range range, ReferenceKind referenceKind, List<SymbolName> contexts)
+		IMethodBinding methodBinding, Range range, ReferenceKind referenceKind, @SuppressWarnings("unused") List<SymbolName> contexts)
 	{
 		if (methodBinding != null)
 		{
@@ -1008,7 +1006,7 @@ public abstract class AstVisitor extends ASTVisitor
 		}
 	}
 
-	private void recordReferenceToTypeArguments(IMethodBinding methodBinding, List typeArguments)
+	private void recordReferenceToTypeArguments(IMethodBinding methodBinding, List<Object> typeArguments)
 	{
 		if (!typeArguments.isEmpty())
 		{
@@ -1053,6 +1051,7 @@ public abstract class AstVisitor extends ASTVisitor
 		return Utility.getRange(node, m_compilationUnit);
 	}
 
+	@SuppressWarnings("unused")
 	private IPackageBinding getDeclaringPackage(IBinding binding)
 	{
 		if (binding != null)
@@ -1102,7 +1101,7 @@ public abstract class AstVisitor extends ASTVisitor
 		return allAncestorTypes;
 	}
 
-	private List<ITypeBinding> getDirectAncestorTypes(ITypeBinding type)
+	private static List<ITypeBinding> getDirectAncestorTypes(ITypeBinding type)
 	{
 		List<ITypeBinding> ancestorTypes = new ArrayList<>();
 

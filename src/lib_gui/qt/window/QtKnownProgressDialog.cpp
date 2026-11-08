@@ -34,7 +34,7 @@ QSize QtKnownProgressDialog::sizeHint() const
 	return QSize(350, 280);
 }
 
-void QtKnownProgressDialog::closeEvent(QCloseEvent* event)
+void QtKnownProgressDialog::closeEvent(QCloseEvent*  /*event*/)
 {
 	emit visibleChanged(false);
 }

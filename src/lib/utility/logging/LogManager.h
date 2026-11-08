@@ -30,28 +30,13 @@ public:
 		const std::string& file,
 		const std::string& function,
 		const unsigned int line);
-	void logInfo(
-		const std::wstring& message,
-		const std::string& file,
-		const std::string& function,
-		const unsigned int line);
 	void logWarning(
 		const std::string& message,
 		const std::string& file,
 		const std::string& function,
 		const unsigned int line);
-	void logWarning(
-		const std::wstring& message,
-		const std::string& file,
-		const std::string& function,
-		const unsigned int line);
 	void logError(
 		const std::string& message,
-		const std::string& file,
-		const std::string& function,
-		const unsigned int line);
-	void logError(
-		const std::wstring& message,
 		const std::string& file,
 		const std::string& function,
 		const unsigned int line);
@@ -64,7 +49,7 @@ private:
 	void operator=(const LogManager&);
 
 	LogManagerImplementation m_logManagerImplementation;
-	bool m_loggingEnabled;
+	bool m_loggingEnabled = false;
 };
 
 #endif	  // LOG_MANAGER_H

@@ -2,7 +2,6 @@
 
 #include "ConfigManager.h"
 #include "ProjectSettings.h"
-#include "utilityString.h"
 
 const size_t SourceGroupSettings::s_version = 1;
 const std::string SourceGroupSettings::s_keyPrefix = "source_groups/source_group_";
@@ -13,7 +12,7 @@ SourceGroupSettings::SourceGroupSettings(
 	, m_type(type)
 	, m_id(id)
 	, m_name(sourceGroupTypeToString(type))
-	, m_status(SOURCE_GROUP_STATUS_ENABLED)
+	 
 {
 }
 
@@ -36,7 +35,7 @@ void SourceGroupSettings::load(const ConfigManager* config, const std::string& k
 	}
 
 	setStatus(stringToSourceGroupStatusType(config->getValueOrDefault(
-		key + "/status", sourceGroupStatusTypeToString(SOURCE_GROUP_STATUS_ENABLED))));
+		key + "/status", sourceGroupStatusTypeToString(SourceGroupStatusType::ENABLED))));
 }
 
 void SourceGroupSettings::save(ConfigManager* config, const std::string& key)
@@ -92,8 +91,7 @@ const ProjectSettings* SourceGroupSettings::getProjectSettings() const
 
 FilePath SourceGroupSettings::getSourceGroupDependenciesDirectoryPath() const
 {
-	return getProjectSettings()->getDependenciesDirectoryPath().concatenate(
-		utility::decodeFromUtf8(getId()));
+	return getProjectSettings()->getDependenciesDirectoryPath().concatenate(getId());
 }
 
 FilePath SourceGroupSettings::getProjectDirectoryPath() const

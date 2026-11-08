@@ -9,11 +9,11 @@ class QtLineItemStraight: public QGraphicsLineItem
 {
 public:
 	QtLineItemStraight(QGraphicsItem* parent);
-	virtual ~QtLineItemStraight();
+	~QtLineItemStraight() override;
 
 	void updateLine(const Vec2i& origin, const Vec2i& target, const GraphViewStyle::EdgeStyle& style);
 
-	virtual QPainterPath shape() const;
+	QPainterPath shape() const override;
 };
 
 #endif	  // QT_LINE_ITEM_STRAIGHT_H

@@ -9,7 +9,7 @@ class CustomTrailView: public View
 public:
 	CustomTrailView(ViewLayout*): View(nullptr) {}
 
-	virtual std::string getName() const
+	std::string getName() const override
 	{
 		return "custom trail";
 	}

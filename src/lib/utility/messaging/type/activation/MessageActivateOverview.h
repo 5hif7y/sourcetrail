@@ -5,7 +5,7 @@
 #include "MessageActivateBase.h"
 
 #include "NodeTypeSet.h"
-#include "TabId.h"
+#include "TabIds.h"
 
 class MessageActivateOverview
 	: public Message<MessageActivateOverview>
@@ -21,7 +21,7 @@ public:
 		: acceptedNodeTypes(acceptedNodeTypes)
 	{
 		setIsParallel(true);
-		setSchedulerId(TabId::currentTab());
+		setSchedulerId(TabIds::currentTab());
 	}
 
 	std::vector<SearchMatch> getSearchMatches() const override

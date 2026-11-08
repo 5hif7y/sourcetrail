@@ -1,12 +1,8 @@
 #include "LogManager.h"
 
-#include <algorithm>
-
 #include "MessageStatus.h"
 #include "Version.h"
 #include "logging.h"
-#include "utilityApp.h"
-#include "utilityString.h"
 
 std::shared_ptr<LogManager> LogManager::getInstance()
 {
@@ -22,7 +18,7 @@ void LogManager::destroyInstance()
 	s_instance.reset();
 }
 
-LogManager::~LogManager() {}
+LogManager::~LogManager() = default;
 
 void LogManager::setLoggingEnabled(bool enabled)
 {
@@ -32,18 +28,13 @@ void LogManager::setLoggingEnabled(bool enabled)
 
 		if (enabled)
 		{
-			LOG_INFO(
-				std::string("Enabled logging for Sourcetrail ") +
-				(utility::getApplicationArchitectureType() == APPLICATION_ARCHITECTURE_X86_32
-					 ? "32"
-					 : "64") +
-				" bit, " + "version " + Version::getApplicationVersion().toDisplayString());
-			MessageStatus(L"Enabled console and file logging.").dispatch();
+			LOG_INFO(std::string("Enabled logging for Sourcetrail version ") + Version::getApplicationVersion().toDisplayString());
+			MessageStatus("Enabled console and file logging.").dispatch();
 		}
 		else
 		{
 			LOG_INFO("Disabled logging");
-			MessageStatus(L"Disabled console and file logging.").dispatch();
+			MessageStatus("Disabled console and file logging.").dispatch();
 		}
 	}
 }
@@ -96,36 +87,12 @@ void LogManager::logInfo(
 {
 	if (m_loggingEnabled)
 	{
-		m_logManagerImplementation.logInfo(utility::decodeFromUtf8(message), file, function, line);
-	}
-}
-
-void LogManager::logInfo(
-	const std::wstring& message,
-	const std::string& file,
-	const std::string& function,
-	const unsigned int line)
-{
-	if (m_loggingEnabled)
-	{
 		m_logManagerImplementation.logInfo(message, file, function, line);
 	}
 }
 
 void LogManager::logWarning(
 	const std::string& message,
-	const std::string& file,
-	const std::string& function,
-	const unsigned int line)
-{
-	if (m_loggingEnabled)
-	{
-		m_logManagerImplementation.logWarning(utility::decodeFromUtf8(message), file, function, line);
-	}
-}
-
-void LogManager::logWarning(
-	const std::wstring& message,
 	const std::string& file,
 	const std::string& function,
 	const unsigned int line)
@@ -144,22 +111,10 @@ void LogManager::logError(
 {
 	if (m_loggingEnabled)
 	{
-		m_logManagerImplementation.logError(utility::decodeFromUtf8(message), file, function, line);
-	}
-}
-
-void LogManager::logError(
-	const std::wstring& message,
-	const std::string& file,
-	const std::string& function,
-	const unsigned int line)
-{
-	if (m_loggingEnabled)
-	{
 		m_logManagerImplementation.logError(message, file, function, line);
 	}
 }
 
 std::shared_ptr<LogManager> LogManager::s_instance;
 
-LogManager::LogManager(): m_loggingEnabled(false) {}
+LogManager::LogManager() = default;

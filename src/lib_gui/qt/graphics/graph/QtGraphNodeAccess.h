@@ -10,28 +10,28 @@ class QtGraphNodeAccess: public QtGraphNode
 	Q_OBJECT
 public:
 	QtGraphNodeAccess(AccessKind accessKind);
-	virtual ~QtGraphNodeAccess();
+	~QtGraphNodeAccess() override;
 
 	AccessKind getAccessKind() const;
 
 	// QtGraphNode implementation
-	virtual bool isAccessNode() const override;
+	bool isAccessNode() const override;
 
-	virtual void addSubNode(QtGraphNode* node) override;
-	virtual void updateStyle() override;
+	void addSubNode(QtGraphNode* node) override;
+	void updateStyle() override;
 
 	void hideLabel();
 
 protected:
-	virtual void matchName(const std::wstring& query, std::vector<QtGraphNode*>* matchedNodes) override
+	void matchName(const std::string&  /*query*/, std::vector<QtGraphNode*>*  /*matchedNodes*/) override
 	{
 	}
 
 private:
 	AccessKind m_accessKind;
 
-	QGraphicsPixmapItem* m_accessIcon;
-	int m_accessIconSize;
+	QGraphicsPixmapItem* m_accessIcon = nullptr;
+	int m_accessIconSize = 16;
 };
 
 #endif	  // QT_GRAPH_NODE_ACCESS_H

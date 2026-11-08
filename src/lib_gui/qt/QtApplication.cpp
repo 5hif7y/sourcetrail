@@ -8,8 +8,19 @@
 #include "MessageWindowFocus.h"
 #include "utilityApp.h"
 
+#include "QtMetaTypes.h"
+
 QtApplication::QtApplication(int& argc, char** argv): QApplication(argc, argv)
 {
+	qRegisterMetaType<Id>();
+	qRegisterMetaType<TabId>();
+	qRegisterMetaType<LanguageType>();
+	qRegisterMetaType<SourceGroupType>();
+	qRegisterMetaType<FilePath>();
+	qRegisterMetaType<RefreshMode>();
+	qRegisterMetaType<GroupType>();
+	qRegisterMetaType<ErrorCountInfo>();
+
 	connect(
 		this,
 		&QGuiApplication::applicationStateChanged,
@@ -29,9 +40,9 @@ bool QtApplication::event(QEvent* event)
 	{
 		QFileOpenEvent* fileEvent = dynamic_cast<QFileOpenEvent*>(event);
 
-		FilePath path(fileEvent->file().toStdWString());
+		FilePath path(fileEvent->file().toStdString());
 
-		if (path.exists() && path.extension() == L".srctrlprj")
+		if (path.exists() && path.extension() == ".srctrlprj")
 		{
 			MessageLoadProject(path).dispatch();
 			return true;

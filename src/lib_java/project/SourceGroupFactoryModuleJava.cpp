@@ -11,9 +11,9 @@ bool SourceGroupFactoryModuleJava::supports(SourceGroupType type) const
 {
 	switch (type)
 	{
-	case SOURCE_GROUP_JAVA_EMPTY:
-	case SOURCE_GROUP_JAVA_GRADLE:
-	case SOURCE_GROUP_JAVA_MAVEN:
+	case SourceGroupType::JAVA_EMPTY:
+	case SourceGroupType::JAVA_GRADLE:
+	case SourceGroupType::JAVA_MAVEN:
 		return true;
 	default:
 		break;

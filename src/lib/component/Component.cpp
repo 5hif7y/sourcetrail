@@ -4,7 +4,7 @@
 #include "View.h"
 
 Component::Component(std::shared_ptr<View> view, std::shared_ptr<Controller> controller)
-	: m_controller(controller), m_view(view), m_tabId(0)
+	: m_controller(controller), m_view(view), m_tabId(TabId::NONE)
 {
 	if (m_controller)
 	{
@@ -40,12 +40,12 @@ View* Component::getViewPtr() const
 	return m_view.get();
 }
 
-void Component::setTabId(Id tabId)
+void Component::setTabId(TabId tabId)
 {
 	m_tabId = tabId;
 }
 
-Id Component::getTabId() const
+TabId Component::getTabId() const
 {
 	return m_tabId;
 }

@@ -9,9 +9,9 @@ class RefreshController: public Controller
 {
 public:
 	RefreshController();
-	virtual ~RefreshController();
+	~RefreshController() override;
 
-	virtual void clear();
+	void clear() override;
 
 private:
 	RefreshView* getView();

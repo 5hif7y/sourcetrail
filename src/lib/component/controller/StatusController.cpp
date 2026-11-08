@@ -9,7 +9,7 @@ StatusController::StatusController()
 	m_statusFilter = ApplicationSettings::getInstance()->getStatusFilter();
 }
 
-StatusController::~StatusController() {}
+StatusController::~StatusController() = default;
 
 StatusView* StatusController::getView() const
 {
@@ -18,13 +18,13 @@ StatusView* StatusController::getView() const
 
 void StatusController::clear() {}
 
-void StatusController::handleMessage(MessageClearStatusView* message)
+void StatusController::handleMessage(MessageClearStatusView*  /*message*/)
 {
 	m_status.clear();
 	getView()->clear();
 }
 
-void StatusController::handleMessage(MessageShowStatus* message)
+void StatusController::handleMessage(MessageShowStatus*  /*message*/)
 {
 	getView()->showDockWidget();
 }
@@ -38,7 +38,7 @@ void StatusController::handleMessage(MessageStatus* message)
 
 	std::vector<Status> stati;
 
-	for (const std::wstring& status: message->stati())
+	for (const std::string& status: message->stati())
 	{
 		stati.push_back(Status(status, message->isError));
 	}

@@ -5,6 +5,7 @@
 
 #include "FilePath.h"
 #include "Message.h"
+#include "utilityEnum.h"
 
 class MessageLoadProject: public Message<MessageLoadProject>
 {
@@ -12,12 +13,10 @@ public:
 	MessageLoadProject(
 		const FilePath& filePath,
 		bool settingsChanged = false,
-		RefreshMode refreshMode = REFRESH_NONE,
-		bool shallowIndexingRequested = false)
+		RefreshMode refreshMode = RefreshMode::NONE)
 		: projectSettingsFilePath(filePath)
 		, settingsChanged(settingsChanged)
 		, refreshMode(refreshMode)
-		, shallowIndexingRequested(shallowIndexingRequested)
 	{
 	}
 
@@ -26,17 +25,16 @@ public:
 		return "MessageLoadProject";
 	}
 
-	virtual void print(std::wostream& os) const
+	void print(std::ostream& os) const override
 	{
-		os << projectSettingsFilePath.wstr();
-		os << L", settingsChanged: " << std::boolalpha << settingsChanged;
-		os << L", refreshMode: " << refreshMode;
+		os << projectSettingsFilePath.str();
+		os << ", settingsChanged: " << std::boolalpha << settingsChanged;
+		os << ", refreshMode: " << refreshMode;
 	}
 
 	const FilePath projectSettingsFilePath;
 	const bool settingsChanged;
 	const RefreshMode refreshMode;
-	const bool shallowIndexingRequested;
 };
 
 #endif	  // MESSAGE_LOAD_PROJECT_H

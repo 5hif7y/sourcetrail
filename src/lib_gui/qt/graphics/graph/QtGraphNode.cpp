@@ -1,12 +1,5 @@
 #include "QtGraphNode.h"
 
-#include <QBrush>
-#include <QCursor>
-#include <QFont>
-#include <QFontMetrics>
-#include <QGraphicsSceneEvent>
-#include <QPen>
-
 #include "GraphFocusHandler.h"
 #include "MessageCodeShowDefinition.h"
 #include "MessageGraphNodeHide.h"
@@ -14,11 +7,17 @@
 #include "QtDeviceScaledPixmap.h"
 #include "QtGraphEdge.h"
 #include "QtGraphNodeComponent.h"
-#include "QtGraphNodeExpandToggle.h"
+#include "QtResources.h"
 #include "QtRoundedRectItem.h"
-#include "ResourcePaths.h"
 #include "utilityQt.h"
 #include "utilityString.h"
+
+#include <QBrush>
+#include <QCursor>
+#include <QFont>
+#include <QFontMetrics>
+#include <QGraphicsSceneEvent>
+#include <QPen>
 
 void QtGraphNode::blendIn()
 {
@@ -70,7 +69,7 @@ QtGraphNode::QtGraphNode(GraphFocusHandler* focusHandler): m_focusHandler(focusH
 	m_undefinedRect->hide();
 }
 
-QtGraphNode::~QtGraphNode() {}
+QtGraphNode::~QtGraphNode() = default;
 
 QtGraphNode* QtGraphNode::getParent() const
 {
@@ -216,7 +215,7 @@ bool QtGraphNode::hasActiveChild() const
 		return true;
 	}
 
-	for (auto subNode: m_subNodes)
+	for (auto *subNode: m_subNodes)
 	{
 		if (subNode->hasActiveChild())
 		{
@@ -232,14 +231,14 @@ bool QtGraphNode::isFocusable() const
 	return m_isInteractive && (isDataNode() || isGroupNode() || isBundleNode());
 }
 
-std::wstring QtGraphNode::getName() const
+std::string QtGraphNode::getName() const
 {
-	return m_text->text().toStdWString();
+	return m_text->text().toStdString();
 }
 
-void QtGraphNode::setName(const std::wstring& name)
+void QtGraphNode::setName(const std::string& name)
 {
-	m_text->setText(QString::fromStdWString(name));
+	m_text->setText(QString::fromStdString(name));
 }
 
 void QtGraphNode::addComponent(const std::shared_ptr<QtGraphNodeComponent>& component)
@@ -349,17 +348,17 @@ void QtGraphNode::showNodeRecursive()
 	blendIn();
 	showNode();
 
-	for (auto subNode: m_subNodes)
+	for (auto *subNode: m_subNodes)
 	{
 		subNode->showNodeRecursive();
 	}
 }
 
-void QtGraphNode::matchNameRecursive(const std::wstring& query, std::vector<QtGraphNode*>* matchedNodes)
+void QtGraphNode::matchNameRecursive(const std::string& query, std::vector<QtGraphNode*>* matchedNodes)
 {
 	matchName(query, matchedNodes);
 
-	for (auto subNode: m_subNodes)
+	for (auto *subNode: m_subNodes)
 	{
 		subNode->matchNameRecursive(query, matchedNodes);
 	}
@@ -474,7 +473,7 @@ void QtGraphNode::onHide()
 
 Id QtGraphNode::onCollapseExpand()
 {
-	for (auto subNode: getSubNodes())
+	for (auto *subNode: getSubNodes())
 	{
 		if (subNode->isExpandToggleNode())
 		{
@@ -588,10 +587,10 @@ void QtGraphNode::notifyEdgesAfterMove()
 	}
 }
 
-void QtGraphNode::matchName(const std::wstring& query, std::vector<QtGraphNode*>* matchedNodes)
+void QtGraphNode::matchName(const std::string& query, std::vector<QtGraphNode*>* matchedNodes)
 {
 	m_isActiveMatch = false;
-	const std::wstring name = getName();
+	const std::string name = getName();
 	size_t pos = utility::toLowerCase(name).find(query);
 
 	if (pos != std::string::npos)
@@ -605,9 +604,9 @@ void QtGraphNode::matchName(const std::wstring& query, std::vector<QtGraphNode*>
 		m_matchRect->show();
 		m_matchText->show();
 
-		std::wstring matchName(name.length(), L' ');
+		std::string matchName(name.length(), ' ');
 		matchName.replace(pos, query.length(), name.substr(pos, query.length()));
-		m_matchText->setText(QString::fromStdWString(matchName));
+		m_matchText->setText(QString::fromStdString(matchName));
 
 		matchedNodes->push_back(this);
 
@@ -643,8 +642,7 @@ void QtGraphNode::setStyle(const GraphViewStyle::NodeStyle& style)
 
 	if (style.hasHatching)
 	{
-		QtDeviceScaledPixmap pattern(QString::fromStdWString(
-			ResourcePaths::getGuiDirectoryPath().concatenate(L"graph_view/images/pattern.png").wstr()));
+		QtDeviceScaledPixmap pattern(QString::fromUtf8(QtResources::GRAPH_VIEW_PATTERN));
 		pattern.scaleToHeight(12);
 		QPixmap pixmap = utility::colorizePixmap(pattern.pixmap(), style.color.hatching.c_str());
 
@@ -659,7 +657,7 @@ void QtGraphNode::setStyle(const GraphViewStyle::NodeStyle& style)
 
 	if (!m_icon && !style.iconPath.empty())
 	{
-		QtDeviceScaledPixmap pixmap(QString::fromStdWString(style.iconPath.wstr()));
+		QtDeviceScaledPixmap pixmap(QString::fromStdString(style.iconPath.str()));
 		pixmap.scaleToHeight(static_cast<int>(style.iconSize));
 
 		m_icon = new QGraphicsPixmapItem(

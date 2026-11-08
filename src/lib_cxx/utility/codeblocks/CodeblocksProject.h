@@ -20,14 +20,16 @@ namespace Codeblocks
 class Target;
 class Unit;
 
-class Project
+#include "SourcetrailCxxExport.h"
+
+class SOURCETRAIL_CXX_EXPORT Project
 {
 public:
 	static std::shared_ptr<Project> load(const FilePath& projectFilePath);
 	static std::shared_ptr<Project> load(std::shared_ptr<TextAccess> xmlAccess);
 
 	std::set<FilePath> getAllSourceFilePathsCanonical(
-		const std::vector<std::wstring>& sourceExtensions) const;
+		const std::vector<std::string>& sourceExtensions) const;
 	std::set<FilePath> getAllCxxHeaderSearchPathsCanonical() const;
 
 	std::vector<std::shared_ptr<IndexerCommandCxx>> getIndexerCommands(
@@ -42,7 +44,7 @@ private:
 	int m_versionMajor = 0;
 	int m_versionMinor = 0;
 
-	std::wstring m_title;
+	std::string m_title;
 
 	std::vector<std::shared_ptr<Target>> m_targets;
 	std::vector<std::shared_ptr<Unit>> m_units;

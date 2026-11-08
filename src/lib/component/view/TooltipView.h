@@ -12,10 +12,10 @@ class TooltipView: public View
 {
 public:
 	TooltipView(ViewLayout* viewLayout);
-	virtual ~TooltipView();
+	~TooltipView() override;
 
 	// View implementation
-	virtual std::string getName() const;
+	std::string getName() const override;
 
 	virtual void showTooltip(const TooltipInfo& info, const View* parent) = 0;
 	virtual void hideTooltip(bool force) = 0;

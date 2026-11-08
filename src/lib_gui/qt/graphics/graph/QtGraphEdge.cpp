@@ -71,7 +71,7 @@ QtGraphEdge::QtGraphEdge(
 	}
 }
 
-QtGraphEdge::~QtGraphEdge() {}
+QtGraphEdge::~QtGraphEdge() = default;
 
 const Edge* QtGraphEdge::getData() const
 {
@@ -365,7 +365,7 @@ void QtGraphEdge::onClick()
 
 		if (getData()->getType() == Edge::EDGE_BUNDLED_EDGES)
 		{
-			msg.bundledEdgesIds = utility::toVector<Id>(
+			msg.bundledEdgesIds = utility::toVector(
 				getData()->getComponent<TokenComponentBundledEdges>()->getBundledEdgesIds());
 		}
 		else if (componentInheritance)
@@ -403,13 +403,13 @@ void QtGraphEdge::coFocusIn()
 
 			if (isAmbiguous())
 			{
-				info.title = L"ambiguous " + info.title;
+				info.title = "ambiguous " + info.title;
 			}
 
 			if (type == Edge::EDGE_BUNDLED_EDGES &&
 				m_direction == TokenComponentBundledEdges::DIRECTION_NONE)
 			{
-				info.title = L"bidirectional " + info.title;
+				info.title = "bidirectional " + info.title;
 			}
 
 			if (type == Edge::EDGE_BUNDLED_EDGES)
@@ -425,7 +425,7 @@ void QtGraphEdge::coFocusIn()
 					getData()->getComponent<TokenComponentInheritanceChain>();
 				if (componentInheritance && componentInheritance->inheritanceEdgeIds.size() > 1)
 				{
-					info.title = L"multi-level " + info.title;
+					info.title = "multi-level " + info.title;
 				}
 			}
 
@@ -481,7 +481,7 @@ void QtGraphEdge::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 	}
 }
 
-void QtGraphEdge::hoverEnterEvent(QGraphicsSceneHoverEvent* event)
+void QtGraphEdge::hoverEnterEvent(QGraphicsSceneHoverEvent*  /*event*/)
 {
 	m_focusHandler->focusEdge(this);
 
@@ -507,7 +507,7 @@ void QtGraphEdge::hoverEnterEvent(QGraphicsSceneHoverEvent* event)
 	}
 }
 
-void QtGraphEdge::hoverLeaveEvent(QGraphicsSceneHoverEvent* event)
+void QtGraphEdge::hoverLeaveEvent(QGraphicsSceneHoverEvent*  /*event*/)
 {
 	m_focusHandler->defocusEdge(this);
 

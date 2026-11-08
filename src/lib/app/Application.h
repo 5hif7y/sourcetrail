@@ -20,7 +20,6 @@ class MainView;
 class NetworkFactory;
 class StorageCache;
 class UpdateChecker;
-class Version;
 class ViewFactory;
 
 class Application
@@ -33,8 +32,7 @@ class Application
 	, public MessageListener<MessageSwitchColorScheme>
 {
 public:
-	static void createInstance(
-		const Version& version, ViewFactory* viewFactory, NetworkFactory* networkFactory);
+	static void createInstance(ViewFactory* viewFactory, NetworkFactory* networkFactory);
 	static std::shared_ptr<Application> getInstance();
 	static void destroyInstance();
 
@@ -43,16 +41,16 @@ public:
 	static void loadSettings();
 	static void loadStyle(const FilePath& colorSchemePath);
 
-	~Application();
+	~Application() override;
 
 	std::shared_ptr<const Project> getCurrentProject() const;
 	FilePath getCurrentProjectPath() const;
 	bool isProjectLoaded() const;
 
-	bool hasGUI();
+	bool hasGUI() const;
 
-	int handleDialog(const std::wstring& message);
-	int handleDialog(const std::wstring& message, const std::vector<std::wstring>& options);
+	int handleDialog(const std::string& message);
+	int handleDialog(const std::string& message, const std::vector<std::string>& options);
 	std::shared_ptr<DialogView> getDialogView(DialogView::UseCase useCase);
 
 	void updateHistoryMenu(std::shared_ptr<MessageBase> message);
@@ -61,6 +59,7 @@ public:
 private:
 	static std::shared_ptr<Application> s_instance;
 	static std::string s_uuid;
+	static bool s_previousSendMessagesAsTasks;
 
 	Application(bool withGUI = true);
 
@@ -72,11 +71,11 @@ private:
 	void handleMessage(MessageRefreshUI* message) override;
 	void handleMessage(MessageSwitchColorScheme* message) override;
 
-	void startMessagingAndScheduling();
+	static void startMessagingAndScheduling();
 
 	void loadWindow(bool showStartWindow);
 
-	void refreshProject(RefreshMode refreshMode, bool shallowIndexingRequested);
+	void refreshProject(RefreshMode refreshMode);
 	void updateRecentProjects(const FilePath& projectSettingsFilePath);
 
 	void logStorageStats() const;

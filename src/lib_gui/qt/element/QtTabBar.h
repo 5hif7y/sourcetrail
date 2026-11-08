@@ -11,7 +11,8 @@ public:
 	QtTabBar(QWidget* parent = nullptr);
 
 signals:
-	void signalCloseTabsToRight(int tabNum);
+	void closeTabsToRight(int tabIdx);
+	void closeTab(int tabIdx);
 
 protected:
 	QSize minimumSizeHint() const override;
@@ -22,6 +23,8 @@ protected:
 	// New ContextMenu that lets the user close all tabs to the
 	// right of current mouse position.
 	void contextMenuEvent(QContextMenuEvent* event) override;
+
+	void mouseReleaseEvent(QMouseEvent *event) override;
 };
 
 #endif	  // QT_TAB_BAR_H

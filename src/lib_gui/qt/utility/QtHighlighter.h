@@ -1,7 +1,10 @@
 #ifndef QT_HIGHLIGHTER_H
 #define QT_HIGHLIGHTER_H
 
+#include <QRegularExpression>
 #include <QTextCharFormat>
+
+#include <aidkit/enum_class.hpp>
 
 class QTextBlock;
 class QTextDocument;
@@ -9,25 +12,26 @@ class QTextDocument;
 class QtHighlighter
 {
 public:
-	enum class HighlightType
+	class HighlightType final : public aidkit::enum_class<HighlightType>
 	{
-		COMMENT,
-		DIRECTIVE,
-		FUNCTION,
-		KEYWORD,
-		NUMBER,
-		QUOTATION,
-		TEXT,
-		TYPE
-	};
+	public:
+		static const HighlightType COMMENT;
+		static const HighlightType DIRECTIVE;
+		static const HighlightType FUNCTION;
+		static const HighlightType KEYWORD;
+		static const HighlightType NUMBER;
+		static const HighlightType QUOTATION;
+		static const HighlightType TEXT;
+		static const HighlightType TYPE;
 
-	static std::string highlightTypeToString(HighlightType type);
-	static HighlightType highlightTypeFromString(const std::string& typeStr);
+	private:
+		using enum_class::enum_class;
+	};
 
 	static void loadHighlightingRules();
 	static void clearHighlightingRules();
 
-	QtHighlighter(QTextDocument* parent, const std::wstring& language);
+	QtHighlighter(QTextDocument* parent, const std::string& language);
 	~QtHighlighter() = default;
 
 	void highlightDocument();
@@ -42,50 +46,57 @@ public:
 private:
 	struct HighlightingRule
 	{
-		HighlightingRule();
+		HighlightingRule() = default;
 		HighlightingRule(
-			HighlightType type, const QRegExp& regExp, bool priority, bool multiLine = false);
+			HighlightType type, const QRegularExpression& regExp, bool priority, bool multiLine = false);
 
 		HighlightType type = HighlightType::TEXT;
-		QRegExp pattern;
+		QRegularExpression pattern;
 		bool priority = false;
 		bool multiLine = false;
 	};
 
+	struct HighlightingRange
+	{
+		HighlightType type = HighlightType::TEXT;
+		int start = 0;
+		int end = 0;
+	};
+
 	void createRanges(QTextDocument* doc, const std::vector<HighlightingRule>& quotationRules);
-	std::vector<std::tuple<HighlightType, int, int>> createMultiLineRanges(
-		QTextDocument* doc, std::vector<std::tuple<HighlightType, int, int>>* ranges);
-	std::vector<std::tuple<QtHighlighter::HighlightType, int, int>> createMultiLineRangesForRules(
+	std::vector<HighlightingRange> createMultiLineRanges(
+		QTextDocument* doc, const std::vector<HighlightingRange> &ranges);
+	std::vector<HighlightingRange> createMultiLineRangesForRules(
 		QTextDocument* doc,
-		std::vector<std::tuple<HighlightType, int, int>>* ranges,
+		const std::vector<HighlightingRange> &ranges,
 		const HighlightingRule* startRule,
 		const HighlightingRule* endRule);
 
-	bool isInRange(int index, const std::vector<std::tuple<HighlightType, int, int>>& ranges) const;
-	std::vector<std::tuple<HighlightType, int, int>> getRangesForRule(
-		const QTextBlock& block, const HighlightingRule& rule) const;
+	static bool isInRange(int index, const std::vector<HighlightingRange>& ranges);
+	static std::vector<HighlightingRange> getRangesForRule(
+		const QTextBlock& block, const HighlightingRule& rule);
 
 	void formatBlockForRule(
 		const QTextBlock& block,
 		const HighlightingRule& rule,
-		std::vector<std::tuple<HighlightType, int, int>>* ranges);
+		const std::vector<HighlightingRange> &ranges);
 	void formatBlockIfInRange(
 		const QTextBlock& block,
 		HighlightType type,
-		std::vector<std::tuple<HighlightType, int, int>>* ranges);
+		const std::vector<HighlightingRange> &ranges);
 	void formatBlockIfInRange(
-		const QTextBlock& block, std::vector<std::tuple<HighlightType, int, int>>* ranges);
+		const QTextBlock& block, const std::vector<HighlightingRange> &ranges);
 
 	QTextDocument* document() const;
 
-	static std::map<std::wstring, std::vector<HighlightingRule>> s_highlightingRules;
+	static std::map<std::string, std::vector<HighlightingRule>> s_highlightingRules;
 	static std::map<HighlightType, QTextCharFormat> s_charFormats;
 
 	QTextDocument* m_document;
 
 	std::vector<HighlightingRule> m_highlightingRules;
-	std::vector<std::tuple<HighlightType, int, int>> m_singleLineRanges;
-	std::vector<std::tuple<HighlightType, int, int>> m_multiLineRanges;
+	std::vector<HighlightingRange> m_singleLineRanges;
+	std::vector<HighlightingRange> m_multiLineRanges;
 	std::vector<bool> m_highlightedLines;
 };
 

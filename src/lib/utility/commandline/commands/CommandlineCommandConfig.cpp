@@ -75,7 +75,7 @@ CommandlineCommandConfig::CommandlineCommandConfig(CommandLineParser* parser)
 {
 }
 
-CommandlineCommandConfig::~CommandlineCommandConfig() {}
+CommandlineCommandConfig::~CommandlineCommandConfig() = default;
 
 void CommandlineCommandConfig::setup()
 {

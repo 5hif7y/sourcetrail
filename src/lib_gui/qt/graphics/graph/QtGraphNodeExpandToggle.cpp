@@ -1,14 +1,13 @@
 #include "QtGraphNodeExpandToggle.h"
 
-#include <QFontMetrics>
-
 #include "QtDeviceScaledPixmap.h"
 #include "QtRoundedRectItem.h"
 #include "utilityQt.h"
-
 #include "MessageGraphNodeExpand.h"
-#include "ResourcePaths.h"
 #include "logging.h"
+#include "QtResources.h"
+
+#include <QFontMetrics>
 
 QtGraphNodeExpandToggle::QtGraphNodeExpandToggle(bool expanded, int invisibleSubNodeCount)
 	: m_invisibleSubNodeCount(invisibleSubNodeCount), m_expanded(expanded)
@@ -24,8 +23,7 @@ QtGraphNodeExpandToggle::QtGraphNodeExpandToggle(bool expanded, int invisibleSub
 	m_icon->setTransformationMode(Qt::SmoothTransformation);
 	m_icon->setShapeMode(QGraphicsPixmapItem::BoundingRectShape);
 
-	QtDeviceScaledPixmap pixmap(QString::fromStdWString(
-		ResourcePaths::getGuiDirectoryPath().concatenate(L"graph_view/images/arrow.png").wstr()));
+	QtDeviceScaledPixmap pixmap(QString::fromUtf8(QtResources::GRAPH_VIEW_ARROW));
 	pixmap.scaleToHeight(iconHeight);
 
 	if (invisibleSubNodeCount)
@@ -41,7 +39,7 @@ QtGraphNodeExpandToggle::QtGraphNodeExpandToggle(bool expanded, int invisibleSub
 	m_icon->setPixmap(pixmap.pixmap());
 }
 
-QtGraphNodeExpandToggle::~QtGraphNodeExpandToggle() {}
+QtGraphNodeExpandToggle::~QtGraphNodeExpandToggle() = default;
 
 bool QtGraphNodeExpandToggle::isExpandToggleNode() const
 {

@@ -65,7 +65,7 @@ struct CodeScrollParams
 	{
 	}
 
-	CodeScrollParams() {}
+	CodeScrollParams() = default;
 
 	Type type = Type::NONE;
 	Target target = Target::VISIBLE;

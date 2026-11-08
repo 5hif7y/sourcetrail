@@ -1,0 +1,4 @@
+parso==0.7.0
+jedi==0.17.2
+pyinstaller==3.6
+numbat

@@ -1,31 +1,31 @@
 #include "TokenComponentAccess.h"
 
-std::wstring TokenComponentAccess::getAccessString(AccessKind access)
+std::string TokenComponentAccess::getAccessString(AccessKind access)
 {
 	switch (access)
 	{
-	case ACCESS_NONE:
+	case AccessKind::NONE:
 		break;
-	case ACCESS_PUBLIC:
-		return L"public";
-	case ACCESS_PROTECTED:
-		return L"protected";
-	case ACCESS_PRIVATE:
-		return L"private";
-	case ACCESS_DEFAULT:
-		return L"default";
-	case ACCESS_TEMPLATE_PARAMETER:
-		return L"template parameter";
-	case ACCESS_TYPE_PARAMETER:
-		return L"type parameter";
+	case AccessKind::PUBLIC:
+		return "public";
+	case AccessKind::PROTECTED:
+		return "protected";
+	case AccessKind::PRIVATE:
+		return "private";
+	case AccessKind::DEFAULT:
+		return "default";
+	case AccessKind::TEMPLATE_PARAMETER:
+		return "template parameter";
+	case AccessKind::TYPE_PARAMETER:
+		return "type parameter";
 	}
-	return L"";
+	return "";
 }
 
 
 TokenComponentAccess::TokenComponentAccess(AccessKind access): m_access(access) {}
 
-TokenComponentAccess::~TokenComponentAccess() {}
+TokenComponentAccess::~TokenComponentAccess() = default;
 
 std::shared_ptr<TokenComponent> TokenComponentAccess::copy() const
 {
@@ -37,7 +37,7 @@ AccessKind TokenComponentAccess::getAccess() const
 	return m_access;
 }
 
-std::wstring TokenComponentAccess::getAccessString() const
+std::string TokenComponentAccess::getAccessString() const
 {
 	return getAccessString(m_access);
 }

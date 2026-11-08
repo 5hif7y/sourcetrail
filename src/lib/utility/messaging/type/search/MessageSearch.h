@@ -5,7 +5,7 @@
 
 #include "NodeTypeSet.h"
 #include "SearchMatch.h"
-#include "TabId.h"
+#include "TabIds.h"
 
 class MessageSearch: public Message<MessageSearch>
 {
@@ -18,7 +18,7 @@ public:
 	MessageSearch(const std::vector<SearchMatch>& matches, NodeTypeSet acceptedNodeTypes)
 		: acceptedNodeTypes(acceptedNodeTypes), m_matches(matches)
 	{
-		setSchedulerId(TabId::currentTab());
+		setSchedulerId(TabIds::currentTab());
 	}
 
 	const std::vector<SearchMatch>& getMatches() const
@@ -26,7 +26,7 @@ public:
 		return m_matches;
 	}
 
-	virtual void print(std::wostream& os) const
+	void print(std::ostream& os) const override
 	{
 		for (const SearchMatch& match: m_matches)
 		{

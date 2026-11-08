@@ -5,7 +5,7 @@ TokenComponentAbstraction::TokenComponentAbstraction(AbstractionType abstraction
 {
 }
 
-TokenComponentAbstraction::~TokenComponentAbstraction() {}
+TokenComponentAbstraction::~TokenComponentAbstraction() = default;
 
 std::shared_ptr<TokenComponent> TokenComponentAbstraction::copy() const
 {

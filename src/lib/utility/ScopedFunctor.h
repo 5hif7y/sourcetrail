@@ -6,7 +6,6 @@
 class ScopedFunctor
 {
 public:
-	ScopedFunctor();
 	ScopedFunctor(std::function<void(void)> onDestroy);
 	~ScopedFunctor();
 

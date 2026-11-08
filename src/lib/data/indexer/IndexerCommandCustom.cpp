@@ -1,7 +1,6 @@
 #include "IndexerCommandCustom.h"
 
-#include <QJsonArray>
-#include <QJsonObject>
+
 
 #include "utilityString.h"
 
@@ -11,11 +10,11 @@ IndexerCommandType IndexerCommandCustom::getStaticIndexerCommandType()
 }
 
 IndexerCommandCustom::IndexerCommandCustom(
-	const std::wstring& command,
-	const std::vector<std::wstring>& arguments,
+	const std::string& command,
+	const std::vector<std::string>& arguments,
 	const FilePath& projectFilePath,
 	const FilePath& databaseFilePath,
-	const std::wstring& databaseVersion,
+	const std::string& databaseVersion,
 	const FilePath& sourceFilePath,
 	bool runInParallel)
 	: IndexerCommand(sourceFilePath)
@@ -31,11 +30,11 @@ IndexerCommandCustom::IndexerCommandCustom(
 
 IndexerCommandCustom::IndexerCommandCustom(
 	IndexerCommandType type,
-	const std::wstring& command,
-	const std::vector<std::wstring>& arguments,
+	const std::string& command,
+	const std::vector<std::string>& arguments,
 	const FilePath& projectFilePath,
 	const FilePath& databaseFilePath,
-	const std::wstring& databaseVersion,
+	const std::string& databaseVersion,
 	const FilePath& sourceFilePath,
 	bool runInParallel)
 	: IndexerCommand(sourceFilePath)
@@ -57,8 +56,31 @@ IndexerCommandType IndexerCommandCustom::getIndexerCommandType() const
 size_t IndexerCommandCustom::getByteSize(size_t stringSize) const
 {
 	size_t size = IndexerCommand::getByteSize(stringSize);
+	for (const FilePath& sourceFilePath: getSourceFilePaths())
+	{
+		size += sourceFilePath.str().size() + stringSize;
+	}
 
 	return size;
+}
+
+std::vector<FilePath> IndexerCommandCustom::getSourceFilePaths() const
+{
+	if (!m_sourceFilePaths.empty())
+	{
+		return m_sourceFilePaths;
+	}
+	return {getSourceFilePath()};
+}
+
+size_t IndexerCommandCustom::getSourceFileCount() const
+{
+	return getSourceFilePaths().size();
+}
+
+void IndexerCommandCustom::setSourceFilePaths(const std::vector<FilePath>& sourceFilePaths)
+{
+	m_sourceFilePaths = sourceFilePaths;
 }
 
 FilePath IndexerCommandCustom::getDatabaseFilePath() const
@@ -71,15 +93,15 @@ void IndexerCommandCustom::setDatabaseFilePath(const FilePath& databaseFilePath)
 	m_databaseFilePath = databaseFilePath;
 }
 
-std::wstring IndexerCommandCustom::getCommand() const
+std::string IndexerCommandCustom::getCommand() const
 {
 	return replaceVariables(m_command);
 }
 
-std::vector<std::wstring> IndexerCommandCustom::getArguments() const
+std::vector<std::string> IndexerCommandCustom::getArguments() const
 {
-	std::vector<std::wstring> args;
-	for (const std::wstring& argument: m_arguments)
+	std::vector<std::string> args;
+	for (const std::string& argument: m_arguments)
 	{
 		args.push_back(replaceVariables(argument));
 	}
@@ -91,33 +113,50 @@ bool IndexerCommandCustom::getRunInParallel() const
 	return m_runInParallel;
 }
 
-QJsonObject IndexerCommandCustom::doSerialize() const
+std::string IndexerCommandCustom::doSerialize() const
 {
-	QJsonObject jsonObject = IndexerCommand::doSerialize();
-
+	std::string json = IndexerCommand::doSerialize();
+	if (!json.empty() && json.back() == '}')
 	{
-		jsonObject["command"] = QString::fromStdWString(m_command);
+		json.pop_back();
 	}
+
+	json += ", ";
+	json += "\"command\": \"" + m_command + "\", ";
+	json += "\"arguments\": [";
+	for (size_t i = 0; i < m_arguments.size(); ++i)
 	{
-		QJsonArray argumentsArray;
-		for (const std::wstring& argument: m_arguments)
+		json += "\"" + m_arguments[i] + "\"";
+		if (i + 1 < m_arguments.size())
 		{
-			argumentsArray.append(QString::fromStdWString(argument));
+			json += ", ";
 		}
-		jsonObject["arguments"] = argumentsArray;
 	}
-	{
-		jsonObject["run_in_parallel"] = m_runInParallel;
-	}
+	json += "], ";
+	json += "\"run_in_parallel\": " + std::string(m_runInParallel ? "true" : "false");
+	json += "}";
 
-	return jsonObject;
+	return json;
 }
 
-std::wstring IndexerCommandCustom::replaceVariables(std::wstring s) const
+std::string IndexerCommandCustom::replaceVariables(std::string s) const
 {
-	s = utility::replace(s, L"%{PROJECT_FILE_PATH}", m_projectFilePath.wstr());
-	s = utility::replace(s, L"%{DATABASE_FILE_PATH}", m_databaseFilePath.wstr());
-	s = utility::replace(s, L"%{DATABASE_VERSION}", m_databaseVersion);
-	s = utility::replace(s, L"%{SOURCE_FILE_PATH}", getSourceFilePath().wstr());
+	s = utility::replace(s, "%{PROJECT_FILE_PATH}", m_projectFilePath.str());
+	s = utility::replace(s, "%{DATABASE_FILE_PATH}", m_databaseFilePath.str());
+	s = utility::replace(s, "%{DATABASE_VERSION}", m_databaseVersion);
+	s = utility::replace(s, "%{SOURCE_FILE_PATH}", getSourceFilePath().str());
+
+	// Expand the whole list for batch commands:
+	//   %{SOURCE_FILE_PATH_ARGS} -> --source-file-path="a" --source-file-path="b"
+	std::string sourceFileArguments;
+	for (const FilePath& sourceFilePath: getSourceFilePaths())
+	{
+		if (!sourceFileArguments.empty())
+		{
+			sourceFileArguments += " ";
+		}
+		sourceFileArguments += "--source-file-path=\"" + sourceFilePath.str() + "\"";
+	}
+	s = utility::replace(s, "%{SOURCE_FILE_PATH_ARGS}", sourceFileArguments);
 	return s;
 }

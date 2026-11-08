@@ -2,8 +2,9 @@
 #define INCLUDE_DIRECTIVE_H
 
 #include "FilePath.h"
+#include "SourcetrailCxxExport.h"
 
-class IncludeDirective
+class SOURCETRAIL_CXX_EXPORT IncludeDirective
 {
 public:
 	IncludeDirective(
@@ -14,7 +15,7 @@ public:
 
 	FilePath getIncludedFile() const;
 	FilePath getIncludingFile() const;
-	std::wstring getDirective() const;
+	std::string getDirective() const;
 	unsigned int getLineNumber() const;
 
 private:

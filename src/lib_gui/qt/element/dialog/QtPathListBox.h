@@ -34,7 +34,7 @@ protected:
 	void dragEnterEvent(QDragEnterEvent* event) override;
 
 private:
-	virtual QtListBoxItem* createListBoxItem(QListWidgetItem* item) override;
+	QtListBoxItem* createListBoxItem(QListWidgetItem* item) override;
 
 	const SelectionPolicyType m_selectionPolicy;
 	FilePath m_relativeRootDirectory;

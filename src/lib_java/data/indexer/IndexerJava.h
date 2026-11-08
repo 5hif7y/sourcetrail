@@ -9,7 +9,7 @@ struct IndexerStateInfo;
 class IndexerJava: public Indexer<IndexerCommandJava>
 {
 public:
-	virtual ~IndexerJava();
+	~IndexerJava() override;
 
 private:
 	void doIndex(

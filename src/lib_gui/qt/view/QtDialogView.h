@@ -30,19 +30,17 @@ public:
 	bool dialogsHidden() const override;
 	void clearDialogs() override;
 
-	void showUnknownProgressDialog(const std::wstring& title, const std::wstring& message) override;
+	void showUnknownProgressDialog(const std::string& title, const std::string& message) override;
 	void hideUnknownProgressDialog() override;
 
 	void showProgressDialog(
-		const std::wstring& title, const std::wstring& message, size_t progress) override;
+		const std::string& title, const std::string& message, size_t progress) override;
 	void hideProgressDialog() override;
 
 	void startIndexingDialog(
 		Project* project,
 		const std::vector<RefreshMode>& enabledModes,
 		const RefreshMode initialMode,
-		bool enabledShallowOption,
-		bool initialShallowState,
 		std::function<void(const RefreshInfo& info)> onStartIndexing,
 		std::function<void()> onCancelIndexing) override;
 	void updateIndexingDialog(
@@ -62,15 +60,14 @@ public:
 		size_t totalFileCount,
 		float time,
 		ErrorCountInfo errorInfo,
-		bool interrupted,
-		bool shallow) override;
+		bool interrupted) override;
 
-	int confirm(const std::wstring& message, const std::vector<std::wstring>& options) override;
+	int confirm(const std::string& message, const std::vector<std::string>& options) override;
 
 	void setParentWindow(QtWindow* window);
 
 private slots:
-	void showUnknownProgress(const std::wstring& title, const std::wstring& message, bool stacked);
+	void showUnknownProgress(const std::string& title, const std::string& message, bool stacked);
 	void hideUnknownProgress();
 
 	void setUIBlocked(bool blocked);
@@ -87,7 +84,7 @@ private:
 	DialogType* createWindow(ParamTypes... params);
 
 	QtMainWindow* m_mainWindow;
-	QtWindow* m_parentWindow;
+	QtWindow* m_parentWindow = nullptr;
 
 	QtWindowStack m_windowStack;
 
@@ -96,9 +93,8 @@ private:
 	QtThreadedLambdaFunctor m_onQtThread3;
 
 	std::map<RefreshMode, RefreshInfo> m_refreshInfos;
-	bool m_shallowIndexingEnabled;
 
-	bool m_resultReady;
+	std::atomic<bool> m_resultReady = false;
 	bool m_uiBlocked = false;
 	bool m_dialogsVisible = true;
 };

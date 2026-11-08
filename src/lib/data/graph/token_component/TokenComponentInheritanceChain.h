@@ -11,7 +11,7 @@ public:
 	{
 	}
 
-	virtual std::shared_ptr<TokenComponent> copy() const
+	std::shared_ptr<TokenComponent> copy() const override
 	{
 		return std::make_shared<TokenComponentInheritanceChain>(*this);
 	}

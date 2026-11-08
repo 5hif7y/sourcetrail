@@ -2,13 +2,15 @@
 
 #include <clang/AST/DeclCXX.h>
 #include <clang/AST/DeclTemplate.h>
-#include <clang/Lex/Preprocessor.h>
 #include <clang/Basic/FileManager.h>
+#include <clang/Lex/Preprocessor.h>
 
 #include "CanonicalFilePathCache.h"
 #include "FilePath.h"
 #include "ParseLocation.h"
-#include "utilityString.h"
+
+using namespace std;
+using namespace clang;
 
 bool utility::isImplicit(const clang::Decl* d)
 {
@@ -57,20 +59,25 @@ bool utility::isImplicit(const clang::Decl* d)
 	return isImplicit(clang::dyn_cast_or_null<clang::Decl>(d->getDeclContext()));
 }
 
+DefinitionKind utility::getDefinitionKind(const clang::Decl* d)
+{
+	return isImplicit(d) ? DefinitionKind::IMPLICIT : DefinitionKind::EXPLICIT;
+}
+
 AccessKind utility::convertAccessSpecifier(clang::AccessSpecifier access)
 {
 	switch (access)
 	{
 	case clang::AS_public:
-		return ACCESS_PUBLIC;
+		return AccessKind::PUBLIC;
 	case clang::AS_protected:
-		return ACCESS_PROTECTED;
+		return AccessKind::PROTECTED;
 	case clang::AS_private:
-		return ACCESS_PRIVATE;
+		return AccessKind::PRIVATE;
 	case clang::AS_none:
-		return ACCESS_NONE;
+		return AccessKind::NONE;
 	default:
-		return ACCESS_NONE;
+		return AccessKind::NONE;
 	}
 }
 
@@ -78,73 +85,73 @@ SymbolKind utility::convertTagKind(const clang::TagTypeKind tagKind)
 {
 	switch (tagKind)
 	{
-	case clang::TTK_Struct:
-		return SYMBOL_STRUCT;
-	case clang::TTK_Union:
-		return SYMBOL_UNION;
-	case clang::TTK_Class:
-		return SYMBOL_CLASS;
-	case clang::TTK_Enum:
-		return SYMBOL_ENUM;
-	case clang::TTK_Interface:
-		return SYMBOL_KIND_MAX;
+	case TagTypeKind::Struct:
+		return SymbolKind::STRUCT;
+	case TagTypeKind::Union:
+		return SymbolKind::UNION;
+	case TagTypeKind::Class:
+		return SymbolKind::CLASS;
+	case TagTypeKind::Enum:
+		return SymbolKind::ENUM;
+	case TagTypeKind::Interface:
+		// TODO (petermost): Is this correct or should 'SymbolKind::INTERFACE' be returned?
+		return SymbolKind::UNDEFINED;
 	default:
-		return SYMBOL_KIND_MAX;
+		return SymbolKind::UNDEFINED;
 	}
 }
 
-bool utility::isLocalVariable(const clang::VarDecl* d)
+bool utility::isLocalVariable(const clang::ValueDecl *d)
 {
-	if (!llvm::isa<clang::ParmVarDecl>(d) && !(d->getParentFunctionOrMethod() == nullptr))
-	{
-		return true;
-	}
-	return false;
+	return !llvm::isa<clang::ParmVarDecl>(d) && !(d->getParentFunctionOrMethod() == nullptr);
 }
 
-bool utility::isParameter(const clang::VarDecl* d)
+bool utility::isParameter(const clang::ValueDecl *d)
 {
 	return llvm::isa<clang::ParmVarDecl>(d);
 }
 
 SymbolKind utility::getSymbolKind(const clang::VarDecl* d)
 {
-	SymbolKind symbolKind = SYMBOL_KIND_MAX;
+	SymbolKind symbolKind = SymbolKind::UNDEFINED;
 
 	if (d->getParentFunctionOrMethod() == nullptr)
 	{
 		if (d->getAccess() == clang::AS_none)
 		{
-			symbolKind = SYMBOL_GLOBAL_VARIABLE;
+			symbolKind = SymbolKind::GLOBAL_VARIABLE;
 		}
 		else
 		{
-			symbolKind = SYMBOL_FIELD;
+			symbolKind = SymbolKind::FIELD;
 		}
 	}
 
 	return symbolKind;
 }
 
-std::wstring utility::getFileNameOfFileEntry(const clang::FileEntry* entry)
+string utility::getFileNameOfFileEntry(const FileEntryRef &entry)
 {
-	std::wstring fileName = L"";
-	if (entry != nullptr && entry->isValid())
+	string fileName = entry.getFileEntry().tryGetRealPathName().str();
+	if (fileName.empty())
 	{
-		fileName = utility::decodeFromUtf8(entry->tryGetRealPathName().str());
-		if (fileName.empty())
-		{
-			fileName = utility::decodeFromUtf8(entry->getName().str());
-		}
-		else
-		{
-			fileName = FilePath(utility::decodeFromUtf8(entry->getName().str()))
-						   .getParentDirectory()
-						   .concatenate(FilePath(fileName).fileName())
-						   .wstr();
-		}
+		fileName = entry.getName().str();
+	}
+	else
+	{
+		fileName = FilePath(entry.getName().str()).getParentDirectory().concatenate(FilePath(fileName).fileName()).str();
 	}
 	return fileName;
+}
+
+string utility::getSourceText(const clang::ASTContext *astContext, const clang::SourceRange &sourceRange)
+{
+	const SourceManager &sourceManager = astContext->getSourceManager();
+	const LangOptions &langOptions = astContext->getLangOpts();
+	const CharSourceRange charSourceRange = CharSourceRange::getTokenRange(sourceRange);
+	const StringRef sourceText = Lexer::getSourceText(charSourceRange, sourceManager, langOptions);
+
+	return sourceText.str();
 }
 
 ParseLocation utility::getParseLocation(
@@ -232,8 +239,7 @@ ParseLocation utility::getParseLocation(
 		Id fileSymbolId = canonicalFilePathCache->getFileSymbolId(sourceManager.getFileID(beginLoc));
 		if (!fileSymbolId)
 		{
-			fileSymbolId = canonicalFilePathCache->getFileSymbolId(
-				utility::decodeFromUtf8(presumedBegin.getFilename()));
+			fileSymbolId = canonicalFilePathCache->getFileSymbolId(presumedBegin.getFilename());
 		}
 
 		return ParseLocation(
@@ -245,4 +251,12 @@ ParseLocation utility::getParseLocation(
 	}
 
 	return ParseLocation();
+}
+
+PrintingPolicy utility::makePrintingPolicyForCPlusPlus()
+{
+	PrintingPolicy pp = PrintingPolicy(clang::LangOptions());
+	pp.adjustForCPlusPlus();
+
+	return pp;
 }

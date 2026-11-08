@@ -11,7 +11,7 @@ public:
 		return "MessageIndexingFinished";
 	}
 
-	MessageIndexingFinished() {}
+	MessageIndexingFinished() = default;
 };
 
 #endif	  // MESSAGE_INDEXING_FINISHED_H

@@ -123,7 +123,7 @@ const std::vector<std::string>& TextAccess::getAllLines() const
 
 std::string TextAccess::getText() const
 {
-	std::string result = "";
+	std::string result;
 
 	for (unsigned int i = 0; i < m_lines.size(); i++)
 	{
@@ -144,7 +144,7 @@ std::vector<std::string> TextAccess::readFile(const FilePath& filePath)
 
 		if (srcFile.fail())
 		{
-			LOG_ERROR(L"Could not open file " + filePath.wstr());
+			LOG_ERROR("Could not open file " + filePath.str());
 			return result;
 		}
 
@@ -188,7 +188,7 @@ std::vector<std::string> TextAccess::splitStringByLines(const std::string& text)
 	size_t prevIndex = 0;
 	size_t index = text.find('\n');
 
-	while (index != std::string::npos)
+	while (index < text.length())
 	{
 		result.push_back(text.substr(prevIndex, index - prevIndex) + '\n');
 
@@ -204,7 +204,7 @@ std::vector<std::string> TextAccess::splitStringByLines(const std::string& text)
 	return result;
 }
 
-TextAccess::TextAccess(): m_filePath(L"") {}
+TextAccess::TextAccess(): m_filePath("") {}
 
 bool TextAccess::checkIndexInRange(const unsigned int index) const
 {

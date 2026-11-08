@@ -1,6 +1,7 @@
 package com.sourcetrail;
 
-public enum DefinitionKind {	// these values need to be the same as DefinitionKind in C++ code
+// these values need to be the same as DefinitionKind in C++ code
+public enum DefinitionKind {
 	NONE(0),
 	IMPLICIT(1),
 	EXPLICIT(2);

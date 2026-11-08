@@ -1,6 +1,6 @@
 #include "BookmarkButtonsView.h"
 
-BookmarkButtonsView::BookmarkButtonsView(ViewLayout* viewLayout): View(viewLayout), m_schedulerId(0)
+BookmarkButtonsView::BookmarkButtonsView(ViewLayout* viewLayout): View(viewLayout), m_schedulerId(TabId::NONE)
 {
 }
 
@@ -9,12 +9,12 @@ std::string BookmarkButtonsView::getName() const
 	return "BookmarkButtons";
 }
 
-Id BookmarkButtonsView::getSchedulerId() const
+TabId BookmarkButtonsView::getSchedulerId() const
 {
 	return m_schedulerId;
 }
 
-void BookmarkButtonsView::setTabId(Id schedulerId)
+void BookmarkButtonsView::setTabId(TabId schedulerId)
 {
 	m_schedulerId = schedulerId;
 }

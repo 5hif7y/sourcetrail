@@ -1,29 +1,32 @@
 #ifndef LANGUAGE_TYPE_H
 #define LANGUAGE_TYPE_H
 
-#include <string>
-
 #include "SourceGroupType.h"
 
-enum LanguageType
+
+
+#include <string>
+
+enum class LanguageType
 {
-#if BUILD_CXX_LANGUAGE_PACKAGE
-	LANGUAGE_CPP,
-	LANGUAGE_C,
-#endif	  // BUILD_CXX_LANGUAGE_PACKAGE
-#if BUILD_JAVA_LANGUAGE_PACKAGE
-	LANGUAGE_JAVA,
-#endif	  // BUILD_JAVA_LANGUAGE_PACKAGE
-#if BUILD_PYTHON_LANGUAGE_PACKAGE
-	LANGUAGE_PYTHON,
-#endif	  // BUILD_PYTHON_LANGUAGE_PACKAGE
-	LANGUAGE_CUSTOM,
-	LANGUAGE_UNKNOWN
+	UNKNOWN,
+	CXX,
+	C,
+
+	JAVA,
+	PYTHON,
+	ODIN,
+	CUSTOM
 };
 
+
+
 std::string languageTypeToString(LanguageType t);
-LanguageType stringToLanguageType(std::string s);
+
+// Stable string id used by descriptors and plugins (e.g. "odin").
+std::string languageTypeToId(LanguageType t);
+LanguageType languageTypeFromId(const std::string& id);
 
 LanguageType getLanguageTypeForSourceGroupType(SourceGroupType t);
 
-#endif	  // LANGUAGE_TYPE_H
+#endif

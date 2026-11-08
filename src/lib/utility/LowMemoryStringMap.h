@@ -1,6 +1,7 @@
 #ifndef LOW_MEMORY_STRING_MAP_H
 #define LOW_MEMORY_STRING_MAP_H
 
+#include <algorithm>
 #include <cstring>
 #include <iostream>
 #include <map>
@@ -10,7 +11,7 @@
 /*
  * StringTraits
  *
- * Defines types related to either std::string or std::wstring
+ * Defines types related to either std::string or std::string
  */
 
 template <typename StringT>
@@ -32,31 +33,7 @@ public:
 
 	static CharT* CopyFn(CharT* destination, const CharT* source, size_t num)
 	{
-#pragma warning(push)
-#pragma warning(disable : 4996)
 		return strncpy(destination, source, num);
-#pragma warning(pop)
-	}
-};
-
-template <>
-class StringTraits<std::wstring>
-{
-public:
-	typedef wchar_t CharT;
-	typedef std::wostream StreamT;
-
-	static size_t SizeFn(const CharT* str)
-	{
-		return wcslen(str);
-	}
-
-	static CharT* CopyFn(CharT* destination, const CharT* source, size_t num)
-	{
-#pragma warning(push)
-#pragma warning(disable : 4996)
-		return wcsncpy(destination, source, num);
-#pragma warning(pop)
 	}
 };
 
@@ -66,12 +43,12 @@ public:
  * Map of string - value pairs, where equal suffixes of strings are used to build tree structure
  * reducing memory consumption.
  *
- * - StringT: string type (supported: std::string, std::wstring)
+ * - StringT: string type (supported: std::string, std::string)
  * - ValueT: value type
  * - defaultVal: default value of type ValueT (cannot be stored as value)
  */
 
-template <typename StringT, typename ValueT, ValueT defaultVal>
+template <typename StringT, typename ValueT>
 class LowMemoryStringMap
 {
 public:
@@ -225,14 +202,14 @@ private:
 	class EmptyString
 	{
 	public:
-		EmptyString(const StringT& str) {}
+		EmptyString(const StringT&  /*str*/) {}
 
 		StringT getString() const
 		{
 			return StringT();
 		}
 
-		std::pair<bool, size_t> compareString(const StringT& str, size_t idx) const
+		std::pair<bool, size_t> compareString(const StringT&  /*str*/, size_t  /*idx*/) const
 		{
 			return std::make_pair(true, 0);
 		}
@@ -263,7 +240,7 @@ private:
 
 		virtual ValueT getValue() const
 		{
-			return defaultVal;
+			return ValueT();
 		}
 
 		virtual StringT getString() const = 0;
@@ -302,7 +279,7 @@ private:
 				return getValue();
 			}
 
-			return defaultVal;
+			return ValueT();
 		}
 
 		void print(StreamT& os, size_t depth) const override
@@ -423,17 +400,17 @@ private:
 			return s;
 		}
 
-		virtual ValueT find(const StringT& str, size_t idx) const override
+		ValueT find(const StringT& str, size_t idx) const override
 		{
 			if (idx > str.size())
 			{
-				return defaultVal;
+				return ValueT();
 			}
 
 			std::pair<bool, size_t> p = this->compareString(str, idx);
 			if (!p.first)
 			{
-				return defaultVal;
+				return ValueT();
 			}
 			idx += p.second;
 
@@ -450,7 +427,7 @@ private:
 				return it->second->find(str, idx);
 			}
 
-			return defaultVal;
+			return ValueT();
 		}
 
 		void print(StreamT& os, size_t depth) const override
@@ -534,7 +511,7 @@ private:
 		}
 
 	private:
-		virtual std::unique_ptr<Branch> createBranch(const StringT& str) const override
+		std::unique_ptr<Branch> createBranch(const StringT& str) const override
 		{
 			switch (str.size())
 			{
@@ -561,7 +538,7 @@ private:
 			}
 		}
 
-		virtual std::unique_ptr<Leaf> createLeaf(const StringT& str, const ValueT& val) const override
+		std::unique_ptr<Leaf> createLeaf(const StringT& str, const ValueT& val) const override
 		{
 			switch (str.size())
 			{

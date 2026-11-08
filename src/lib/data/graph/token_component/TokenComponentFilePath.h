@@ -9,9 +9,9 @@ class TokenComponentFilePath: public TokenComponent
 {
 public:
 	TokenComponentFilePath(const FilePath& path, bool complete);
-	virtual ~TokenComponentFilePath();
+	~TokenComponentFilePath() override;
 
-	virtual std::shared_ptr<TokenComponent> copy() const;
+	std::shared_ptr<TokenComponent> copy() const override;
 
 	const FilePath& getFilePath() const;
 	bool isComplete() const;

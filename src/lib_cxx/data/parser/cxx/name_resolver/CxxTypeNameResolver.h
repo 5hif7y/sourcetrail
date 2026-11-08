@@ -10,7 +10,7 @@ public:
 	CxxTypeNameResolver(CanonicalFilePathCache* canonicalFilePathCache);
 	CxxTypeNameResolver(const CxxNameResolver* other);
 
-	std::unique_ptr<CxxTypeName> getName(const clang::QualType& qualType);
+	std::unique_ptr<CxxTypeName> getName(const clang::QualType& qualType, const clang::VarDecl *varDecl = nullptr);
 	std::unique_ptr<CxxTypeName> getName(const clang::Type* type);
 };
 

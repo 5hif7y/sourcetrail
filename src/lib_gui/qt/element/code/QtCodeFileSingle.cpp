@@ -16,8 +16,8 @@
 #include "logging.h"
 #include "utilityQt.h"
 
-QtCodeFileSingle::QtCodeFileSingle(QtCodeNavigator* navigator, QWidget* parent)
-	: m_navigator(navigator), m_area(nullptr)
+QtCodeFileSingle::QtCodeFileSingle(QtCodeNavigator* navigator, QWidget*  /*parent*/)
+	: m_navigator(navigator) 
 {
 	setObjectName(QStringLiteral("code_container"));
 
@@ -193,14 +193,13 @@ void QtCodeFileSingle::scrollTo(
 	{
 		if (targetLocationId)
 		{
-			std::pair<size_t, size_t> lineNumbers = m_area->getLineNumbersForLocationId(
-				targetLocationId);
+			QtCodeArea::LineNumbers lineNumbers = m_area->getLineNumbersForLocationId(targetLocationId);
 
-			lineNumber = lineNumbers.first;
+			lineNumber = lineNumbers.startLine;
 
-			if (lineNumbers.first != lineNumbers.second)
+			if (lineNumbers.startLine != lineNumbers.endLine)
 			{
-				endLineNumber = lineNumbers.second;
+				endLineNumber = lineNumbers.endLine;
 			}
 		}
 		else
@@ -234,7 +233,7 @@ void QtCodeFileSingle::onWindowFocus()
 }
 
 void QtCodeFileSingle::findScreenMatches(
-	const std::wstring& query, std::vector<std::pair<QtCodeArea*, Id>>* screenMatches)
+	const std::string& query, std::vector<std::pair<QtCodeArea*, Id>>* screenMatches)
 {
 	if (m_area)
 	{

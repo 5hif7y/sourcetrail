@@ -23,7 +23,7 @@ class QtMainView
 {
 public:
 	QtMainView(const ViewFactory* viewFactory, StorageAccess* storageAccess);
-	~QtMainView();
+	~QtMainView() override;
 
 	QtMainWindow* getMainWindow() const;
 
@@ -54,7 +54,7 @@ public:
 	void refreshUIState(bool isAfterIndexing) override;
 
 	void hideStartScreen() override;
-	void setTitle(const std::wstring& title) override;
+	void setTitle(const std::string& title) override;
 	void activateWindow() override;
 
 	void updateRecentProjectMenu() override;

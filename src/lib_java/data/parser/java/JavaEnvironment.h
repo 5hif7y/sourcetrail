@@ -1,23 +1,9 @@
 #ifndef JAVA_ENVIRONMENT_H
 #define JAVA_ENVIRONMENT_H
 
+#include <jni.h>
 #include <string>
 #include <vector>
-
-struct JavaVM_;
-typedef JavaVM_ JavaVM;
-
-struct JNIEnv_;
-typedef JNIEnv_ JNIEnv;
-
-class _jclass;
-typedef _jclass* jclass;
-
-class _jstring;
-typedef _jstring* jstring;
-
-struct _jmethodID;
-typedef struct _jmethodID* jmethodID;
 
 class JavaEnvironmentFactory;
 

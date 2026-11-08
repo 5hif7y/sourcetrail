@@ -4,7 +4,7 @@
 
 SearchView::SearchView(ViewLayout* viewLayout): View(viewLayout) {}
 
-SearchView::~SearchView() {}
+SearchView::~SearchView() = default;
 
 std::string SearchView::getName() const
 {

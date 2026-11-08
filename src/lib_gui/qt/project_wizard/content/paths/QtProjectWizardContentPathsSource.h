@@ -11,14 +11,14 @@ public:
 		std::shared_ptr<SourceGroupSettings> settings, QtProjectWizardWindow* window);
 
 	// QtProjectWizardContent implementation
-	virtual void load() override;
-	virtual void save() override;
+	void load() override;
+	void save() override;
 
-	virtual bool check() override;
+	bool check() override;
 
-	virtual std::vector<FilePath> getFilePaths() const override;
-	virtual QString getFileNamesTitle() const override;
-	virtual QString getFileNamesDescription() const override;
+	std::vector<FilePath> getFilePaths() const override;
+	QString getFileNamesTitle() const override;
+	QString getFileNamesDescription() const override;
 };
 
 #endif	  // QT_PROJECT_WIZARD_CONTENT_PATHS_SOURCE_H

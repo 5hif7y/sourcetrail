@@ -6,7 +6,7 @@
 class TokenComponentIsAmbiguous: public TokenComponent
 {
 public:
-	inline virtual std::shared_ptr<TokenComponent> copy() const
+	inline std::shared_ptr<TokenComponent> copy() const override
 	{
 		return std::make_shared<TokenComponentIsAmbiguous>(*this);
 	}

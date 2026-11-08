@@ -9,15 +9,15 @@ class QtGraphNodeComponentClickable: public QtGraphNodeComponent
 {
 public:
 	QtGraphNodeComponentClickable(QtGraphNode* graphNode);
-	virtual ~QtGraphNodeComponentClickable();
+	~QtGraphNodeComponentClickable() override;
 
-	virtual void nodeMousePressEvent(QGraphicsSceneMouseEvent* event);
-	virtual void nodeMouseMoveEvent(QGraphicsSceneMouseEvent* event);
-	virtual void nodeMouseReleaseEvent(QGraphicsSceneMouseEvent* event);
+	void nodeMousePressEvent(QGraphicsSceneMouseEvent* event) override;
+	void nodeMouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
+	void nodeMouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
 
 private:
 	Vec2i m_mousePos;
-	bool m_mouseMoved;
+	bool m_mouseMoved = false;
 };
 
 #endif	  // QT_GRAPH_NODE_COMPONENT_CLICKABLE

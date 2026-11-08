@@ -11,7 +11,7 @@ TaskFillIndexerCommandsQueue::TaskFillIndexerCommandsQueue(
 	std::unique_ptr<IndexerCommandProvider> indexerCommandProvider,
 	size_t maximumQueueSize)
 	: m_indexerCommandProvider(std::move(indexerCommandProvider))
-	, m_indexerCommandManager(appUUID, 0, true)
+	, m_indexerCommandManager(appUUID, ProcessId::NONE, true)
 	, m_maximumQueueSize(maximumQueueSize)
 {
 }
@@ -32,7 +32,7 @@ void TaskFillIndexerCommandsQueue::doEnter(std::shared_ptr<Blackboard> blackboar
 	blackboard->set<bool>("indexer_command_queue_started", true);
 }
 
-Task::TaskState TaskFillIndexerCommandsQueue::doUpdate(std::shared_ptr<Blackboard> blackboard)
+Task::TaskState TaskFillIndexerCommandsQueue::doUpdate(std::shared_ptr<Blackboard>  /*blackboard*/)
 {
 	if (m_interrupted)
 	{
@@ -59,7 +59,7 @@ void TaskFillIndexerCommandsQueue::doExit(std::shared_ptr<Blackboard> blackboard
 	blackboard->set<bool>("indexer_command_queue_stopped", true);
 }
 
-void TaskFillIndexerCommandsQueue::doReset(std::shared_ptr<Blackboard> blackboard)
+void TaskFillIndexerCommandsQueue::doReset(std::shared_ptr<Blackboard>  /*blackboard*/)
 {
 	m_interrupted = false;
 }
@@ -69,7 +69,7 @@ void TaskFillIndexerCommandsQueue::terminate()
 	m_interrupted = true;
 }
 
-void TaskFillIndexerCommandsQueue::handleMessage(MessageIndexingInterrupted* message)
+void TaskFillIndexerCommandsQueue::handleMessage(MessageIndexingInterrupted*  /*message*/)
 {
 	std::lock_guard<std::mutex> lock(m_commandsMutex);
 

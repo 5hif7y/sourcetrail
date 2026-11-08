@@ -18,25 +18,24 @@ public:
 	}
 
 	MessageActivateTokens(const MessageBase* other)
-		: isEdge(false), isBundledEdges(false), isFromSearch(false)
 	{
 		setIsParallel(true);
 		setKeepContent(other->keepContent());
 		setSchedulerId(other->getSchedulerId());
 	}
 
-	void print(std::wostream& os) const override
+	void print(std::ostream& os) const override
 	{
 		for (const Id& id: tokenIds)
 		{
-			os << id << L" ";
+			os << id << " ";
 		}
 
 		for (const SearchMatch& match: searchMatches)
 		{
 			for (const NameHierarchy& name: match.tokenNames)
 			{
-				os << name.getQualifiedName() << L" ";
+				os << name.getQualifiedName() << " ";
 			}
 		}
 	}
@@ -46,7 +45,7 @@ public:
 		if (isBundledEdges)
 		{
 			SearchMatch match;
-			match.name = match.text = L"bundled edges";	 // TODO: show bundled edges source and target
+			match.name = match.text = "bundled edges";	 // TODO: show bundled edges source and target
 			match.searchType = SearchMatch::SEARCH_TOKEN;
 			match.nodeType = NodeType(NODE_TYPE);
 			return {match};
@@ -58,9 +57,9 @@ public:
 	std::vector<Id> tokenIds;
 	std::vector<SearchMatch> searchMatches;
 
-	bool isEdge;
-	bool isBundledEdges;
-	bool isFromSearch;
+	bool isEdge = false;
+	bool isBundledEdges = false;
+	bool isFromSearch = false;
 };
 
 #endif	  // MESSAGE_ACTIVATE_TOKENS_H

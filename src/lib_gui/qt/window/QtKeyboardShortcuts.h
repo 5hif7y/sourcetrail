@@ -14,39 +14,23 @@ public:
 	void updateSize();
 
 protected:
-	virtual void wheelEvent(QWheelEvent* event) override;
+	void wheelEvent(QWheelEvent* event) override;
 };
 
 class QtKeyboardShortcuts: public QtWindow
 {
 	Q_OBJECT
 public:
-	QtKeyboardShortcuts(QWidget* parent = 0);
-	virtual ~QtKeyboardShortcuts();
+	QtKeyboardShortcuts(QWidget* parent = nullptr);
+	~QtKeyboardShortcuts() override;
 
 	QSize sizeHint() const override;
 
-	virtual void populateWindow(QWidget* widget) override;
-	virtual void windowReady() override;
+	void populateWindow(QWidget* widget) override;
+	void windowReady() override;
 
 private:
-	struct Shortcut
-	{
-		const QString name;
-		const QString shortcut;
-
-		Shortcut(const QString& name, const QString& shortcut);
-		static Shortcut defaultOrMac(
-			const QString& name, const QString& defaultShortcut, const QString& macShortcut);
-		static Shortcut winMacOrLinux(
-			const QString& name,
-			const QString& winShortcut,
-			const QString& macShortcut,
-			const QString& linuxShortcut);
-	};
-
 	QtShortcutTable* createTableWidget(const std::string& objectName);
-	void addShortcuts(QtShortcutTable* table, const std::vector<Shortcut>& shortcuts) const;
 
 	QTableWidget* createGeneralShortcutsTable();
 	QTableWidget* createCodeViewShortcutsTable();

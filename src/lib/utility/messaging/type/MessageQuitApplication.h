@@ -6,7 +6,7 @@
 class MessageQuitApplication: public Message<MessageQuitApplication>
 {
 public:
-	MessageQuitApplication() {}
+	MessageQuitApplication() = default;
 
 	static const std::string getStaticType()
 	{

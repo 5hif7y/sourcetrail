@@ -35,7 +35,7 @@ TaskReturnSuccessIf<T>::TaskReturnSuccessIf(
 }
 
 template <typename T>
-void TaskReturnSuccessIf<T>::doEnter(std::shared_ptr<Blackboard> blackboard)
+void TaskReturnSuccessIf<T>::doEnter(std::shared_ptr<Blackboard>  /*blackboard*/)
 {
 }
 
@@ -64,12 +64,12 @@ Task::TaskState TaskReturnSuccessIf<T>::doUpdate(std::shared_ptr<Blackboard> bla
 }
 
 template <typename T>
-void TaskReturnSuccessIf<T>::doExit(std::shared_ptr<Blackboard> blackboard)
+void TaskReturnSuccessIf<T>::doExit(std::shared_ptr<Blackboard>  /*blackboard*/)
 {
 }
 
 template <typename T>
-void TaskReturnSuccessIf<T>::doReset(std::shared_ptr<Blackboard> blackboard)
+void TaskReturnSuccessIf<T>::doReset(std::shared_ptr<Blackboard>  /*blackboard*/)
 {
 }
 

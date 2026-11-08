@@ -6,6 +6,12 @@ import java.util.Optional;
 
 public class NameHierarchy
 {
+	// Must be kept in sync with NameHierarchy.cpp:
+	static final String META_DELIMITER      = "\tm";
+	static final String NAME_DELIMITER      = "\tn";
+	static final String PART_DELIMITER      = "\ts";
+	static final String SIGNATURE_DELIMITER = "\tp";
+
 	private List<NameElement> m_elements = new ArrayList<>();
 	private char m_separator = '.';
 
@@ -14,16 +20,6 @@ public class NameHierarchy
 	public NameHierarchy(String name)
 	{
 		m_elements.add(new NameElement(name));
-	}
-
-	public NameHierarchy(NameElement name)
-	{
-		m_elements.add(name);
-	}
-
-	public NameHierarchy(List<NameElement> names)
-	{
-		m_elements.addAll(names);
 	}
 
 	public void setSeparator(char separator)
@@ -55,13 +51,13 @@ public class NameHierarchy
 
 	public String serialize()
 	{
-		String serialized = m_separator + "\tm";
+		String serialized = m_separator + META_DELIMITER;
 
 		for (int i = 0; i < m_elements.size(); i++)
 		{
 			if (i != 0)
 			{
-				serialized += "\tn";
+				serialized += NAME_DELIMITER;
 			}
 
 			serialized += m_elements.get(i).serialize();

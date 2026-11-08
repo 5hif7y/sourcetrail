@@ -6,7 +6,7 @@ const char* CodeView::VIEW_NAME = "Code";
 
 CodeView::CodeView(ViewLayout* viewLayout): View(viewLayout) {}
 
-CodeView::~CodeView() {}
+CodeView::~CodeView() = default;
 
 std::string CodeView::getName() const
 {

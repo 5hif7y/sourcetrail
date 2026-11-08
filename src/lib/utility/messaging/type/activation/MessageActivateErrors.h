@@ -5,7 +5,7 @@
 #include "MessageActivateBase.h"
 
 #include "ErrorFilter.h"
-#include "TabId.h"
+#include "TabIds.h"
 
 class MessageActivateErrors
 	: public Message<MessageActivateErrors>
@@ -20,7 +20,7 @@ public:
 	MessageActivateErrors(const ErrorFilter& filter, const FilePath& file = FilePath())
 		: filter(filter), file(file)
 	{
-		setSchedulerId(TabId::currentTab());
+		setSchedulerId(TabIds::currentTab());
 	}
 
 	std::vector<SearchMatch> getSearchMatches() const override

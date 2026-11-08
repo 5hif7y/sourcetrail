@@ -1,6 +1,6 @@
 #include "Logger.h"
 
-Logger::Logger(const std::string& type): m_type(type), m_levelMask(LOG_ALL) {}
+Logger::Logger(const std::string& type): m_type(type) {}
 
 std::string Logger::getType() const
 {

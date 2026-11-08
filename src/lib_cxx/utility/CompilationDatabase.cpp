@@ -6,6 +6,7 @@
 #include <clang/Tooling/JSONCompilationDatabase.h>
 
 #include "FilePath.h"
+#include "ToolChain.h"
 #include "logging.h"
 #include "utility.h"
 #include "utilityString.h"
@@ -42,15 +43,15 @@ void utility::CompilationDatabase::init()
 	std::string error;
 	std::shared_ptr<clang::tooling::JSONCompilationDatabase> cdb(
 		clang::tooling::JSONCompilationDatabase::loadFromFile(
-			utility::encodeToUtf8(m_filePath.wstr()),
+			m_filePath.str(),
 			error,
 			clang::tooling::JSONCommandLineSyntax::AutoDetect));
 
 	if (!cdb)
 	{
 		LOG_ERROR(
-			L"Loading compilation database from file \"" + m_filePath.wstr() +
-			L"\" failed with error: " + utility::decodeFromUtf8(error));
+			"Loading compilation database from file \"" + m_filePath.str() +
+			"\" failed with error: " + error);
 		return;
 	}
 
@@ -60,20 +61,20 @@ void utility::CompilationDatabase::init()
 	std::set<FilePath> headers;
 
 	{
-		const std::wstring frameworkIncludeFlag = L"-iframework";
-		const std::wstring systemIncludeFlag = L"-isystem";
-		const std::wstring quoteFlag = L"-iquote";
-		const std::wstring includeFlag = L"-I";
+		const std::string frameworkIncludeFlag = ClangCompiler::frameworkIncludeOption();
+		const std::string systemIncludeFlag = ClangCompiler::systemIncludeOption();
+		const std::string quoteFlag = ClangCompiler::quoteIncludeOption();
+		const std::string includeFlag = ClangCompiler::includeOption();
 		for (clang::tooling::CompileCommand& command: commands)
 		{
-			const std::wstring commandDirectory = utility::decodeFromUtf8(command.Directory);
+			const std::string commandDirectory = command.Directory;
 			for (size_t i = 0; i < command.CommandLine.size(); i++)
 			{
-				std::wstring argument = utility::decodeFromUtf8(command.CommandLine[i]);
+				std::string argument = command.CommandLine[i];
 				if (i + 1 < command.CommandLine.size() &&
-					!utility::isPrefix<std::string>("-", command.CommandLine[i + 1]))
+					!utility::isPrefix("-", command.CommandLine[i + 1]))
 				{
-					argument += utility::decodeFromUtf8(command.CommandLine[++i]);
+					argument += command.CommandLine[++i];
 				}
 
 				if (utility::isPrefix(frameworkIncludeFlag, argument))

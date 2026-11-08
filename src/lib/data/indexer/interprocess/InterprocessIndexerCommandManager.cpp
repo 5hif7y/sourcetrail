@@ -8,13 +8,13 @@ const char* InterprocessIndexerCommandManager::s_sharedMemoryNamePrefix = "icmd_
 const char* InterprocessIndexerCommandManager::s_indexerCommandsKeyName = "indexer_commands";
 
 InterprocessIndexerCommandManager::InterprocessIndexerCommandManager(
-	const std::string& instanceUuid, Id processId, bool isOwner)
+	const std::string& instanceUuid, ProcessId processId, bool isOwner)
 	: BaseInterprocessDataManager(
 		  s_sharedMemoryNamePrefix + instanceUuid, 1048576 /* 1 MB */, instanceUuid, processId, isOwner)
 {
 }
 
-InterprocessIndexerCommandManager::~InterprocessIndexerCommandManager() {}
+InterprocessIndexerCommandManager::~InterprocessIndexerCommandManager() = default;
 
 void InterprocessIndexerCommandManager::pushIndexerCommands(
 	const std::vector<std::shared_ptr<IndexerCommand>>& indexerCommands)
@@ -22,7 +22,7 @@ void InterprocessIndexerCommandManager::pushIndexerCommands(
 	size_t size = 0;
 	{
 		const size_t overestimationMultiplier = 2;
-		for (auto& command: indexerCommands)
+		for (const auto& command: indexerCommands)
 		{
 			size += command->getByteSize(sizeof(SharedMemory::String)) + sizeof(SharedIndexerCommand);
 		}
@@ -50,7 +50,7 @@ void InterprocessIndexerCommandManager::pushIndexerCommands(
 		return;
 	}
 
-	for (auto& command: indexerCommands)
+	for (const auto& command: indexerCommands)
 	{
 		queue->push_back(SharedIndexerCommand(access.getAllocator()));
 		SharedIndexerCommand& sharedCommand = queue->back();

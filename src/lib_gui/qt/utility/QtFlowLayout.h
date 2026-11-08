@@ -12,7 +12,7 @@ class QtFlowLayout: public QLayout
 public:
 	explicit QtFlowLayout(QWidget* parent, int margin = -1, int hSpacing = -1, int vSpacing = -1);
 	explicit QtFlowLayout(int margin = -1, int hSpacing = -1, int vSpacing = -1);
-	~QtFlowLayout();
+	~QtFlowLayout() override;
 
 	int horizontalSpacing() const;
 	int verticalSpacing() const;
@@ -37,7 +37,7 @@ private:
 	int doLayout(QRect rect, bool testOnly) const;
 	int smartSpacing(QStyle::PixelMetric pm) const;
 
-	QList<QLayoutItem*> itemList;
+	QList<QLayoutItem*> m_itemList;
 
 	int m_hSpace;
 	int m_vSpace;

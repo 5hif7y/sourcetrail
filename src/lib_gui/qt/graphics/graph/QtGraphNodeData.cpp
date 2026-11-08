@@ -8,14 +8,13 @@
 #include "MessageFocusOut.h"
 #include "MessageTabOpenWith.h"
 #include "MessageTooltipShow.h"
-#include "ResourcePaths.h"
-
+#include "QtResources.h"
 #include "TokenComponentFilePath.h"
 
 QtGraphNodeData::QtGraphNodeData(
 	GraphFocusHandler* focusHandler,
 	const Node* data,
-	const std::wstring& name,
+	const std::string& name,
 	bool childVisible,
 	bool hasQualifier,
 	bool isInteractive)
@@ -29,7 +28,7 @@ QtGraphNodeData::QtGraphNodeData(
 	this->setName(name);
 }
 
-QtGraphNodeData::~QtGraphNodeData() {}
+QtGraphNodeData::~QtGraphNodeData() = default;
 
 const Node* QtGraphNodeData::getData() const
 {
@@ -87,14 +86,13 @@ void QtGraphNodeData::updateStyle()
 	TokenComponentFilePath* component = m_data->getComponent<TokenComponentFilePath>();
 	if (component && !component->isComplete())
 	{
-		style.iconPath = ResourcePaths::getGuiDirectoryPath().concatenate(
-			L"graph_view/images/file_incomplete.png");
+		style.iconPath = QtResources::GRAPH_VIEW_FILE_INCOMPLETE;
 	}
 
 	setStyle(style);
 }
 
-void QtGraphNodeData::hoverEnterEvent(QGraphicsSceneHoverEvent* event)
+void QtGraphNodeData::hoverEnterEvent(QGraphicsSceneHoverEvent*  /*event*/)
 {
 	focusIn();
 
@@ -107,16 +105,16 @@ void QtGraphNodeData::hoverEnterEvent(QGraphicsSceneHoverEvent* event)
 	if (!m_isInteractive)
 	{
 		TooltipInfo info;
-		info.title = getReadableNodeKindWString(m_data->getType().getKind());
+		info.title = getReadableNodeKindString(m_data->getType().getKind());
 		info.offset = Vec2i(10, 20);
 
 		if (!m_data->isDefined())
 		{
-			info.title = L"non-indexed " + info.title;
+			info.title = "non-indexed " + info.title;
 		}
 		else if (m_data->isImplicit())
 		{
-			info.title = L"implicit " + info.title;
+			info.title = "implicit " + info.title;
 		}
 
 		MessageTooltipShow msg(info, TOOLTIP_ORIGIN_GRAPH);
@@ -125,7 +123,7 @@ void QtGraphNodeData::hoverEnterEvent(QGraphicsSceneHoverEvent* event)
 	}
 }
 
-void QtGraphNodeData::hoverLeaveEvent(QGraphicsSceneHoverEvent* event)
+void QtGraphNodeData::hoverLeaveEvent(QGraphicsSceneHoverEvent*  /*event*/)
 {
 	focusOut();
 

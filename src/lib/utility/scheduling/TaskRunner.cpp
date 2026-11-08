@@ -5,14 +5,14 @@
 #include "TaskScheduler.h"
 #include "logging.h"
 
-TaskRunner::TaskRunner(std::shared_ptr<Task> task): m_task(task), m_reset(false) {}
+TaskRunner::TaskRunner(std::shared_ptr<Task> task): m_task(task) {}
 
-Task::TaskState TaskRunner::update(Id schedulerId)
+Task::TaskState TaskRunner::update(TabId schedulerId)
 {
 	if (!m_blackboard)
 	{
 		m_blackboard = std::make_shared<Blackboard>();
-		m_blackboard->set<Id>("scheduler_id", schedulerId);
+		m_blackboard->set<TabId>("scheduler_id", schedulerId);
 	}
 
 	return update(m_blackboard);
@@ -49,8 +49,8 @@ Task::TaskState TaskRunner::update(std::shared_ptr<Blackboard> blackboard)
 		LOG_ERROR("Unknown exception thrown during task running");
 	}
 
-	Id schedulerId = 0;
-	if (blackboard->get<Id>("scheduler_id", schedulerId))
+	TabId schedulerId = TabId::NONE;
+	if (blackboard->get<TabId>("scheduler_id", schedulerId))
 	{
 		TaskManager::getScheduler(schedulerId)->terminateRunningTasks();
 	}

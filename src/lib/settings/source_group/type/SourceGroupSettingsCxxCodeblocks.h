@@ -22,7 +22,7 @@ class SourceGroupSettingsCxxCodeblocks
 {
 public:
 	SourceGroupSettingsCxxCodeblocks(const std::string& id, const ProjectSettings* projectSettings)
-		: SourceGroupSettingsWithComponents(SOURCE_GROUP_CXX_CODEBLOCKS, id, projectSettings)
+		: SourceGroupSettingsWithComponents(SourceGroupType::CXX_CODEBLOCKS, id, projectSettings)
 	{
 	}
 

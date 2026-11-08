@@ -20,13 +20,13 @@ public:
 		bool operator()(
 			const std::shared_ptr<SourceLocation>& lhs, const std::shared_ptr<SourceLocation>& rhs) const
 		{
-			return *(lhs.get()) < *(rhs.get());
+			return *lhs < *rhs;
 		}
 	};
 
 	SourceLocationFile(
 		const FilePath& filePath,
-		const std::wstring& language,
+		const std::string& language,
 		bool isWhole,
 		bool isComplete,
 		bool isIndexed);
@@ -34,8 +34,8 @@ public:
 
 	const FilePath& getFilePath() const;
 
-	void setLanguage(const std::wstring& language);
-	const std::wstring& getLanguage() const;
+	void setLanguage(const std::string& language);
+	const std::string& getLanguage() const;
 
 	void setIsWhole(bool isWhole);
 	bool isWhole() const;
@@ -76,7 +76,7 @@ public:
 
 private:
 	const FilePath m_filePath;
-	std::wstring m_language;
+	std::string m_language;
 	bool m_isWhole;
 	bool m_isComplete;
 	bool m_isIndexed;
@@ -85,6 +85,6 @@ private:
 	std::map<Id, SourceLocation*> m_locationIndex;
 };
 
-std::wostream& operator<<(std::wostream& ostream, const SourceLocationFile& base);
+std::ostream& operator<<(std::ostream& ostream, const SourceLocationFile& base);
 
 #endif	  // SOURCE_LOCATION_FILE_H

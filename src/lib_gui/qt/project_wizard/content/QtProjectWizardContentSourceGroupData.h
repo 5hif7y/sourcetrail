@@ -17,11 +17,11 @@ public:
 		std::shared_ptr<SourceGroupSettings> settings, QtProjectWizardWindow* window);
 
 	// QtProjectWizardContent implementation
-	virtual void populate(QGridLayout* layout, int& row) override;
+	void populate(QGridLayout* layout, int& row) override;
 
-	virtual void load() override;
-	virtual void save() override;
-	virtual bool check() override;
+	void load() override;
+	void save() override;
+	bool check() override;
 
 signals:
 	void nameUpdated(QString);
@@ -34,8 +34,8 @@ private slots:
 private:
 	std::shared_ptr<SourceGroupSettings> m_settings;
 
-	QLineEdit* m_name;
-	QCheckBox* m_status;
+	QLineEdit* m_name = nullptr;
+	QCheckBox* m_status = nullptr;
 };
 
 #endif	  // QT_PROJECT_WIZARD_CONTENT_SOURCE_GROUP_DATA_H

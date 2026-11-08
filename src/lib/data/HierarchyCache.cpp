@@ -3,7 +3,7 @@
 #include "utility.h"
 
 HierarchyCache::HierarchyNode::HierarchyNode(Id nodeId)
-	: m_nodeId(nodeId), m_edgeId(0), m_parent(nullptr), m_isVisible(true), m_isImplicit(false)
+	: m_nodeId(nodeId), m_edgeId(0) 
 {
 }
 
