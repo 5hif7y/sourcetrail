@@ -28,6 +28,11 @@ included. Tests, examples and bindings are not.
 - `SourcetrailDBWriter::recordReferenceIsAmbiguous` returned `false` after
   recording the ambiguity. It now returns `true` on success, as its header
   documents.
+- `DatabaseStorage` stored the definition kind with `INSERT OR IGNORE`, so the
+  first kind recorded for a symbol stuck. It now uses `INSERT OR REPLACE`: a
+  later `recordSymbolDefinitionKind` overwrites the earlier one, as its header
+  documents. This lets a symbol that was first recorded as implicit become
+  explicit when its definition is found later.
 
 These changes are deliberately small so the vendored copy can be refreshed
 from a newer `sourcetrail-db` release with minimal conflict resolution.

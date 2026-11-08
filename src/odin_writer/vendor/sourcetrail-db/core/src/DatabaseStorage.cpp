@@ -590,7 +590,7 @@ void DatabaseStorage::setupPrecompiledStatements()
 
 	m_setNodeTypeStmt = compileStatement("UPDATE node SET type = ? WHERE id == ?;");
 
-	m_insertSymbolStatement = compileStatement("INSERT OR IGNORE INTO symbol(id, definition_kind) VALUES(?, ?);");
+	m_insertSymbolStatement = compileStatement("INSERT OR REPLACE INTO symbol(id, definition_kind) VALUES(?, ?);");
 
 	m_findFileStatement = compileStatement("SELECT id FROM file WHERE id == ?;");
 
