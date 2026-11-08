@@ -25,6 +25,9 @@ included. Tests, examples and bindings are not.
   one location per occurrence.
 - The Odin writer shim enables fast mode and disables source-location dedup
   for every database it opens.
+- `SourcetrailDBWriter::recordReferenceIsAmbiguous` returned `false` after
+  recording the ambiguity. It now returns `true` on success, as its header
+  documents.
 
 These changes are deliberately small so the vendored copy can be refreshed
 from a newer `sourcetrail-db` release with minimal conflict resolution.
