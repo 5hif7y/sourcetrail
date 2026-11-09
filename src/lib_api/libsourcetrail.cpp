@@ -16,6 +16,7 @@
 #include "SourceGroupFactoryModuleCustom.h"
 #include "SourceGroupFactoryModulePython.h"
 #include "OdinPlugin.h"
+#include "ScipPlugin.h"
 #include "SourceGroupFactoryModuleProxy.h"
 #include "PluginManager.h"
 
@@ -77,6 +78,7 @@ void srctrl_init(void)
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleCustom>());
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModulePython>());
 	st::plugin::ensureOdinPluginLoaded();
+	st::plugin::ensureScipPluginLoaded();
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleProxy>());
 }
 

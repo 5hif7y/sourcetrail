@@ -21,6 +21,7 @@
 
 #include "SourceGroupSettingsPythonEmpty.h"
 #include "SourceGroupSettingsOdinEmpty.h"
+#include "SourceGroupSettingsScip.h"
 
 
 const std::string ProjectSettings::PROJECT_FILE_EXTENSION = ".srctrlprj";
@@ -192,6 +193,11 @@ std::vector<std::shared_ptr<SourceGroupSettings>> ProjectSettings::getAllSourceG
 
 		case SourceGroupType::ODIN_EMPTY:
 			settings = std::make_shared<SourceGroupSettingsOdinEmpty>(id, this);
+			break;
+
+		case SourceGroupType::RUST_SCIP:
+		case SourceGroupType::CSHARP_SCIP:
+			settings = std::make_shared<SourceGroupSettingsScip>(type, id, this);
 			break;
 
 		case SourceGroupType::CUSTOM_COMMAND:
