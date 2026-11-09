@@ -1,6 +1,6 @@
 mod shapes;
 
-use crate::shapes::{Area, Square};
+use crate::shapes::{doubled, Area, Square};
 
 fn main() {
     let q = Square::new(2.0);
@@ -8,5 +8,5 @@ fn main() {
 }
 
 fn total(q: &Square) -> f64 {
-    q.area() + shapes::doubled(q) + std::f64::consts::PI
+    q.area() + doubled(q) + std::f64::consts::PI
 }

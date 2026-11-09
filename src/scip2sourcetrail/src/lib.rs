@@ -347,6 +347,8 @@ impl<'a, 'g> Batch<'a, 'g> {
             None
         };
         let mut scopes: Vec<(Range, i32)> = Vec::new();
+        // Scopes that are modules, namespaces or packages.
+        let mut module_scopes: HashSet<i32> = HashSet::new();
         let mut definition_token: HashMap<&str, Range> = HashMap::new();
         let mut own_scope: HashMap<*const Occurrence, Range> = HashMap::new();
         for o in &doc.occurrences {
@@ -378,6 +380,12 @@ impl<'a, 'g> Batch<'a, 'g> {
             };
             if let Some(scope) = scope {
                 own_scope.insert(o as *const Occurrence, scope);
+                if matches!(
+                    kind,
+                    Some(SymbolKind::Module | SymbolKind::Namespace | SymbolKind::Package)
+                ) {
+                    module_scopes.insert(id);
+                }
                 scopes.push((scope, id));
             }
         }
@@ -447,7 +455,7 @@ impl<'a, 'g> Batch<'a, 'g> {
                             file
                         }
                     };
-                    let reference_kind = if has_role(o, SymbolRole::Import) {
+                    let mut reference_kind = if has_role(o, SymbolRole::Import) {
                         ReferenceKind::Import
                     } else {
                         match kind {
@@ -457,6 +465,16 @@ impl<'a, 'g> Batch<'a, 'g> {
                             _ => ReferenceKind::Usage,
                         }
                     };
+                    // rust-analyzer gives `use` items no Import role. A Rust
+                    // function cannot be called at module level (const and
+                    // static initializers have bodies of their own), so a
+                    // "call" from a module or the file is a `use`.
+                    if reference_kind == ReferenceKind::Call
+                        && self.global.scheme_language == "rust"
+                        && context.map_or(true, |c| module_scopes.contains(&c))
+                    {
+                        reference_kind = ReferenceKind::Import;
+                    }
                     let r = self.writer.reference(source, id, reference_kind)?;
                     self.writer.reference_location(r, file, range)?;
                     self.stats.references += 1;

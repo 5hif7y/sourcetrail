@@ -115,6 +115,13 @@ fn rust_analyzer_fixture() {
         &edges(&db, 2048),
         &["demo::shapes::doubled() -> demo::shapes::twice"],
     );
+    // `use crate::shapes::doubled` at module level is an import, not a call.
+    assert_has(&edges(&db, 512), &["demo -> demo::shapes::doubled()"]);
+    assert!(
+        !edges(&db, 8).iter().any(|e| e.starts_with("demo -> ")),
+        "no calls from the crate module: {:#?}",
+        edges(&db, 8)
+    );
     assert_eq!(
         edges(&db, 16),
         ["demo::shapes::Square -> demo::shapes::Area"]
