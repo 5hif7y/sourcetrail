@@ -20,10 +20,71 @@ pub enum Target {
     Global {
         name: Vec<NameElement>,
         kind: Option<SymbolKind>,
+        /// The symbol is another name for an existing node (rust-analyzer's
+        /// `impl#[T]` is `Self`, i.e. `T`): no kind is recorded for it.
+        alias: bool,
+        /// A method of `impl Trait for T` (rust-analyzer): the trait's simple
+        /// name. `name` is then `T::method` and T implements the trait.
+        trait_impl: Option<String>,
     },
     /// A local symbol (a `local N` symbol or a parameter). The string is a
     /// globally unique name for it.
     Local(String),
+}
+
+/// A descriptor reduced to what the name needs.
+struct Level {
+    name: String,
+    suffix: i32,
+    disambiguator: String,
+}
+
+/// `Add<Self>` (written with backticks in SCIP) -> `Add`.
+fn simple_type_name(name: &str) -> String {
+    let n = name.trim_matches('`');
+    n.split('<').next().unwrap_or(n).trim().to_string()
+}
+
+/// rust-analyzer names a crate root `crate/`, and an impl block `impl#` with
+/// its self type and trait as type parameters: `impl#[Square]new().` and
+/// `impl#[Square][Area]area().`. This turns them into what a Rust programmer
+/// writes: `Square::new` and `Square::area` (for Area). Returns the levels,
+/// whether the symbol is the `Self` alias, and the trait.
+fn rust_levels(mut levels: Vec<Level>) -> (Vec<Level>, bool, Option<String>) {
+    let namespace = Suffix::Namespace.value();
+    let type_ = Suffix::Type.value();
+    let type_parameter = Suffix::TypeParameter.value();
+    if levels
+        .first()
+        .is_some_and(|l| l.suffix == namespace && l.name == "crate")
+    {
+        levels.remove(0);
+    }
+    let mut alias = false;
+    let mut trait_name = None;
+    if let Some(i) = levels
+        .iter()
+        .position(|l| l.suffix == type_ && l.name == "impl")
+    {
+        let params: Vec<String> = levels[i + 1..]
+            .iter()
+            .take_while(|l| l.suffix == type_parameter)
+            .map(|l| simple_type_name(&l.name))
+            .collect();
+        if let Some(self_type) = params.first() {
+            let rest: Vec<Level> = levels.split_off(i + 1 + params.len());
+            levels.truncate(i);
+            levels.push(Level {
+                name: self_type.clone(),
+                suffix: type_,
+                disambiguator: String::new(),
+            });
+            alias = rest.is_empty();
+            trait_name = params.get(1).cloned();
+            levels.extend(rest);
+        }
+    }
+    (levels, alias, trait_name)
 }
 
 /// Parses a SCIP symbol. `document` is the relative path of the document the
@@ -34,10 +95,29 @@ pub fn parse(symbol: &str, document: &str) -> Option<Target> {
         return Some(Target::Local(format!("{document}#{symbol}")));
     }
     let parsed = scip::symbol::parse_symbol(symbol).ok()?;
-    let descriptors = &parsed.descriptors;
-    if descriptors.is_empty() {
+    if parsed.descriptors.is_empty() {
         return None;
     }
+    let mut levels = Vec::new();
+    for d in &parsed.descriptors {
+        let suffix = d.suffix.value();
+        if suffix == Suffix::Parameter.value() || suffix == Suffix::Local.value() {
+            // Parameters are locals of their function in Sourcetrail.
+            return Some(Target::Local(symbol.to_string()));
+        }
+        if !d.name.is_empty() {
+            levels.push(Level {
+                name: d.name.clone(),
+                suffix,
+                disambiguator: d.disambiguator.clone(),
+            });
+        }
+    }
+    let (levels, alias, trait_impl) = if parsed.scheme == "rust-analyzer" {
+        rust_levels(levels)
+    } else {
+        (levels, false, None)
+    };
 
     let mut name = Vec::new();
     if let Some(package) = parsed.package.as_ref() {
@@ -48,45 +128,49 @@ pub fn parse(symbol: &str, document: &str) -> Option<Target> {
             });
         }
     }
-
-    let mut kind = None;
+    let mut kind = if levels.is_empty() {
+        Some(SymbolKind::Module)
+    } else {
+        None
+    };
     let mut parent_is_type = false;
-    for (i, d) in descriptors.iter().enumerate() {
-        let suffix = d.suffix.value();
-        let last = i + 1 == descriptors.len();
-        if suffix == Suffix::Parameter.value() || suffix == Suffix::Local.value() {
-            // Parameters are locals of their function in Sourcetrail.
-            return Some(Target::Local(symbol.to_string()));
-        }
-        if d.name.is_empty() {
-            continue;
-        }
+    let count = levels.len();
+    for (i, l) in levels.into_iter().enumerate() {
         let mut element = NameElement {
-            name: d.name.clone(),
+            name: l.name,
             ..Default::default()
         };
-        if suffix == Suffix::Method.value() {
-            // The disambiguator tells overloads apart, e.g. `(+1)`.
-            element.postfix = if d.disambiguator.is_empty() {
+        if l.suffix == Suffix::Method.value() {
+            // The disambiguator tells overloads apart, e.g. `(+1)`; the trait
+            // tells `Square::area` for Area from an inherent `Square::area`.
+            element.postfix = if l.disambiguator.is_empty() {
                 "()".to_string()
             } else {
-                format!("({})", d.disambiguator)
+                format!("({})", l.disambiguator)
             };
+            if let Some(t) = &trait_impl {
+                element.postfix.push_str(&format!(" ({t})"));
+            }
         }
-        if last {
-            kind = kind_from_suffix(suffix, parent_is_type);
+        if i + 1 == count {
+            kind = kind_from_suffix(l.suffix, parent_is_type);
         }
-        // Type parameters (`impl#[T]`) do not change what the member hangs
-        // from.
-        if suffix != Suffix::TypeParameter.value() {
-            parent_is_type = suffix == Suffix::Type.value();
+        // Type parameters do not change what the member hangs from.
+        if l.suffix != Suffix::TypeParameter.value() {
+            parent_is_type = l.suffix == Suffix::Type.value();
         }
         name.push(element);
     }
     if name.is_empty() {
         return None;
     }
-    Some(Target::Global { name, kind })
+    let trait_impl = if alias { None } else { trait_impl };
+    Some(Target::Global {
+        name,
+        kind,
+        alias,
+        trait_impl,
+    })
 }
 
 fn kind_from_suffix(suffix: i32, parent_is_type: bool) -> Option<SymbolKind> {
@@ -238,6 +322,63 @@ mod tests {
         );
         let p = parse("rust-analyzer cargo demo 0.1.0 util/helper().(x)", "a.rs").unwrap();
         assert!(matches!(p, Target::Local(_)));
+    }
+
+    #[test]
+    fn rust_analyzer_impls_and_crate_root() {
+        const R: &str = "rust-analyzer cargo demo 0.1.0 ";
+        let root = parse(&format!("{R}crate/"), "src/main.rs").unwrap();
+        assert_eq!(names(&root), ["demo"]);
+        assert!(matches!(
+            root,
+            Target::Global {
+                kind: Some(SymbolKind::Module),
+                ..
+            }
+        ));
+
+        let inherent = parse(&format!("{R}shapes/impl#[Square]new()."), "a.rs").unwrap();
+        assert_eq!(names(&inherent), ["demo", "shapes", "Square", "new()"]);
+        assert!(matches!(
+            inherent,
+            Target::Global {
+                kind: Some(SymbolKind::Method),
+                alias: false,
+                trait_impl: None,
+                ..
+            }
+        ));
+
+        let trait_impl = parse(&format!("{R}shapes/impl#[Square][Area]area()."), "a.rs").unwrap();
+        assert_eq!(
+            names(&trait_impl),
+            ["demo", "shapes", "Square", "area() (Area)"]
+        );
+        assert!(matches!(&trait_impl, Target::Global { trait_impl: Some(t), .. } if t == "Area"));
+
+        // `Self` names the type: an alias without a kind of its own.
+        let alias = parse(&format!("{R}shapes/impl#[Square]"), "a.rs").unwrap();
+        assert_eq!(names(&alias), ["demo", "shapes", "Square"]);
+        assert!(matches!(
+            alias,
+            Target::Global {
+                alias: true,
+                trait_impl: None,
+                ..
+            }
+        ));
+
+        // Generic traits lose their arguments and backticks.
+        let core = "rust-analyzer cargo core https://github.com/rust-lang/rust/library/core \
+                    ops/arith/impl#[f64][`Add<Self>`]add().";
+        assert_eq!(
+            names(&parse(core, "a.rs").unwrap()),
+            ["core", "ops", "arith", "f64", "add() (Add)"]
+        );
+
+        // Other schemes keep `impl` and `crate` as plain names.
+        let other = parse("scip-other cargo demo 0.1.0 crate/impl#", "a.rs").unwrap();
+        assert_eq!(names(&other), ["demo", "crate", "impl"]);
     }
 
     #[test]

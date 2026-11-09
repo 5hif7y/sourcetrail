@@ -70,77 +70,121 @@ fn index(tool: &str, root: &str, documents: Vec<Document>) -> Index {
 }
 
 const R: &str = "rust-analyzer cargo demo 0.1.0 ";
+const CORE: &str = "rust-analyzer cargo core https://github.com/rust-lang/rust/library/core ";
+const STD: &str = "rust-analyzer cargo std https://github.com/rust-lang/rust/library/std ";
 
-/// A small Rust crate:
+/// A small Rust crate, with symbols, roles and ranges shaped like the output
+/// of rust-analyzer 1.97 (`rust-analyzer scip`):
+/// - a `crate/` root and modules whose definitions enclose their whole file;
+/// - `impl#[T]` and `impl#[T][Trait]` members, and the `impl#[T]` alias
+///   for `Self`;
+/// - one occurrence per character of an operator;
+/// - no relationships;
+/// - backslashes in relative paths.
 ///
 /// ```text
 /// src/shapes.rs
 ///  1 pub trait Area { fn area(&self) -> f64; }
 ///  2 pub struct Square { pub side: f64 }
-///  3 impl Area for Square {
-///  4     fn area(&self) -> f64 { let s = self.side; s * s }
-///  5 }
+///  3 impl Square { pub fn new(side: f64) -> Self { Square { side } } }
+///  4 impl Area for Square {
+///  5     fn area(&self) -> f64 { let s = self.side; s * s }
+///  6 }
 /// src/main.rs
-///  1 use crate::shapes::Square;
-///  2 fn main() {
-///  3     let q = Square { side: 2.0 };
-///  4     println!("{}", total(&q));
-///  5 }
-///  6 fn total(q: &Square) -> f64 { q.area() + std::f64::consts::PI }
+///  1 mod shapes;
+///  2 use crate::shapes::{Area, Square};
+///  3 fn main() {
+///  4     let q = Square::new(2.0);
+///  5     println!("{}", total(&q));
+///  6 }
+///  7 fn total(q: &Square) -> f64 { q.area() + std::f64::consts::PI }
 /// ```
 fn rust_index() -> Index {
+    let krate = format!("{R}crate/");
+    let shapes_mod = format!("{R}shapes/");
     let area_trait = format!("{R}shapes/Area#");
     let area_trait_m = format!("{R}shapes/Area#area().");
     let square = format!("{R}shapes/Square#");
     let side = format!("{R}shapes/Square#side.");
+    let new = format!("{R}shapes/impl#[Square]new().");
+    let self_alias = format!("{R}shapes/impl#[Square]");
     let area_impl = format!("{R}shapes/impl#[Square][Area]area().");
     let main = format!("{R}main().");
     let total = format!("{R}total().");
-    let q_param = format!("{R}total().(q)");
-    let pi = "rust-analyzer cargo std 1.97.1 f64/consts/PI.".to_string();
-    let println = "rust-analyzer cargo std 1.97.1 macros/println!".to_string();
+    let add = format!("{CORE}ops/arith/impl#[f64][`Add<Self>`]add().");
+    let mul = format!("{CORE}ops/arith/impl#[f64][`Mul<Self>`]mul().");
+    let pi = format!("{CORE}f64/consts/PI.");
+    let println = format!("{STD}macros/println!");
 
     let shapes = doc(
-        "src/shapes.rs",
+        r"src\shapes.rs",
         "rust",
         vec![
-            occ(&[0, 10, 14], &area_trait, DEF, &[0, 0, 0, 37]),
-            occ(&[0, 20, 24], &area_trait_m, DEF, &[0, 17, 35]),
+            occ(&[0, 0, 6, 0], &shapes_mod, DEF, &[0, 0, 6, 0]),
+            occ(&[0, 10, 14], &area_trait, DEF, &[0, 0, 0, 41]),
+            occ(&[0, 20, 24], &area_trait_m, DEF, &[0, 17, 39]),
+            occ(&[0, 26, 30], "local 0", DEF, &[0, 25, 30]),
             occ(&[1, 11, 17], &square, DEF, &[1, 0, 1, 34]),
             occ(&[1, 24, 28], &side, DEF, &[1, 20, 32]),
-            occ(&[2, 5, 9], &area_trait, 0, &[]),
-            occ(&[2, 14, 20], &square, 0, &[]),
-            occ(&[3, 7, 11], &area_impl, DEF, &[3, 4, 3, 51]),
-            occ(&[3, 30, 31], "local 0", DEF, &[]),
-            occ(&[3, 39, 43], &side, 0, &[]),
-            occ(&[3, 45, 46], "local 0", 0, &[]),
+            occ(&[2, 5, 11], &square, 0, &[1, 0, 1, 34]),
+            occ(&[2, 21, 24], &new, DEF, &[2, 14, 63]),
+            occ(&[2, 25, 29], "local 1", DEF, &[2, 25, 29]),
+            occ(&[2, 40, 44], &self_alias, 0, &[2, 0, 65]),
+            occ(&[2, 47, 53], &square, 0, &[1, 0, 1, 34]),
+            occ(&[2, 56, 60], "local 1", 0, &[2, 25, 29]),
+            occ(&[2, 56, 60], &side, 0, &[1, 20, 32]),
+            occ(&[3, 5, 9], &area_trait, 0, &[0, 0, 0, 41]),
+            occ(&[3, 14, 20], &square, 0, &[1, 0, 1, 34]),
+            occ(&[4, 7, 11], &area_impl, DEF, &[4, 4, 4, 55]),
+            occ(&[4, 13, 17], "local 2", DEF, &[4, 12, 17]),
+            occ(&[4, 32, 33], "local 3", DEF, &[4, 32, 33]),
+            occ(&[4, 41, 45], &side, 0, &[1, 20, 32]),
+            occ(&[4, 47, 48], "local 3", 0, &[4, 32, 33]),
+            occ(&[4, 48, 49], &mul, 0, &[]),
+            occ(&[4, 49, 50], &mul, 0, &[]),
+            occ(&[4, 50, 51], &mul, 0, &[]),
+            occ(&[4, 51, 52], "local 3", 0, &[4, 32, 33]),
         ],
         vec![
+            info(&shapes_mod, Kind::Module, &[]),
             info(&area_trait, Kind::Trait, &[]),
             info(&area_trait_m, Kind::TraitMethod, &[]),
-            info(&square, Kind::Struct, &[&area_trait]),
+            info(&square, Kind::Struct, &[]),
             info(&side, Kind::Field, &[]),
-            info(&area_impl, Kind::Method, &[&area_trait_m]),
+            info(&new, Kind::StaticMethod, &[]),
+            info(&self_alias, Kind::TypeAlias, &[]),
+            info(&area_impl, Kind::Method, &[]),
         ],
     );
     let main_rs = doc(
-        "src/main.rs",
+        r"src\main.rs",
         "rust",
         vec![
-            occ(&[0, 20, 26], &square, IMPORT, &[]),
-            occ(&[1, 3, 7], &main, DEF, &[1, 0, 4, 1]),
-            occ(&[2, 8, 9], "local 0", DEF, &[]),
-            occ(&[2, 12, 18], &square, 0, &[]),
-            occ(&[2, 21, 25], &side, 0, &[]),
-            occ(&[3, 4, 11], &println, 0, &[]),
-            occ(&[3, 19, 24], &total, 0, &[]),
-            occ(&[5, 3, 8], &total, DEF, &[5, 0, 64]),
-            occ(&[5, 9, 10], &q_param, DEF, &[]),
-            occ(&[5, 13, 19], &square, 0, &[]),
-            occ(&[5, 32, 36], &area_trait_m, 0, &[]),
-            occ(&[5, 59, 61], &pi, 0, &[]),
+            occ(&[0, 0, 7, 0], &krate, DEF, &[0, 0, 7, 0]),
+            occ(&[0, 4, 10], &shapes_mod, 0, &[]),
+            occ(&[1, 4, 9], &krate, 0, &[0, 0, 7, 0]),
+            occ(&[1, 11, 17], &shapes_mod, 0, &[]),
+            occ(&[1, 20, 24], &area_trait, 0, &[]),
+            occ(&[1, 26, 32], &square, 0, &[]),
+            occ(&[2, 3, 7], &main, DEF, &[2, 0, 5, 1]),
+            occ(&[3, 8, 9], "local 0", DEF, &[3, 8, 9]),
+            occ(&[3, 12, 18], &square, 0, &[]),
+            occ(&[3, 20, 23], &new, 0, &[]),
+            occ(&[4, 4, 11], &println, 0, &[]),
+            occ(&[4, 19, 24], &total, 0, &[6, 0, 64]),
+            occ(&[4, 26, 27], "local 0", 0, &[3, 8, 9]),
+            occ(&[6, 3, 8], &total, DEF, &[6, 0, 64]),
+            occ(&[6, 9, 10], "local 1", DEF, &[6, 9, 10]),
+            occ(&[6, 13, 19], &square, 0, &[]),
+            occ(&[6, 30, 31], "local 1", 0, &[6, 9, 10]),
+            occ(&[6, 32, 36], &area_impl, 0, &[]),
+            occ(&[6, 38, 39], &add, 0, &[]),
+            occ(&[6, 39, 40], &add, 0, &[]),
+            occ(&[6, 40, 41], &add, 0, &[]),
+            occ(&[6, 59, 61], &pi, 0, &[]),
         ],
         vec![
+            info(&krate, Kind::Module, &[]),
             info(&main, Kind::Function, &[]),
             info(&total, Kind::Function, &[]),
         ],
@@ -183,18 +227,19 @@ impl Db {
     }
 }
 
-/// The qualified name of a node, as srctrl prints it.
-const NAME: &str =
-    "replace(replace(replace(substr(serialized_name, instr(serialized_name, char(9)||'m') + 2), \
+/// The qualified name of a node with the postfix of its last level, e.g.
+/// `demo::shapes::Square::area() (Area)`. Prefixes are always empty here.
+const NAME: &str = "replace(replace(replace(replace(substr(serialized_name, \
+    instr(serialized_name, char(9)||'m') + 2), char(9)||'s'||char(9)||'p'||char(9)||'n', char(9)||'n'), \
     char(9)||'s'||char(9)||'p', ''), char(9)||'s', ''), char(9)||'n', \
     substr(serialized_name, 1, instr(serialized_name, char(9)||'m') - 1))";
 
 fn edges(db: &Db, kind: i32) -> Vec<String> {
     db.rows(&format!(
-        "SELECT replace(a.n, char(9)||'p', ''), replace(b.n, char(9)||'p', '') FROM edge e \
+        "SELECT a.n || ' | ' || b.n FROM edge e \
          JOIN (SELECT id, {NAME} AS n FROM node) a ON a.id = e.source_node_id \
          JOIN (SELECT id, {NAME} AS n FROM node) b ON b.id = e.target_node_id \
-         WHERE e.type = {kind} ORDER BY 1, 2"
+         WHERE e.type = {kind} ORDER BY 1"
     ))
 }
 
@@ -221,98 +266,133 @@ fn rust_crate_whole_index() {
     assert_eq!(stats.missing_sources, 0);
     let db = Db::open(&db_path);
 
-    // Names use the Rust delimiter and start at the crate.
+    // Names use the Rust delimiter and start at the crate; `crate/` is the
+    // crate itself, and impl members hang from their type.
     let names = db.rows(&format!(
-        "SELECT replace({NAME}, char(9)||'p', '') FROM node WHERE type <> 262144 ORDER BY 1"
+        "SELECT {NAME} FROM node WHERE type <> 262144 ORDER BY 1"
     ));
     for n in [
+        "demo",
         "demo::shapes::Square::side",
+        "demo::shapes::Square::new()",
+        "demo::shapes::Square::area() (Area)",
         "demo::shapes::Area::area()",
         "demo::total()",
-        "std::f64::consts::PI",
+        "core::f64::consts::PI",
     ] {
         assert!(names.contains(&n.to_string()), "{n} missing from {names:?}");
     }
-
-    // Calls: main -> total, total -> Area::area. println! is a macro use.
-    let calls = edges(&db, 8);
     assert!(
-        calls.contains(&"demo::main() | demo::total()".to_string()),
-        "{calls:?}"
-    );
-    assert!(
-        calls.contains(&"demo::total() | demo::shapes::Area::area()".to_string()),
-        "{calls:?}"
-    );
-    let macros = edges(&db, 2048);
-    assert_eq!(macros, ["demo::main() | std::macros::println"]);
-
-    // Field use, type use, import, inheritance and override.
-    let usages = edges(&db, 4);
-    assert!(
-        usages.contains(&"demo::main() | demo::shapes::Square::side".to_string()),
-        "{usages:?}"
-    );
-    assert!(
-        usages
+        !names
             .iter()
-            .any(|u| u.ends_with("| demo::shapes::Square::side") && u.contains("area")),
-        "{usages:?}"
+            .any(|n| n.contains("impl") || n.contains("crate")),
+        "{names:?}"
     );
-    assert!(edges(&db, 2).contains(&"demo::total() | demo::shapes::Square".to_string()));
-    assert_eq!(edges(&db, 512).len(), 1);
+
+    // Calls: main -> new and total; total -> Square::area and one `+`.
+    assert_eq!(
+        edges(&db, 8),
+        [
+            "demo::main() | demo::shapes::Square::new()",
+            "demo::main() | demo::total()",
+            "demo::shapes::Square::area() (Area) | core::ops::arith::f64::mul() (Mul)",
+            "demo::total() | core::ops::arith::f64::add() (Add)",
+            "demo::total() | demo::shapes::Square::area() (Area)",
+        ]
+    );
+    // The three characters of ` + ` are one call site, columns 39 to 41.
+    assert_eq!(
+        db.rows(
+            "SELECT l.start_column, l.end_column FROM edge e \
+             JOIN node t ON t.id = e.target_node_id JOIN occurrence o ON o.element_id = e.id \
+             JOIN source_location l ON l.id = o.source_location_id \
+             WHERE t.serialized_name LIKE '%add%'"
+        ),
+        ["39 | 41"]
+    );
+    assert_eq!(edges(&db, 2048), ["demo::main() | std::macros::println"]);
+
+    // Field uses; `Self` (the impl#[Square] alias) is a type use of Square.
+    let usages = edges(&db, 4);
+    for u in [
+        "demo::shapes::Square::new() | demo::shapes::Square::side",
+        "demo::shapes::Square::area() (Area) | demo::shapes::Square::side",
+    ] {
+        assert!(
+            usages.contains(&u.to_string()),
+            "{u} missing from {usages:?}"
+        );
+    }
+    let type_uses = edges(&db, 2);
+    for u in [
+        "demo::shapes::Square::new() | demo::shapes::Square",
+        "demo | demo::shapes::Square",
+        "demo::shapes | demo::shapes::Square",
+    ] {
+        assert!(
+            type_uses.contains(&u.to_string()),
+            "{u} missing from {type_uses:?}"
+        );
+    }
+
+    // No relationships in the index: inheritance and override follow from
+    // impl#[Square][Area]area().
     assert_eq!(
         edges(&db, 16),
         ["demo::shapes::Square | demo::shapes::Area"]
     );
-    assert_eq!(edges(&db, 32).len(), 1);
+    assert_eq!(
+        edges(&db, 32),
+        ["demo::shapes::Square::area() (Area) | demo::shapes::Area::area()"]
+    );
 
-    // std symbols are only referenced: no definition kind, so non-indexed.
+    // std and core are only referenced: no definition kind, so non-indexed.
     assert_eq!(
         db.count(&format!(
-            "SELECT count(*) FROM node n JOIN symbol s ON s.id = n.id WHERE {NAME} LIKE 'std::%'"
+            "SELECT count(*) FROM node n JOIN symbol s ON s.id = n.id \
+             WHERE {NAME} LIKE 'std::%' OR {NAME} LIKE 'core::%'"
         )),
         0
     );
-    // Crate symbols are explicit (2).
-    assert_eq!(db.count(&format!(
-        "SELECT definition_kind FROM node n JOIN symbol s ON s.id = n.id WHERE replace({NAME}, char(9)||'p', '') = 'demo::total()'")), 2);
-
-    // Kinds from SymbolInformation: Square is a struct (64), Area an interface (256).
     assert_eq!(
         db.count(&format!(
-            "SELECT type FROM node WHERE {NAME} = 'demo::shapes::Square'"
+            "SELECT definition_kind FROM node n JOIN symbol s ON s.id = n.id \
+             WHERE {NAME} = 'demo::total()'"
         )),
-        64
-    );
-    assert_eq!(
-        db.count(&format!(
-            "SELECT type FROM node WHERE {NAME} = 'demo::shapes::Area'"
-        )),
-        256
+        2
     );
 
-    // The trait impl method is a method (8192), not a free function, even
-    // though type parameters sit between it and its type.
-    assert_eq!(db.count(&format!(
-        "SELECT type FROM node WHERE replace({NAME}, char(9)||'p', '') LIKE 'demo::shapes::impl::%area()'")), 8192);
-    // root/relative with forward slashes.
+    // Kinds: Square a struct (64) despite the TypeAlias of `Self`, Area an
+    // interface (256), the impl members methods (8192), demo a module (8).
+    let kind = |n: &str| db.count(&format!("SELECT type FROM node WHERE {NAME} = '{n}'"));
+    assert_eq!(kind("demo::shapes::Square"), 64);
+    assert_eq!(kind("demo::shapes::Area"), 256);
+    assert_eq!(kind("demo::shapes::Square::area() (Area)"), 8192);
+    assert_eq!(kind("demo::shapes::Square::new()"), 8192);
+    assert_eq!(kind("demo"), 8);
+
+    // Paths with forward slashes, though the index uses backslashes.
     assert_eq!(
         db.rows("SELECT path FROM file ORDER BY path"),
         ["/proj/demo/src/main.rs", "/proj/demo/src/shapes.rs"]
     );
 
-    // Locals: `local 0` in each file is a different local; the parameter q too.
-    assert_eq!(db.count("SELECT count(*) FROM local_symbol"), 3);
+    // `local N` is per file: 4 in shapes.rs, 2 in main.rs.
+    assert_eq!(db.count("SELECT count(*) FROM local_symbol"), 6);
 
-    // Scope of total(): line 6, the whole body.
-    assert_eq!(db.rows(&format!(
-        "SELECT l.start_line, l.start_column, l.end_line, l.end_column FROM node n \
-         JOIN occurrence o ON o.element_id = n.id JOIN source_location l ON l.id = o.source_location_id \
-         WHERE replace({NAME}, char(9)||'p', '') = 'demo::total()' AND l.type = 1")), ["6 | 1 | 6 | 64"]);
+    // Scope of total(): line 7, the whole body.
+    assert_eq!(
+        db.rows(&format!(
+            "SELECT l.start_line, l.start_column, l.end_line, l.end_column FROM node n \
+             JOIN occurrence o ON o.element_id = n.id \
+             JOIN source_location l ON l.id = o.source_location_id \
+             WHERE {NAME} = 'demo::total()' AND l.type = 1"
+        )),
+        ["7 | 1 | 7 | 64"]
+    );
 
-    // Outside any definition: the import and the two names on the `impl` line.
-    assert_eq!(stats.references_without_context, 3);
+    // Modules enclose their file, so every reference has a context.
+    assert_eq!(stats.references_without_context, 0);
     assert_eq!(db.count("SELECT count(*) FROM error"), 0);
 }
 
@@ -335,28 +415,48 @@ fn batches_write_only_their_files() {
         ["/proj/demo/src/gone.rs", "/proj/demo/src/main.rs"]
     );
     // Square is defined in the other file, but it is still explicit here.
-    assert_eq!(db.count(&format!(
-        "SELECT definition_kind FROM node n JOIN symbol s ON s.id = n.id WHERE {NAME} = 'demo::shapes::Square'")), 2);
+    assert_eq!(
+        db.count(&format!(
+            "SELECT definition_kind FROM node n JOIN symbol s ON s.id = n.id \
+             WHERE {NAME} = 'demo::shapes::Square'"
+        )),
+        2
+    );
     // The missing file gets a fatal error.
     assert_eq!(db.count("SELECT count(*) FROM error WHERE fatal = 1"), 1);
 }
 
 #[test]
-fn csharp_overloads_are_two_symbols() {
-    let a = "scip-dotnet nuget . . App/Shape#Scale().";
-    let b = "scip-dotnet nuget . . App/Shape#Scale(+1).";
+fn csharp_overloads_and_relationships() {
+    let shape = "scip-dotnet nuget . . App/IShape#";
+    let shape_area = "scip-dotnet nuget . . App/IShape#Area().";
+    let square = "scip-dotnet nuget . . App/Square#";
+    let square_area = "scip-dotnet nuget . . App/Square#Area().";
+    let a = "scip-dotnet nuget . . App/Square#Scale().";
+    let b = "scip-dotnet nuget . . App/Square#Scale(+1).";
     let caller = "scip-dotnet nuget . . App/Program#Main().";
+    let using = "scip-dotnet nuget . . System/";
     let d = doc(
         "Program.cs",
         "CSharp",
         vec![
-            occ(&[0, 16, 21], a, DEF, &[0, 0, 40]),
-            occ(&[1, 16, 21], b, DEF, &[1, 0, 40]),
-            occ(&[3, 16, 20], caller, DEF, &[3, 0, 6, 1]),
-            occ(&[4, 8, 13], a, 0, &[]),
-            occ(&[5, 8, 13], b, 0, &[]),
+            occ(&[0, 6, 12], using, IMPORT, &[]),
+            occ(&[1, 17, 23], shape, DEF, &[1, 0, 1, 40]),
+            occ(&[1, 30, 34], shape_area, DEF, &[1, 25, 38]),
+            occ(&[2, 13, 19], square, DEF, &[2, 0, 9, 1]),
+            occ(&[2, 22, 28], shape, 0, &[]),
+            occ(&[3, 18, 22], square_area, DEF, &[3, 4, 3, 40]),
+            occ(&[4, 16, 21], a, DEF, &[4, 4, 4, 40]),
+            occ(&[5, 16, 21], b, DEF, &[5, 4, 5, 50]),
+            occ(&[6, 16, 20], caller, DEF, &[6, 4, 8, 5]),
+            occ(&[7, 8, 13], a, 0, &[]),
+            occ(&[7, 20, 25], b, 0, &[]),
         ],
         vec![
+            info(shape, Kind::Interface, &[]),
+            info(shape_area, Kind::AbstractMethod, &[]),
+            info(square, Kind::Class, &[shape]),
+            info(square_area, Kind::Method, &[shape_area]),
             info(a, Kind::Method, &[]),
             info(b, Kind::Method, &[]),
             info(caller, Kind::StaticMethod, &[]),
@@ -369,13 +469,19 @@ fn csharp_overloads_are_two_symbols() {
     )
     .unwrap();
     let db = Db::open(&db_path);
+    // Overloads are two symbols and two calls; `.` is the delimiter.
     assert_eq!(
         edges(&db, 8),
         [
-            "App.Program.Main() | App.Shape.Scale()",
-            "App.Program.Main() | App.Shape.Scale(+1)"
+            "App.Program.Main() | App.Square.Scale()",
+            "App.Program.Main() | App.Square.Scale(+1)"
         ]
     );
+    // Relationships from SymbolInformation.
+    assert_eq!(edges(&db, 16), ["App.Square | App.IShape"]);
+    assert_eq!(edges(&db, 32), ["App.Square.Area() | App.IShape.Area()"]);
+    // The using directive is an import from the file.
+    assert_eq!(edges(&db, 512).len(), 1);
     assert_eq!(db.rows("SELECT language FROM file"), ["csharp"]);
 }
 
@@ -405,13 +511,8 @@ fn bad_input_fails_cleanly() {
         .contains("cannot read"));
 }
 
-#[allow(dead_code)]
-fn _roles_match_scip() {
-    assert_eq!(SymbolRole::Definition.value(), DEF);
-    assert_eq!(SymbolRole::Import.value(), IMPORT);
-}
-
 #[test]
 fn role_constants() {
-    _roles_match_scip();
+    assert_eq!(SymbolRole::Definition.value(), DEF);
+    assert_eq!(SymbolRole::Import.value(), IMPORT);
 }

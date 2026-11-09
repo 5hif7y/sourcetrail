@@ -169,6 +169,9 @@ fn contains(outer: &Range, inner: &Range) -> bool {
 struct Global<'a> {
     info: HashMap<&'a str, &'a SymbolInformation>,
     defined: HashSet<&'a str>,
+    /// Trait symbols by simple name, to resolve the trait of a
+    /// rust-analyzer `impl#[T][Trait]` from its name alone.
+    traits: HashMap<String, Vec<&'a str>>,
     delimiter: String,
     scheme_language: String,
 }
@@ -212,9 +215,23 @@ impl<'a> Global<'a> {
             "scip-dotnet" => "csharp".to_string(),
             _ => first_language.to_ascii_lowercase(),
         };
+        let mut traits: HashMap<String, Vec<&str>> = HashMap::new();
+        for (symbol, i) in &info {
+            if i.kind.value() == scip::types::symbol_information::Kind::Trait.value() {
+                if let Ok(parsed) = scip::symbol::parse_symbol(symbol) {
+                    if let Some(last) = parsed.descriptors.last() {
+                        traits.entry(last.name.clone()).or_default().push(symbol);
+                    }
+                }
+            }
+        }
+        for v in traits.values_mut() {
+            v.sort();
+        }
         Global {
             info,
             defined,
+            traits,
             delimiter,
             scheme_language,
         }
@@ -227,6 +244,8 @@ struct Batch<'a, 'g> {
     global: &'g Global<'a>,
     writer: Writer,
     globals: HashMap<String, Option<(i32, Option<SymbolKind>)>>,
+    /// rust-analyzer trait impl members: symbol -> (trait simple name, name).
+    trait_members: HashMap<String, (String, Vec<writer::NameElement>)>,
     locals: HashMap<String, i32>,
     stats: Stats,
 }
@@ -254,11 +273,21 @@ impl<'a, 'g> Batch<'a, 'g> {
                 self.locals.insert(name, id);
                 Ok(Some(Resolved::Local(id)))
             }
-            Some(Target::Global { name, kind }) => {
+            Some(Target::Global {
+                name,
+                kind,
+                alias,
+                trait_impl,
+            }) => {
                 let kind = match self.global.info.get(symbol) {
+                    _ if alias => None,
                     Some(info) => names::kind_from_info(info, kind),
                     None => kind,
                 };
+                if let Some(t) = trait_impl {
+                    self.trait_members
+                        .insert(symbol.to_string(), (t, name.clone()));
+                }
                 let definition = if self.global.defined.contains(symbol) {
                     DefinitionKind::Explicit
                 } else {
@@ -267,6 +296,9 @@ impl<'a, 'g> Batch<'a, 'g> {
                 let id = self
                     .writer
                     .symbol(&self.global.delimiter, &name, kind, definition)?;
+                // An alias records no kind, but a reference to it is still a
+                // type use.
+                let kind = if alias { Some(SymbolKind::Type) } else { kind };
                 self.globals.insert(symbol.to_string(), Some((id, kind)));
                 Ok(Some(Resolved::Global(id, kind)))
             }
@@ -305,11 +337,32 @@ impl<'a, 'g> Batch<'a, 'g> {
                 .then((b.0.end_line, b.0.end_column).cmp(&(a.0.end_line, a.0.end_column)))
         });
 
+        // rust-analyzer reports an operator such as ` + ` as one occurrence
+        // per character; adjacent references to the same symbol on a line
+        // are one reference.
+        let mut merged: Vec<(Range, &Occurrence)> = Vec::new();
         for o in &doc.occurrences {
             let Some(range) = occurrence_range(o) else {
                 self.stats.skipped_occurrences += 1;
                 continue;
             };
+            if let Some((last, prev)) = merged.last_mut() {
+                if !has_role(o, SymbolRole::Definition)
+                    && o.symbol_roles == prev.symbol_roles
+                    && o.symbol == prev.symbol
+                    && o.diagnostics.is_empty()
+                    && range.start_line == range.end_line
+                    && last.end_line == range.start_line
+                    && last.end_column + 1 == range.start_column
+                {
+                    last.end_column = range.end_column;
+                    continue;
+                }
+            }
+            merged.push((range, o));
+        }
+
+        for (range, o) in merged {
             for d in &o.diagnostics {
                 if d.severity.value() == Severity::Error.value() {
                     self.writer.error(&d.message, false, file, range)?;
@@ -383,6 +436,68 @@ impl<'a, 'g> Batch<'a, 'g> {
                 self.stats.relationships += 1;
             }
         }
+
+        // rust-analyzer gives no relationships for `impl Trait for T`; they
+        // follow from the names of the impl members.
+        for o in &doc.occurrences {
+            if has_role(o, SymbolRole::Definition) {
+                self.trait_impl(&o.symbol, rel, file, &definition_token)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// For a member of `impl Trait for T`: T inherits from Trait, and the
+    /// member overrides Trait's member of the same name, when the index
+    /// has exactly one trait with that name.
+    fn trait_impl(
+        &mut self,
+        symbol: &str,
+        rel: &str,
+        file: i32,
+        tokens: &HashMap<&str, Range>,
+    ) -> Result<(), String> {
+        let Some(Resolved::Global(member, kind)) = self.resolve(symbol, rel)? else {
+            return Ok(());
+        };
+        let Some((trait_name, name)) = self.trait_members.get(symbol).cloned() else {
+            return Ok(());
+        };
+        let Some([trait_symbol]) = self.global.traits.get(&trait_name).map(|v| v.as_slice()) else {
+            return Ok(());
+        };
+        let trait_symbol = trait_symbol.to_string();
+        let token = tokens.get(symbol).copied();
+        if let Some(Resolved::Global(trait_id, _)) = self.resolve(&trait_symbol, rel)? {
+            let self_type = self.writer.symbol(
+                &self.global.delimiter,
+                &name[..name.len() - 1],
+                None,
+                DefinitionKind::None,
+            )?;
+            let r = self
+                .writer
+                .reference(self_type, trait_id, ReferenceKind::Inheritance)?;
+            if let Some(t) = token {
+                self.writer.reference_location(r, file, t)?;
+            }
+            self.stats.relationships += 1;
+        }
+        if kind.is_some_and(|k| k.is_callable()) {
+            let method = name.last().map(|e| e.name.clone()).unwrap_or_default();
+            let overridden = format!("{trait_symbol}{method}().");
+            if self.global.info.contains_key(overridden.as_str()) {
+                if let Some(Resolved::Global(target, _)) = self.resolve(&overridden, rel)? {
+                    let r = self
+                        .writer
+                        .reference(member, target, ReferenceKind::Override)?;
+                    if let Some(t) = token {
+                        self.writer.reference_location(r, file, t)?;
+                    }
+                    self.stats.relationships += 1;
+                }
+            }
+        }
         Ok(())
     }
 }
@@ -406,10 +521,11 @@ pub fn convert(index: &Index, options: &Options) -> Result<Stats, String> {
         Some(r) => r.clone(),
         None => uri_to_path(&index.metadata.project_root),
     };
-    // root/relative with one kind of slash: SCIP paths always use `/`.
+    // root/relative with one kind of slash. rust-analyzer on Windows writes
+    // both with backslashes.
     let root = root.to_string_lossy().replace('\\', "/");
     let root = root.trim_end_matches('/');
-    let join = |relative: &str| format!("{root}/{relative}");
+    let join = |relative: &str| format!("{root}/{}", relative.replace('\\', "/"));
 
     // Which documents, and under which path each one is recorded: the path
     // Sourcetrail passed, so its file node matches; otherwise root/relative.
@@ -439,6 +555,7 @@ pub fn convert(index: &Index, options: &Options) -> Result<Stats, String> {
         global: &global,
         writer,
         globals: HashMap::new(),
+        trait_members: HashMap::new(),
         locals: HashMap::new(),
         stats: Stats::default(),
     };
