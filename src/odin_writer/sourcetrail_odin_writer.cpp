@@ -1,5 +1,6 @@
 #include "sourcetrail_odin_writer.h"
 
+#include "DefinitionKind.h"
 #include "NameHierarchy.h"
 #include "ReferenceKind.h"
 #include "SourceRange.h"
@@ -14,7 +15,23 @@ namespace
 struct Writer
 {
 	sourcetrail::SourcetrailDBWriter impl;
+	// Set when a call rejects its arguments before reaching impl; cleared at
+	// the start of every call.
+	std::string shimError;
 };
+
+// The public SODB_* constants mirror the SourcetrailDB enums by value.
+static_assert(SODB_SYMBOL_TYPE == static_cast<int>(sourcetrail::SymbolKind::TYPE), "");
+static_assert(SODB_SYMBOL_STRUCT == static_cast<int>(sourcetrail::SymbolKind::STRUCT), "");
+static_assert(SODB_SYMBOL_METHOD == static_cast<int>(sourcetrail::SymbolKind::METHOD), "");
+static_assert(SODB_SYMBOL_UNION == static_cast<int>(sourcetrail::SymbolKind::UNION), "");
+static_assert(SODB_REFERENCE_TYPE_USAGE == static_cast<int>(sourcetrail::ReferenceKind::TYPE_USAGE), "");
+static_assert(SODB_REFERENCE_CALL == static_cast<int>(sourcetrail::ReferenceKind::CALL), "");
+static_assert(SODB_REFERENCE_IMPORT == static_cast<int>(sourcetrail::ReferenceKind::IMPORT), "");
+static_assert(SODB_REFERENCE_ANNOTATION_USAGE ==
+				  static_cast<int>(sourcetrail::ReferenceKind::ANNOTATION_USAGE), "");
+static_assert(SODB_DEFINITION_IMPLICIT == static_cast<int>(sourcetrail::DefinitionKind::IMPLICIT), "");
+static_assert(SODB_DEFINITION_EXPLICIT == static_cast<int>(sourcetrail::DefinitionKind::EXPLICIT), "");
 
 sourcetrail::NameHierarchy makeHierarchy(const char* fullName, const char* delimiter)
 {
@@ -44,9 +61,22 @@ sourcetrail::NameHierarchy makeHierarchy(const char* fullName, const char* delim
 	return hierarchy;
 }
 
+// Start of a call: the writer, with the previous shim error cleared so that
+// sodb_last_error() reports the error of this call.
 Writer* asWriter(sodb_writer handle)
 {
-	return static_cast<Writer*>(handle);
+	Writer* writer = static_cast<Writer*>(handle);
+	if (writer)
+	{
+		writer->shimError.clear();
+	}
+	return writer;
+}
+
+int fail(Writer* writer, const char* message)
+{
+	writer->shimError = message;
+	return 0;
 }
 
 int boolToInt(bool value)
@@ -224,11 +254,157 @@ SODB_API int sodb_error(sodb_writer handle, const char* message, int fatal, int 
 
 SODB_API const char* sodb_last_error(sodb_writer handle)
 {
-	Writer* writer = asWriter(handle);
+	Writer* writer = static_cast<Writer*>(handle);
 	if (!writer)
 	{
 		return "No writer.";
 	}
+	if (!writer->shimError.empty())
+	{
+		return writer->shimError.c_str();
+	}
 	return writer->impl.getLastError().c_str();
+}
+
+// ---- ABI v2 ---------------------------------------------------------------
+
+SODB_API int sodb_abi_version(void)
+{
+	return SODB_ABI_VERSION;
+}
+
+SODB_API int sodb_symbol_ex(sodb_writer handle, const char* delimiter,
+							const sodb_name_element* elements, int elementCount,
+							int symbolKind, int definitionKind)
+{
+	Writer* writer = asWriter(handle);
+	if (!writer)
+	{
+		return 0;
+	}
+	if (!delimiter || !delimiter[0])
+	{
+		return fail(writer, "sodb_symbol_ex: the delimiter is empty.");
+	}
+	if (!elements || elementCount <= 0)
+	{
+		return fail(writer, "sodb_symbol_ex: the name has no elements.");
+	}
+	if (symbolKind < SODB_SYMBOL_KIND_NONE || symbolKind > SODB_SYMBOL_UNION)
+	{
+		return fail(writer, "sodb_symbol_ex: unknown symbol kind.");
+	}
+	if (definitionKind < SODB_DEFINITION_NONE || definitionKind > SODB_DEFINITION_EXPLICIT)
+	{
+		return fail(writer, "sodb_symbol_ex: unknown definition kind.");
+	}
+
+	sourcetrail::NameHierarchy hierarchy;
+	hierarchy.nameDelimiter = delimiter;
+	for (int i = 0; i < elementCount; ++i)
+	{
+		const sodb_name_element& in = elements[i];
+		if (!in.name || !in.name[0])
+		{
+			return fail(writer, "sodb_symbol_ex: a name element is empty.");
+		}
+		sourcetrail::NameElement element;
+		element.prefix = in.prefix ? in.prefix : "";
+		element.name = in.name;
+		element.postfix = in.postfix ? in.postfix : "";
+		hierarchy.nameElements.push_back(element);
+	}
+
+	const int id = writer->impl.recordSymbol(hierarchy);
+	if (id == 0)
+	{
+		return 0;
+	}
+	if (symbolKind != SODB_SYMBOL_KIND_NONE &&
+		!writer->impl.recordSymbolKind(id, static_cast<sourcetrail::SymbolKind>(symbolKind)))
+	{
+		return 0;
+	}
+	if (definitionKind != SODB_DEFINITION_NONE &&
+		!writer->impl.recordSymbolDefinitionKind(
+			id,
+			definitionKind == SODB_DEFINITION_EXPLICIT ? sourcetrail::DefinitionKind::EXPLICIT
+													   : sourcetrail::DefinitionKind::IMPLICIT))
+	{
+		return 0;
+	}
+	return id;
+}
+
+SODB_API int sodb_symbol_signature_location(sodb_writer handle, int symbolId, int fileId,
+											int startLine, int startColumn, int endLine, int endColumn)
+{
+	Writer* writer = asWriter(handle);
+	if (!writer)
+	{
+		return 0;
+	}
+	return boolToInt(writer->impl.recordSymbolSignatureLocation(
+		symbolId, makeRange(fileId, startLine, startColumn, endLine, endColumn)));
+}
+
+SODB_API int sodb_qualifier_location(sodb_writer handle, int symbolId, int fileId,
+									 int startLine, int startColumn, int endLine, int endColumn)
+{
+	Writer* writer = asWriter(handle);
+	if (!writer)
+	{
+		return 0;
+	}
+	return boolToInt(writer->impl.recordQualifierLocation(
+		symbolId, makeRange(fileId, startLine, startColumn, endLine, endColumn)));
+}
+
+SODB_API int sodb_reference_ambiguous(sodb_writer handle, int referenceId)
+{
+	Writer* writer = asWriter(handle);
+	if (!writer)
+	{
+		return 0;
+	}
+	return boolToInt(writer->impl.recordReferenceIsAmbiguous(referenceId));
+}
+
+SODB_API int sodb_local_symbol(sodb_writer handle, const char* name)
+{
+	Writer* writer = asWriter(handle);
+	if (!writer)
+	{
+		return 0;
+	}
+	if (!name || !name[0])
+	{
+		return fail(writer, "sodb_local_symbol: the name is empty.");
+	}
+	return writer->impl.recordLocalSymbol(name);
+}
+
+SODB_API int sodb_local_symbol_location(sodb_writer handle, int localSymbolId, int fileId,
+										int startLine, int startColumn, int endLine, int endColumn)
+{
+	Writer* writer = asWriter(handle);
+	if (!writer)
+	{
+		return 0;
+	}
+	return boolToInt(writer->impl.recordLocalSymbolLocation(
+		localSymbolId, makeRange(fileId, startLine, startColumn, endLine, endColumn)));
+}
+
+SODB_API int sodb_atomic_source_range(sodb_writer handle, int fileId, int startLine,
+									  int startColumn, int endLine, int endColumn)
+{
+	Writer* writer = asWriter(handle);
+	if (!writer)
+	{
+		return 0;
+	}
+	return boolToInt(writer->impl.recordAtomicSourceRange(
+		makeRange(fileId, startLine, startColumn, endLine, endColumn)));
 }
 }

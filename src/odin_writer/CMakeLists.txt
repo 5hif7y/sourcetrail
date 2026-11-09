@@ -51,11 +51,15 @@ add_library(sourcetrail_odin_writer SHARED
 	sourcetrail_odin_writer.cpp
 	sourcetrail_odin_writer.h
 )
-target_include_directories(sourcetrail_odin_writer PRIVATE
-	"${SDB}/core/include"
-	"${GENERATED_INCLUDE_DIR}"
+target_include_directories(sourcetrail_odin_writer
+	PUBLIC
+		"${CMAKE_CURRENT_SOURCE_DIR}"
+	PRIVATE
+		"${SDB}/core/include"
+		"${GENERATED_INCLUDE_DIR}"
 )
 target_link_libraries(sourcetrail_odin_writer PRIVATE sourcetrail_db)
+target_compile_definitions(sourcetrail_odin_writer PRIVATE SODB_BUILDING)
 
 set_target_properties(sourcetrail_odin_writer PROPERTIES
 	OUTPUT_NAME "sourcetrail_odin_writer"
