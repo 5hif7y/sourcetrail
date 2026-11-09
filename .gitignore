@@ -30,3 +30,6 @@ src/odin_indexer/*.exe
 # Local test logs
 error.log
 build_log.txt
+
+# SCIP converter (Rust) build output
+src/scip2sourcetrail/target/
