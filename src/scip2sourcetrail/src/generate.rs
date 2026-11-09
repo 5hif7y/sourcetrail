@@ -5,11 +5,17 @@
 //! index is cached: it is regenerated only when a source or project file is
 //! newer than it, and a lock file makes concurrent batches wait for the one
 //! that generates it.
+//!
+//! A failure is cached too, in `<scip>.failed`: until a source changes (or
+//! the file is deleted), the other batches report it instead of running the
+//! indexer again, which on a large project would cost minutes per batch.
 
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::mpsc;
+use std::thread::JoinHandle;
 use std::time::{Duration, Instant, SystemTime};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -96,13 +102,16 @@ pub fn is_stale(indexer: Indexer, project: &Path, scip: &Path) -> bool {
     newest_source(indexer, project).is_some_and(|t| t > index_time)
 }
 
-/// Holds `<scip>.lock` while it lives.
-struct Lock(PathBuf);
+/// Holds `<scip>.lock` while it lives, touching it every `stale / 4` so
+/// that the waiting batches can tell a live holder from a crashed one.
+struct Lock {
+    path: PathBuf,
+    heartbeat: Option<(mpsc::Sender<()>, JoinHandle<()>)>,
+}
 
 impl Lock {
-    /// Waits for the lock, up to `wait`. A lock older than `stale` is left
-    /// over from a crashed run and is taken over; it must be longer than any
-    /// indexer run.
+    /// Waits for the lock, up to `wait`. A lock not touched for `stale` is
+    /// left over from a crashed run and is taken over.
     fn acquire(path: PathBuf, wait: Duration, stale: Duration) -> Result<Lock, String> {
         let start = Instant::now();
         loop {
@@ -111,7 +120,7 @@ impl Lock {
                 .create_new(true)
                 .open(&path)
             {
-                Ok(_) => return Ok(Lock(path)),
+                Ok(_) => return Ok(Lock::held(path, stale / 4)),
                 Err(e) if e.kind() == ErrorKind::AlreadyExists => {
                     let age = fs::metadata(&path)
                         .and_then(|m| m.modified())
@@ -132,10 +141,52 @@ impl Lock {
     }
 }
 
+impl Lock {
+    fn held(path: PathBuf, every: Duration) -> Lock {
+        let (stop, ticks) = mpsc::channel::<()>();
+        let touched = path.clone();
+        let beat = std::thread::spawn(move || {
+            while let Err(mpsc::RecvTimeoutError::Timeout) = ticks.recv_timeout(every) {
+                if let Ok(f) = fs::OpenOptions::new().write(true).open(&touched) {
+                    let _ = f.set_modified(SystemTime::now());
+                }
+            }
+        });
+        Lock {
+            path,
+            heartbeat: Some((stop, beat)),
+        }
+    }
+}
+
 impl Drop for Lock {
     fn drop(&mut self) {
-        let _ = fs::remove_file(&self.0);
+        if let Some((stop, beat)) = self.heartbeat.take() {
+            drop(stop);
+            let _ = beat.join();
+        }
+        let _ = fs::remove_file(&self.path);
     }
+}
+
+/// `<scip><suffix>`.
+fn beside(scip: &Path, suffix: &str) -> PathBuf {
+    let mut p = scip.as_os_str().to_owned();
+    p.push(suffix);
+    PathBuf::from(p)
+}
+
+/// A backtrace frame (`  12: name` or `      at file:line`) or its framing.
+fn is_backtrace(line: &str) -> bool {
+    let t = line.trim_start();
+    let frame = t
+        .split_once(": ")
+        .is_some_and(|(n, _)| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()));
+    (frame && line.starts_with(' '))
+        || (t.starts_with("at ") && line.starts_with(' '))
+        || t == "stack backtrace:"
+        || t.starts_with("note: Some details are omitted")
+        || t.starts_with("note: run with `RUST_BACKTRACE")
 }
 
 /// The program for a tool: the environment variable when set, else the
@@ -194,9 +245,11 @@ fn run(mut command: Command, what: &str) -> Result<(), String> {
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
         let stdout = String::from_utf8_lossy(&output.stdout);
+        // Without the backtrace, so that a panic message is not pushed out.
         let tail: Vec<&str> = stderr
             .lines()
             .chain(stdout.lines())
+            .filter(|l| !is_backtrace(l))
             .rev()
             .take(15)
             .collect();
@@ -216,17 +269,39 @@ pub fn ensure_index(indexer: Indexer, project: &Path, scip: &Path) -> Result<boo
             fs::create_dir_all(dir).map_err(|e| format!("cannot create {}: {e}", dir.display()))?;
         }
     }
-    let mut lock_path = scip.as_os_str().to_owned();
-    lock_path.push(".lock");
-    let hour = Duration::from_secs(60 * 60);
-    let _lock = Lock::acquire(PathBuf::from(lock_path), hour, hour)?;
+    // The holder touches the lock every minute, so a waiter gives up on a
+    // dead holder after 4 minutes but waits for a live one for hours.
+    let _lock = Lock::acquire(
+        beside(scip, ".lock"),
+        Duration::from_secs(12 * 60 * 60),
+        Duration::from_secs(4 * 60),
+    )?;
     if !is_stale(indexer, project, scip) {
         return Ok(false);
     }
+    let failed = beside(scip, ".failed");
+    if !is_stale(indexer, project, &failed) {
+        let previous = fs::read_to_string(&failed).unwrap_or_default();
+        return Err(format!(
+            "{previous}
+(cached from an earlier run in {}; change a source or delete it to retry)",
+            failed.display()
+        ));
+    }
+    let result = generate(indexer, project, scip);
+    match &result {
+        Ok(()) => {
+            let _ = fs::remove_file(&failed);
+        }
+        Err(e) => {
+            let _ = fs::write(&failed, e);
+        }
+    }
+    result.map(|()| true)
+}
 
-    let mut tmp = scip.as_os_str().to_owned();
-    tmp.push(".tmp");
-    let tmp = PathBuf::from(tmp);
+fn generate(indexer: Indexer, project: &Path, scip: &Path) -> Result<(), String> {
+    let tmp = beside(scip, ".tmp");
     let _ = fs::remove_file(&tmp);
     match indexer {
         Indexer::Rust => {
@@ -254,14 +329,16 @@ pub fn ensure_index(indexer: Indexer, project: &Path, scip: &Path) -> Result<boo
     if !tmp.exists() {
         return Err(format!("the indexer wrote no {}", tmp.display()));
     }
-    fs::rename(&tmp, scip)
-        .map_err(|e| format!("cannot move the index to {}: {e}", scip.display()))?;
-    Ok(true)
+    fs::rename(&tmp, scip).map_err(|e| format!("cannot move the index to {}: {e}", scip.display()))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    /// Serializes the tests that set SCIP_RUST_ANALYZER.
+    static ENV: Mutex<()> = Mutex::new(());
 
     fn scratch(name: &str) -> PathBuf {
         let dir = std::env::temp_dir()
@@ -335,11 +412,78 @@ mod tests {
 
     #[test]
     fn a_failing_indexer_reports_its_output() {
+        let _env = ENV.lock().unwrap_or_else(|e| e.into_inner());
         let root = scratch("fail");
         std::env::set_var("SCIP_RUST_ANALYZER", root.join("no-such-rust-analyzer"));
         let err = ensure_index(Indexer::Rust, &root, &root.join("index.scip")).unwrap_err();
         std::env::remove_var("SCIP_RUST_ANALYZER");
         assert!(err.contains("cannot run rust-analyzer scip"), "{err}");
         assert!(!root.join("index.scip.lock").exists());
+    }
+
+    /// A program that runs and fails at once: `cargo scip …` is not a
+    /// cargo command.
+    #[test]
+    fn a_failure_is_cached_until_a_source_changes() {
+        let _env = ENV.lock().unwrap_or_else(|e| e.into_inner());
+        let root = scratch("cached");
+        fs::write(root.join("main.rs"), "fn main() {}").unwrap();
+        let scip = root.join("index.scip");
+        std::env::set_var("SCIP_RUST_ANALYZER", "cargo");
+        let first = ensure_index(Indexer::Rust, &root, &scip).unwrap_err();
+        let failed = root.join("index.scip.failed");
+        assert!(first.contains("rust-analyzer scip failed"), "{first}");
+        assert_eq!(fs::read_to_string(&failed).unwrap(), first);
+
+        // The next batch reports it without running the indexer.
+        let second = ensure_index(Indexer::Rust, &root, &scip).unwrap_err();
+        assert!(
+            second.starts_with(&first) && second.contains("cached"),
+            "{second}"
+        );
+
+        // A source change retries.
+        std::thread::sleep(Duration::from_millis(50));
+        fs::write(root.join("main.rs"), "fn main() { }").unwrap();
+        let third = ensure_index(Indexer::Rust, &root, &scip).unwrap_err();
+        std::env::remove_var("SCIP_RUST_ANALYZER");
+        assert!(!third.contains("cached"), "{third}");
+    }
+
+    #[test]
+    fn backtraces_are_left_out_of_errors() {
+        for l in [
+            "stack backtrace:",
+            "   0: std::panicking::begin_panic",
+            "  22: std::rt::lang_start_internal",
+            "             at /rustc/abc/library/std/src/rt.rs:171",
+            "note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.",
+        ] {
+            assert!(is_backtrace(l), "{l}");
+        }
+        for l in [
+            "thread 'main' panicked at crates/ide/src/lib.rs:10:5:",
+            "index out of bounds: the len is 3 but the index is 7",
+            "error: 2: something",
+            "at least one crate failed",
+        ] {
+            assert!(!is_backtrace(l), "{l}");
+        }
+    }
+
+    #[test]
+    fn a_live_holder_keeps_its_lock() {
+        let root = scratch("heartbeat");
+        let path = root.join("index.scip.lock");
+        let stale = Duration::from_millis(400);
+        let held = Lock::acquire(path.clone(), Duration::from_secs(1), stale).unwrap();
+        // Well past `stale`, but the holder keeps touching it.
+        std::thread::sleep(Duration::from_millis(1200));
+        assert!(Lock::acquire(path.clone(), Duration::from_millis(300), stale).is_err());
+        drop(held);
+        // A dead holder's lock is taken over once it is stale.
+        fs::write(&path, "").unwrap();
+        std::thread::sleep(Duration::from_millis(600));
+        assert!(Lock::acquire(path, Duration::from_millis(100), stale).is_ok());
     }
 }
