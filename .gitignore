@@ -34,3 +34,5 @@ build_log.txt
 
 # SCIP converter (Rust) build output
 src/scip2sourcetrail/target/
+src/odin_writer/bindings/csharp/smoke/bin/
+src/odin_writer/bindings/csharp/smoke/obj/
