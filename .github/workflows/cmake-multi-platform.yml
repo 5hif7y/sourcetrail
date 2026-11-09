@@ -56,6 +56,26 @@ jobs:
       - name: Test
         run: ctest --test-dir build/writer-abi -C Release --output-on-failure
 
+  scip2sourcetrail:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the writer shim
+        run: |
+          cmake -S src/odin_writer -B build/odin_writer -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/odin_writer --config Release
+
+      - name: Test
+        working-directory: src/scip2sourcetrail
+        run: cargo test --locked
+
   language-registry:
     strategy:
       fail-fast: false
