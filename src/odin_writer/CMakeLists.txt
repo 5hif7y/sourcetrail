@@ -68,3 +68,22 @@ set_target_properties(sourcetrail_odin_writer PROPERTIES
 	ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
 	ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/lib"
 )
+
+# Tests of the C ABI (v1 and v2). Off by default: build.ps1 only needs the
+# library.
+option(SODB_WRITER_BUILD_TESTS "Build the writer ABI tests" OFF)
+if(SODB_WRITER_BUILD_TESTS)
+	enable_testing()
+	add_executable(sodb_abi_test tests/sodb_abi_test.c)
+	# The test reads the database back through the SQLite bundled in
+	# sourcetrail_db, which is C++, so link with the C++ driver.
+	target_link_libraries(sodb_abi_test PRIVATE sourcetrail_odin_writer sourcetrail_db)
+	set_target_properties(sodb_abi_test PROPERTIES
+		LINKER_LANGUAGE CXX
+		RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+		RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin"
+		RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin"
+	)
+	add_test(NAME sodb_abi_test
+		COMMAND sodb_abi_test "${CMAKE_CURRENT_BINARY_DIR}/sodb_abi_test.srctrldb")
+endif()
