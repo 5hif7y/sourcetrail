@@ -167,6 +167,24 @@ void addSourceGroupEntries()
 		QtResources::ICON_EMPTY_ICON,
 		"Create a new Source Group by defining which Odin files will be indexed.");
 	addSourceGroupEntry(
+		"rust-scip",
+		SourceGroupType::RUST_SCIP,
+		LanguageType::RUST,
+		true,
+		QtResources::ICON_EMPTY_ICON,
+		"Create a new Source Group from a Cargo project or workspace. The first source path is "
+		"the directory of Cargo.toml. It is indexed with rust-analyzer (rustup component add "
+		"rust-analyzer) and scip2sourcetrail.");
+	addSourceGroupEntry(
+		"csharp-scip",
+		SourceGroupType::CSHARP_SCIP,
+		LanguageType::CSHARP,
+		true,
+		QtResources::ICON_EMPTY_ICON,
+		"Create a new Source Group from a C# solution or project. The first source path is the "
+		"directory of the .sln or .csproj. It is indexed with scip-dotnet (dotnet tool install -g "
+		"scip-dotnet) and scip2sourcetrail.");
+	addSourceGroupEntry(
 		"custom-command",
 		SourceGroupType::CUSTOM_COMMAND,
 		LanguageType::CUSTOM,

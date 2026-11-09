@@ -1466,6 +1466,10 @@ target_include_directories(Sourcetrail_lib
 		project/SourceGroupFactoryModuleOdin.h
 		project/OdinPlugin.cpp
 		project/OdinPlugin.h
+		project/SourceGroupFactoryModuleScip.cpp
+		project/SourceGroupFactoryModuleScip.h
+		project/ScipPlugin.cpp
+		project/ScipPlugin.h
 		project/CorePlugin.cpp
 		project/CorePlugin.h
 		project/CliPlugin.cpp
@@ -1474,6 +1478,8 @@ target_include_directories(Sourcetrail_lib
 		settings/source_group/type/SourceGroupSettingsPythonEmpty.h
 		settings/source_group/type/SourceGroupSettingsOdinEmpty.cpp
 		settings/source_group/type/SourceGroupSettingsOdinEmpty.h
+		settings/source_group/type/SourceGroupSettingsScip.cpp
+		settings/source_group/type/SourceGroupSettingsScip.h
 	)
 
 if (BUILD_CXX_LANGUAGE_PACKAGE)

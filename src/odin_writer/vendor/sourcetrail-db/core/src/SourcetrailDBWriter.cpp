@@ -482,7 +482,7 @@ bool SourcetrailDBWriter::recordReferenceIsAmbiguous(int referenceId)
 	try
 	{
 		addElementComponent(referenceId, ElementComponentKind::IS_AMBIGUOUS, "");
-		return false;
+		return true;
 	}
 	catch (const SourcetrailException e)
 	{

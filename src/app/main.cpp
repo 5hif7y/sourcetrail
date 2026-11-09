@@ -22,6 +22,7 @@
 #include "SourceGroupFactoryModuleProxy.h"
 #include "SourceGroupFactoryModulePython.h"
 #include "OdinPlugin.h"
+#include "ScipPlugin.h"
 #include "PluginManager.h"
 #include <boost/dll.hpp>
 #include "utilityQt.h"
@@ -136,6 +137,7 @@ void addLanguagePackages()
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleCustom>());
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModulePython>());
 	st::plugin::ensureOdinPluginLoaded();
+	st::plugin::ensureScipPluginLoaded();
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleProxy>());
 }
 
