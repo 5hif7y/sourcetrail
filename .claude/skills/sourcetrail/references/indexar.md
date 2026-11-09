@@ -10,6 +10,8 @@ para cualquier lenguaje.
 | C y C++ | un `compile_commands.json` (los flags de cada archivo) | `srctrl-index cdb <json> <carpeta> <nombre> --headers <src>` |
 | Python | la carpeta de fuentes | `srctrl-index src python <fuentes> <carpeta> <nombre>` |
 | Odin | la carpeta de fuentes | `srctrl-index src odin <fuentes> <carpeta> <nombre>` |
+| Rust | la carpeta de `Cargo.toml`, `rust-analyzer` y `scip2sourcetrail` | `srctrl-index src rust <crate> <carpeta> <nombre>` |
+| C# | la carpeta de la `.sln`/`.csproj`, `scip-dotnet` y `scip2sourcetrail` | `srctrl-index src csharp <proyecto> <carpeta> <nombre>` |
 | Java | un proyecto Maven o Gradle | desde la interfaz de Sourcetrail |
 
 Probado (2026-10-21) con el CLI de este repo: los tres comandos dan
@@ -40,6 +42,30 @@ Sourcetrail indexa C y C++ con Clang, con los mismos flags con los que se compil
 - Para un subconjunto, filtrar el JSON (una lista de `{directory, command|arguments, file}`):
   indexar todo un motor puede tardar horas. Medida: 66 unidades del renderer de Unreal en 14 min
   con 4 hilos, base de 82 MB.
+
+## Rust y C#: por SCIP
+
+Los indexa el compilador de cada lenguaje: `rust-analyzer scip` en Rust, y `scip-dotnet` (Roslyn)
+en C#. Los dos escriben un índice SCIP, y `scip2sourcetrail` lo convierte a la base.
+
+- **Instalar:**
+  - `rustup component add rust-analyzer`;
+  - un .NET SDK y `dotnet tool install -g scip-dotnet`;
+  - `src/scip2sourcetrail/build.ps1 -AppDir <carpeta del CLI>`, que copia `scip2sourcetrail` a
+    `<app>/data/scip`.
+- **El índice se genera una vez por refresco**, junto al `.srctrlprj`, como `<nombre>_1.scip`, y se
+  regenera cuando cambia una fuente. Tarda unos segundos en un crate chico y bastante más en un
+  workspace grande. Los lotes siguientes lo reutilizan.
+- **Lo que no indexan:** `target/`, `bin/` y `obj/`. Un `.rs` que ningún crate incluye queda con un
+  error no fatal ("not in the SCIP index").
+- **Nombres:**
+  - Rust: `crate::módulo::Tipo::método()`. Un método de `impl Trait for T` es
+    `T::método() (Trait)`.
+  - C#: `Namespace.Clase.Método()`. Las sobrecargas llevan `(+1)`, `(+2)`, etc.
+- **La biblioteca estándar, los crates de terceros y NuGet** quedan como no indexados: aparecen
+  como destino, pero sin cuerpo.
+- **En C#, `scip-dotnet` no da el cuerpo de cada definición.** `scip2sourcetrail` lo saca del texto
+  (llaves, `=>`, `;`). Las referencias de `using` y de `namespace` cuelgan del archivo.
 
 ## Comprobar
 
