@@ -5,6 +5,7 @@
 //! any other custom-command indexer. Names, kinds and definition kinds come
 //! from the whole index, so a symbol is the same node in every batch.
 
+pub mod generate;
 pub mod names;
 pub mod text;
 pub mod writer;
@@ -42,7 +43,8 @@ pub struct Stats {
     pub references_without_context: usize,
     pub relationships: usize,
     pub diagnostics: usize,
-    /// Requested sources that are not in the index.
+    /// Requested sources that are not in the index; each gets a non-fatal
+    /// error.
     pub missing_sources: usize,
     pub skipped_occurrences: usize,
     /// Bodies found in the source text because the index had none.
@@ -635,9 +637,14 @@ pub fn convert(index: &Index, options: &Options) -> Result<Stats, String> {
             end_line: 1,
             end_column: 1,
         };
-        batch
-            .writer
-            .error("the file is not in the SCIP index", true, file, whole)?;
+        // Not fatal: rust-analyzer only indexes files reachable from a crate
+        // root, and a stray .rs file should not mark the project as broken.
+        batch.writer.error(
+            "the file is not in the SCIP index (not part of the project?)",
+            false,
+            file,
+            whole,
+        )?;
         batch.stats.missing_sources += 1;
     }
     batch.writer.commit()?;

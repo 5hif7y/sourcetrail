@@ -422,8 +422,9 @@ fn batches_write_only_their_files() {
         )),
         2
     );
-    // The missing file gets a fatal error.
-    assert_eq!(db.count("SELECT count(*) FROM error WHERE fatal = 1"), 1);
+    // The missing file gets a non-fatal error.
+    assert_eq!(db.count("SELECT count(*) FROM error WHERE fatal = 0"), 1);
+    assert_eq!(db.count("SELECT count(*) FROM error WHERE fatal = 1"), 0);
 }
 
 #[test]
