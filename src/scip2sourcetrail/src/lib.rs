@@ -31,6 +31,9 @@ pub struct Options {
     pub delimiter: Option<String>,
     /// Overrides the language recorded for each file.
     pub language: Option<String>,
+    /// Why the index leaves the tests out, if it does; it is added to the
+    /// error of each requested source missing from the index.
+    pub tests_left_out: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -667,12 +670,14 @@ pub fn convert(index: &Index, options: &Options) -> Result<Stats, String> {
         };
         // Not fatal: rust-analyzer only indexes files reachable from a crate
         // root, and a stray .rs file should not mark the project as broken.
-        batch.writer.error(
-            "the file is not in the SCIP index (not part of the project?)",
-            false,
-            file,
-            whole,
-        )?;
+        let message = match &options.tests_left_out {
+            None => "the file is not in the SCIP index (not part of the project?)".to_string(),
+            Some(why) => format!(
+                "the file is not in the SCIP index (not part of the project, or test code: \
+                 rust-analyzer crashed on the tests, so they were left out: {why})"
+            ),
+        };
+        batch.writer.error(&message, false, file, whole)?;
         batch.stats.missing_sources += 1;
     }
     batch.writer.commit()?;

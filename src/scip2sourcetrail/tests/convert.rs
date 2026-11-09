@@ -425,6 +425,22 @@ fn batches_write_only_their_files() {
     // The missing file gets a non-fatal error.
     assert_eq!(db.count("SELECT count(*) FROM error WHERE fatal = 0"), 1);
     assert_eq!(db.count("SELECT count(*) FROM error WHERE fatal = 1"), 0);
+    assert_eq!(
+        db.rows("SELECT message FROM error"),
+        ["the file is not in the SCIP index (not part of the project?)"]
+    );
+
+    // An index made without the tests says why in that error.
+    let db_path = scratch("rust-batch-no-tests.srctrldb");
+    o.database = db_path.clone();
+    o.tests_left_out = Some("thread 'main' panicked at callee.rs:587:17: boom".to_string());
+    convert(&index, &o).unwrap();
+    let message = &Db::open(&db_path).rows("SELECT message FROM error")[0];
+    assert!(
+        message.contains("rust-analyzer crashed on the tests")
+            && message.ends_with("callee.rs:587:17: boom)"),
+        "{message}"
+    );
 }
 
 #[test]

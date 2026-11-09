@@ -11,7 +11,7 @@
 //! With --generate, <index.scip> is a cache: it is (re)generated with
 //! rust-analyzer or scip-dotnet when the project's sources are newer.
 
-use scip2sourcetrail::generate::{ensure_index, Indexer};
+use scip2sourcetrail::generate::{ensure_index, tests_left_out, Indexer};
 use scip2sourcetrail::{run, Options};
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -78,6 +78,7 @@ fn main() -> ExitCode {
                 eprintln!("scip2sourcetrail: {e}");
                 return ExitCode::FAILURE;
             }
+            options.tests_left_out = tests_left_out(&scip);
         }
         (None, None) => {}
         _ => {

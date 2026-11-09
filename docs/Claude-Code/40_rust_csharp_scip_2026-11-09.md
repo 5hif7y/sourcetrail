@@ -31,6 +31,15 @@ Cómo se arma ese comando:
 - **El índice SCIP es una caché** junto al `.srctrlprj`. `scip2sourcetrail` lo regenera solo si
   alguna fuente es más nueva. Un lock (`<scip>.lock`) hace que los lotes paralelos esperen al que
   lo genera.
+  - **El lock tiene latido.** Quien lo tiene lo toca cada minuto. Uno sin tocar hace 4 minutos es de
+    un proceso muerto y se toma; a uno vivo se lo espera hasta 12 horas.
+  - **Un fallo también se cachea**, en `<scip>.failed`. Los demás lotes lo reportan sin volver a
+    correr el indexador, hasta que cambie una fuente o se borre el archivo. El error lleva la línea
+    `panicked at …` y no los frames del backtrace.
+  - **Si rust-analyzer entra en pánico**, se reintenta una vez sin el código de test
+    (`--config-path` con `{"cfg":{"setTest":false}}`). Si así funciona, `<scip>.without-tests`
+    guarda el pánico, y el error no fatal de cada archivo que falta en el índice lo explica.
+    Cuando cambian las fuentes se vuelve a intentar primero con los tests.
 - **Las extensiones y el comando son fijos.** Por defecto se excluyen `target/` en Rust y `bin/` y
   `obj/` en C#.
 - **Dónde se busca `scip2sourcetrail`**, en este orden:
@@ -64,8 +73,8 @@ los otros lotes.
 
 ## Verificación
 
-- **`cargo test` del convertidor:** 24 pruebas, todas en verde.
-  - 15 unitarias: nombres, rangos, texto, la caché de `--generate` y el lock.
+- **`cargo test` del convertidor:** 30 pruebas, todas en verde.
+  - 21 unitarias: nombres, rangos, texto, la caché de `--generate`, el lock y el reintento sin tests.
   - 7 de punta a punta con índices sintéticos.
   - 2 con los indexadores reales sobre `tests/fixtures`, que se saltean solas si el indexador no
     está instalado.
@@ -93,8 +102,29 @@ los otros lotes.
 
 - **La GUI.** No hay Qt instalado en la máquina de desarrollo. Los cambios de `QtProjectWizard` y
   `UiPlugin` son dos `case` y dos entradas, iguales a las de Odin.
-- **Proyectos grandes.** No se midió el tiempo ni la memoria de `rust-analyzer` sobre un workspace
-  grande. Para Rust, cada refresco con cambios vuelve a correr el indexador entero.
+- **Refrescos incrementales.** Para Rust, cada refresco con cambios vuelve a correr el indexador
+  entero (ver la tabla de repos reales para los tiempos).
+
+## Repos reales (CLI embebido, 4 hilos)
+
+| Repo | Archivos | Nodos | Aristas | Tiempo total |
+| --- | --- | --- | --- | --- |
+| ripgrep | 102/102 | 7.045 | 40.440 | 115 s |
+| texturecraft | 402/402 | 15.617 | 126.906 | 10 min 24 s |
+| cadcraft | 977/977 | 29.448 | ~340 mil | 15 min 22 s |
+| vectorcraft | 2135/2135 | 61.176 | 644.317 | 23 min 41 s, sin tests |
+
+- **Casi todo el tiempo es de rust-analyzer.** Con el índice en caché, convertir vectorcraft tarda
+  54 s.
+- **Errores no fatales:** son archivos que no están en el índice. En los cuatro repos hay código
+  de otra plataforma o detrás de un feature. En vectorcraft se suman los 550 archivos de test.
+- **Los `callers` coinciden con `grep`** en todos los casos revisados.
+- **vectorcraft y el pánico de rust-analyzer 1.97.1.** Falla en `hir-ty/src/infer/callee.rs:587`
+  ("Expected to find a suitable `Fn`/`FnMut`/`FnOnce` implementation"). Lo dispara un closure
+  `|&str, Vec<String>, Vec<String>|` de un test, a los ~17 min y con ~6,5 GB de RAM.
+  - **Antes:** cada uno de los ~17 lotes volvía a lanzar rust-analyzer, y la indexación iba a tardar
+    horas sin indexar nada.
+  - **Ahora:** el fallo se cachea y se reintenta sin tests, que en este caso tarda 491 s.
 - **Texto en C#.** El cálculo de cuerpos ignora las comillas dentro de `{}` en las cadenas
   interpoladas (`$"{a["x"]}"`), los preprocesadores (`#if`) y los genéricos con `=>` raros.
 - **Columnas** con caracteres que no son ASCII: el convertidor no aplica el encoding que declara el

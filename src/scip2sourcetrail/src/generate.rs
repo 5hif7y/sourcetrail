@@ -9,6 +9,11 @@
 //! A failure is cached too, in `<scip>.failed`: until a source changes (or
 //! the file is deleted), the other batches report it instead of running the
 //! indexer again, which on a large project would cost minutes per batch.
+//!
+//! rust-analyzer can panic on code it fails to type-check (1.97 does on
+//! some closures). Test code is the usual culprit and the least needed in
+//! a code map, so after a panic the index is generated again without
+//! `#[cfg(test)]` code and the tests, and `<scip>.without-tests` says so.
 
 use std::fs;
 use std::io::ErrorKind;
@@ -176,6 +181,24 @@ fn beside(scip: &Path, suffix: &str) -> PathBuf {
     PathBuf::from(p)
 }
 
+/// Why the index at `scip` leaves the tests out, if it does.
+pub fn tests_left_out(scip: &Path) -> Option<String> {
+    fs::read_to_string(beside(scip, ".without-tests")).ok()
+}
+
+/// The first `panicked at` line of an indexer's error and the message
+/// after it.
+fn panic_message(error: &str) -> Option<String> {
+    let mut lines = error.lines().skip_while(|l| !l.contains("panicked at"));
+    let at = lines.next()?.trim();
+    Some(
+        match lines.next().map(str::trim).filter(|l| !l.is_empty()) {
+            Some(message) => format!("{at} {message}"),
+            None => at.to_string(),
+        },
+    )
+}
+
 /// A backtrace frame (`  12: name` or `      at file:line`) or its framing.
 fn is_backtrace(line: &str) -> bool {
     let t = line.trim_start();
@@ -283,8 +306,7 @@ pub fn ensure_index(indexer: Indexer, project: &Path, scip: &Path) -> Result<boo
     if !is_stale(indexer, project, &failed) {
         let previous = fs::read_to_string(&failed).unwrap_or_default();
         return Err(format!(
-            "{previous}
-(cached from an earlier run in {}; change a source or delete it to retry)",
+            "{previous}\n(cached from an earlier run in {}; change a source or delete it to retry)",
             failed.display()
         ));
     }
@@ -303,11 +325,41 @@ pub fn ensure_index(indexer: Indexer, project: &Path, scip: &Path) -> Result<boo
 fn generate(indexer: Indexer, project: &Path, scip: &Path) -> Result<(), String> {
     let tmp = beside(scip, ".tmp");
     let _ = fs::remove_file(&tmp);
+    let without_tests = beside(scip, ".without-tests");
     match indexer {
         Indexer::Rust => {
-            let mut c = Command::new(program("SCIP_RUST_ANALYZER", "rust-analyzer"));
-            c.arg("scip").arg(project).arg("--output").arg(&tmp);
-            run(c, "rust-analyzer scip")?;
+            let rust_analyzer = |config: Option<&Path>| {
+                let mut c = Command::new(program("SCIP_RUST_ANALYZER", "rust-analyzer"));
+                c.arg("scip").arg(project).arg("--output").arg(&tmp);
+                if let Some(config) = config {
+                    c.arg("--config-path").arg(config);
+                }
+                run(c, "rust-analyzer scip")
+            };
+            match rust_analyzer(None) {
+                Ok(()) => {
+                    let _ = fs::remove_file(&without_tests);
+                }
+                Err(first) => {
+                    let Some(panic) = panic_message(&first) else {
+                        return Err(first);
+                    };
+                    let config = beside(scip, ".no-tests.json");
+                    fs::write(&config, r#"{"cfg":{"setTest":false}}"#)
+                        .map_err(|e| format!("cannot write {}: {e}", config.display()))?;
+                    let _ = fs::remove_file(&tmp);
+                    let second = rust_analyzer(Some(&config));
+                    let _ = fs::remove_file(&config);
+                    if let Err(second) = second {
+                        return Err(format!("{first}\nwithout the tests too:\n{second}"));
+                    }
+                    fs::write(&without_tests, &panic)
+                        .map_err(|e| format!("cannot write {}: {e}", without_tests.display()))?;
+                    eprintln!(
+                        "scip2sourcetrail: rust-analyzer crashed ({panic}); indexed without the tests"
+                    );
+                }
+            }
         }
         Indexer::CSharp => {
             let target = dotnet_target(project)?;
@@ -448,6 +500,80 @@ mod tests {
         let third = ensure_index(Indexer::Rust, &root, &scip).unwrap_err();
         std::env::remove_var("SCIP_RUST_ANALYZER");
         assert!(!third.contains("cached"), "{third}");
+    }
+
+    /// A rust-analyzer that panics unless it gets `--config-path`; then it
+    /// writes an (empty) index to its `--output`, the 4th argument.
+    fn panicking_rust_analyzer(dir: &Path) -> PathBuf {
+        if cfg!(windows) {
+            let path = dir.join("fake-ra.cmd");
+            fs::write(
+                &path,
+                "@echo off\r\n\
+                 if \"%5\"==\"--config-path\" (type nul > \"%4\" & exit /b 0)\r\n\
+                 echo thread 'main' panicked at callee.rs:587:17: 1>&2\r\n\
+                 echo no suitable Fn implementation 1>&2\r\n\
+                 exit /b 101\r\n",
+            )
+            .unwrap();
+            path
+        } else {
+            let path = dir.join("fake-ra.sh");
+            fs::write(
+                &path,
+                "#!/bin/sh\n\
+                 if [ \"$5\" = --config-path ]; then : > \"$4\"; exit 0; fi\n\
+                 echo \"thread 'main' panicked at callee.rs:587:17:\" >&2\n\
+                 echo 'no suitable Fn implementation' >&2\n\
+                 exit 101\n",
+            )
+            .unwrap();
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
+            }
+            path
+        }
+    }
+
+    #[test]
+    fn a_panic_retries_without_the_tests() {
+        let _env = ENV.lock().unwrap_or_else(|e| e.into_inner());
+        let root = scratch("without-tests");
+        let project = root.join("project");
+        fs::create_dir_all(&project).unwrap();
+        fs::write(project.join("main.rs"), "fn main() {}").unwrap();
+        let scip = root.join("index.scip");
+        std::env::set_var("SCIP_RUST_ANALYZER", panicking_rust_analyzer(&root));
+        let generated = ensure_index(Indexer::Rust, &project, &scip);
+        std::env::remove_var("SCIP_RUST_ANALYZER");
+        assert_eq!(generated, Ok(true));
+        assert!(scip.exists());
+        assert_eq!(
+            tests_left_out(&scip).unwrap(),
+            "thread 'main' panicked at callee.rs:587:17: no suitable Fn implementation"
+        );
+        assert!(!root.join("index.scip.failed").exists());
+        assert!(!root.join("index.scip.no-tests.json").exists());
+    }
+
+    #[test]
+    fn panic_messages() {
+        let error = "rust-analyzer scip failed (exit code: 101):\n\
+            ERROR Encountered enclosing definition with no name\n\
+            thread 'main' (19696) panicked at crates/hir-ty/src/infer/callee.rs:587:17:\n\
+            Expected to find a suitable `Fn` implementation\n\
+            stack backtrace:";
+        assert_eq!(
+            panic_message(error).unwrap(),
+            "thread 'main' (19696) panicked at crates/hir-ty/src/infer/callee.rs:587:17: \
+             Expected to find a suitable `Fn` implementation"
+        );
+        assert_eq!(
+            panic_message("cannot run rust-analyzer scip: not found"),
+            None
+        );
     }
 
     #[test]
