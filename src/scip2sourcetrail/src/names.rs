@@ -2,7 +2,7 @@
 //!
 //! A global SCIP symbol is `<scheme> <manager> <package> <version>
 //! <descriptors>`. Each descriptor becomes one level of the Sourcetrail name;
-//! the package name, when there is one (a Rust crate), is the first level.
+//! for Rust, the crate is the first level.
 //! The name depends only on the symbol string, so the same symbol gets the
 //! same Sourcetrail node in every batch.
 
@@ -87,6 +87,21 @@ fn rust_levels(mut levels: Vec<Level>) -> (Vec<Level>, bool, Option<String>) {
     (levels, alias, trait_name)
 }
 
+/// scip-dotnet names constructors `.ctor` and static constructors `.cctor`,
+/// as in IL. Name them after their type, as C# does: `Square.Square()`,
+/// and `Square.static Square()` for the static one, so they stay apart.
+fn dotnet_levels(mut levels: Vec<Level>) -> Vec<Level> {
+    for i in 1..levels.len() {
+        let owner = levels[i - 1].name.clone();
+        match levels[i].name.as_str() {
+            ".ctor" => levels[i].name = owner,
+            ".cctor" => levels[i].name = format!("static {owner}"),
+            _ => {}
+        }
+    }
+    levels
+}
+
 /// Parses a SCIP symbol. `document` is the relative path of the document the
 /// symbol appears in; it makes `local N` names unique. Returns None for
 /// symbols that cannot be parsed or have no descriptors.
@@ -115,12 +130,21 @@ pub fn parse(symbol: &str, document: &str) -> Option<Target> {
     }
     let (levels, alias, trait_impl) = if parsed.scheme == "rust-analyzer" {
         rust_levels(levels)
+    } else if parsed.scheme == "scip-dotnet" {
+        (dotnet_levels(levels), false, None)
     } else {
         (levels, false, None)
     };
 
     let mut name = Vec::new();
-    if let Some(package) = parsed.package.as_ref() {
+    // A Rust crate is the first level of every Rust path. Other package
+    // names (a NuGet assembly, a Maven artifact) are not part of the
+    // qualified name.
+    if let Some(package) = parsed
+        .package
+        .as_ref()
+        .filter(|_| parsed.scheme == "rust-analyzer")
+    {
         if !package.name.is_empty() {
             name.push(NameElement {
                 name: package.name.clone(),
@@ -378,7 +402,24 @@ mod tests {
 
         // Other schemes keep `impl` and `crate` as plain names.
         let other = parse("scip-other cargo demo 0.1.0 crate/impl#", "a.rs").unwrap();
-        assert_eq!(names(&other), ["demo", "crate", "impl"]);
+        assert_eq!(names(&other), ["crate", "impl"]);
+
+        // NuGet assemblies are not levels: System.Console.WriteLine.
+        let nuget = "scip-dotnet nuget System.Console 10.0.0.0 System/Console#WriteLine(+6).";
+        assert_eq!(
+            names(&parse(nuget, "a.cs").unwrap()),
+            ["System", "Console", "WriteLine(+6)"]
+        );
+        let ctor = "scip-dotnet nuget . . Demo/Square#`.ctor`().";
+        assert_eq!(
+            names(&parse(ctor, "a.cs").unwrap()),
+            ["Demo", "Square", "Square()"]
+        );
+        let cctor = "scip-dotnet nuget . . Demo/Square#`.cctor`().";
+        assert_eq!(
+            names(&parse(cctor, "a.cs").unwrap()),
+            ["Demo", "Square", "static Square()"]
+        );
     }
 
     #[test]

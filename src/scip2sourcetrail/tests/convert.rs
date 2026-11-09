@@ -511,6 +511,86 @@ fn bad_input_fails_cleanly() {
         .contains("cannot read"));
 }
 
+/// Shaped like scip-dotnet 0.2.16: no enclosing ranges, no kinds,
+/// `.ctor` names, and assembly names as packages.
+#[test]
+fn csharp_without_scopes_or_kinds_uses_the_text() {
+    const D: &str = "scip-dotnet nuget . . ";
+    let text = "namespace Demo;\n\
+                public class Square\n\
+                {\n\
+                \x20   public double Side { get; }\n\
+                \x20   public Square(double side) { Side = side; }\n\
+                \x20   public double Twice() => Side * 2;\n\
+                }\n";
+    let square = format!("{D}Demo/Square#");
+    let side = format!("{D}Demo/Square#Side.");
+    let ctor = format!("{D}Demo/Square#`.ctor`().");
+    let twice = format!("{D}Demo/Square#Twice().");
+    let console = "scip-dotnet nuget System.Console 10.0.0.0 System/Console#";
+    let mut d = doc(
+        "Shapes.cs",
+        "C#",
+        vec![
+            occ(&[0, 10, 14], &format!("{D}Demo/"), 0, &[]),
+            occ(&[1, 13, 19], &square, DEF, &[]),
+            occ(&[3, 18, 22], &side, DEF, &[]),
+            occ(&[4, 11, 17], &ctor, DEF, &[]),
+            occ(&[4, 33, 37], &side, 0, &[]),
+            occ(&[5, 18, 23], &twice, DEF, &[]),
+            occ(&[5, 29, 33], &side, 0, &[]),
+            occ(&[5, 37, 38], console, 0, &[]),
+        ],
+        [&square, &side, &ctor, &twice]
+            .iter()
+            .map(|s| info(s, Kind::UnspecifiedKind, &[]))
+            .collect(),
+    );
+    d.text = text.to_string();
+    let db_path = scratch("csharp-text.srctrldb");
+    let stats = convert(
+        &index("scip-dotnet", "file:///proj/app", vec![d]),
+        &opts(&db_path),
+    )
+    .unwrap();
+    let db = Db::open(&db_path);
+    // Four bodies from the text; only `namespace Demo;` hangs from the file.
+    assert_eq!(stats.scopes_from_text, 4);
+    assert_eq!(stats.references_without_context, 1);
+    assert_eq!(
+        edges(&db, 4),
+        [
+            "/proj/app/Shapes.cs | Demo",
+            "Demo.Square.Square() | Demo.Square.Side",
+            "Demo.Square.Twice() | Demo.Square.Side",
+        ]
+    );
+    // `class` before the name: a class (128), not a plain type.
+    assert_eq!(
+        db.count(&format!(
+            "SELECT type FROM node WHERE {NAME} = 'Demo.Square'"
+        )),
+        128
+    );
+    // The assembly is not a level of the name.
+    assert_eq!(
+        db.count(&format!(
+            "SELECT count(*) FROM node WHERE {NAME} = 'System.Console'"
+        )),
+        1
+    );
+    // The scope of Twice() ends at its `;`.
+    assert_eq!(
+        db.rows(&format!(
+            "SELECT l.start_line, l.end_line, l.end_column FROM node n \
+             JOIN occurrence o ON o.element_id = n.id \
+             JOIN source_location l ON l.id = o.source_location_id \
+             WHERE {NAME} = 'Demo.Square.Twice()' AND l.type = 1"
+        )),
+        ["6 | 6 | 38"]
+    );
+}
+
 #[test]
 fn role_constants() {
     assert_eq!(SymbolRole::Definition.value(), DEF);

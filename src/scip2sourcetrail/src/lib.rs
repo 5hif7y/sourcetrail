@@ -6,6 +6,7 @@
 //! from the whole index, so a symbol is the same node in every batch.
 
 pub mod names;
+pub mod text;
 pub mod writer;
 
 use names::Target;
@@ -44,6 +45,8 @@ pub struct Stats {
     /// Requested sources that are not in the index.
     pub missing_sources: usize,
     pub skipped_occurrences: usize,
+    /// Bodies found in the source text because the index had none.
+    pub scopes_from_text: usize,
 }
 
 /// Reads and parses an index.scip file.
@@ -315,8 +318,25 @@ impl<'a, 'g> Batch<'a, 'g> {
 
         // Definitions with a body, sorted by start, to find the context of
         // each reference: the innermost one that contains it.
+        // When the index has no bodies at all (scip-dotnet), find them in the
+        // text of brace languages; the text also gives the kinds of types.
+        let index_has_scopes = doc
+            .occurrences
+            .iter()
+            .any(|o| has_role(o, SymbolRole::Definition) && enclosing_range(o).is_some());
+        let code = if !index_has_scopes && text::is_brace_language(&doc.language) {
+            let source = if doc.text.is_empty() {
+                std::fs::read_to_string(path).ok()
+            } else {
+                Some(doc.text.clone())
+            };
+            source.map(|s| text::Code::new(&s))
+        } else {
+            None
+        };
         let mut scopes: Vec<(Range, i32)> = Vec::new();
         let mut definition_token: HashMap<&str, Range> = HashMap::new();
+        let mut own_scope: HashMap<*const Occurrence, Range> = HashMap::new();
         for o in &doc.occurrences {
             if !has_role(o, SymbolRole::Definition) {
                 continue;
@@ -325,9 +345,27 @@ impl<'a, 'g> Batch<'a, 'g> {
                 continue;
             };
             definition_token.entry(o.symbol.as_str()).or_insert(token);
-            if let (Some(scope), Some(Resolved::Global(id, _))) =
-                (enclosing_range(o), self.resolve(&o.symbol, rel)?)
-            {
+            let Some(Resolved::Global(id, kind)) = self.resolve(&o.symbol, rel)? else {
+                continue;
+            };
+            if let (Some(code), Some(SymbolKind::Type)) = (&code, kind) {
+                if let Some(k) = code.type_keyword(&token) {
+                    self.refine_kind(&o.symbol, rel, k)?;
+                }
+            }
+            let scope = match (enclosing_range(o), &code) {
+                (Some(s), _) => Some(s),
+                (None, Some(code)) => {
+                    let s = code.scope(&token);
+                    if s.is_some() {
+                        self.stats.scopes_from_text += 1;
+                    }
+                    s
+                }
+                (None, None) => None,
+            };
+            if let Some(scope) = scope {
+                own_scope.insert(o as *const Occurrence, scope);
                 scopes.push((scope, id));
             }
         }
@@ -383,8 +421,8 @@ impl<'a, 'g> Batch<'a, 'g> {
                 }
                 Resolved::Global(id, _) if has_role(o, SymbolRole::Definition) => {
                     self.writer.symbol_location(id, file, range)?;
-                    if let Some(scope) = enclosing_range(o) {
-                        self.writer.symbol_scope_location(id, file, scope)?;
+                    if let Some(scope) = own_scope.get(&(o as *const Occurrence)) {
+                        self.writer.symbol_scope_location(id, file, *scope)?;
                     }
                     self.stats.definitions += 1;
                 }
@@ -444,6 +482,26 @@ impl<'a, 'g> Batch<'a, 'g> {
                 self.trait_impl(&o.symbol, rel, file, &definition_token)?;
             }
         }
+        Ok(())
+    }
+
+    /// Records a better kind for a symbol whose kind was only guessed. A
+    /// node keeps the highest kind any batch gives it, so batches without
+    /// this file (and its text) do not undo it.
+    fn refine_kind(&mut self, symbol: &str, rel: &str, kind: SymbolKind) -> Result<(), String> {
+        let Some(Target::Global { name, .. }) = names::parse(symbol, rel) else {
+            return Ok(());
+        };
+        let definition = if self.global.defined.contains(symbol) {
+            DefinitionKind::Explicit
+        } else {
+            DefinitionKind::None
+        };
+        let id = self
+            .writer
+            .symbol(&self.global.delimiter, &name, Some(kind), definition)?;
+        self.globals
+            .insert(symbol.to_string(), Some((id, Some(kind))));
         Ok(())
     }
 
