@@ -16,6 +16,8 @@ enum class LanguageType
 	JAVA,
 	PYTHON,
 	ODIN,
+	RUST,
+	CSHARP,
 	CUSTOM
 };
 

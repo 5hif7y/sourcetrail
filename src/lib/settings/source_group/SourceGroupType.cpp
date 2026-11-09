@@ -26,6 +26,10 @@ std::string sourceGroupTypeToString(SourceGroupType v)
 		return "Python Source Group";
 	case SourceGroupType::ODIN_EMPTY:
 		return "Odin Source Group";
+	case SourceGroupType::RUST_SCIP:
+		return "Rust Source Group";
+	case SourceGroupType::CSHARP_SCIP:
+		return "C# Source Group";
 
 	case SourceGroupType::CUSTOM_COMMAND:
 		return "Custom Command Source Group";
@@ -61,6 +65,10 @@ std::string sourceGroupTypeToProjectSetupString(SourceGroupType v)
 		return "Empty Python Source Group";
 	case SourceGroupType::ODIN_EMPTY:
 		return "Empty Odin Source Group";
+	case SourceGroupType::RUST_SCIP:
+		return "Rust Source Group (rust-analyzer)";
+	case SourceGroupType::CSHARP_SCIP:
+		return "C# Source Group (scip-dotnet)";
 
 	case SourceGroupType::CUSTOM_COMMAND:
 		return "Custom Command Source Group";
@@ -94,6 +102,10 @@ std::string sourceGroupTypeToId(SourceGroupType v)
 		return "python_empty";
 	case SourceGroupType::ODIN_EMPTY:
 		return "odin_empty";
+	case SourceGroupType::RUST_SCIP:
+		return "rust_scip";
+	case SourceGroupType::CSHARP_SCIP:
+		return "csharp_scip";
 	case SourceGroupType::CUSTOM_COMMAND:
 		return "custom_command";
 	case SourceGroupType::UNKNOWN:
@@ -143,6 +155,14 @@ SourceGroupType sourceGroupTypeFromId(const std::string& v)
 	if (v == "odin_empty")
 	{
 		return SourceGroupType::ODIN_EMPTY;
+	}
+	if (v == "rust_scip")
+	{
+		return SourceGroupType::RUST_SCIP;
+	}
+	if (v == "csharp_scip")
+	{
+		return SourceGroupType::CSHARP_SCIP;
 	}
 	if (v == "custom_command")
 	{
@@ -200,6 +220,14 @@ SourceGroupType stringToSourceGroupType(const std::string& v)
 	if (v == sourceGroupTypeToString(SourceGroupType::ODIN_EMPTY) || v == sourceGroupTypeToProjectSetupString(SourceGroupType::ODIN_EMPTY))
 	{
 		return SourceGroupType::ODIN_EMPTY;
+	}
+	if (v == sourceGroupTypeToString(SourceGroupType::RUST_SCIP) || v == sourceGroupTypeToProjectSetupString(SourceGroupType::RUST_SCIP))
+	{
+		return SourceGroupType::RUST_SCIP;
+	}
+	if (v == sourceGroupTypeToString(SourceGroupType::CSHARP_SCIP) || v == sourceGroupTypeToProjectSetupString(SourceGroupType::CSHARP_SCIP))
+	{
+		return SourceGroupType::CSHARP_SCIP;
 	}
 
 	if (v == sourceGroupTypeToString(SourceGroupType::CUSTOM_COMMAND) || v == sourceGroupTypeToProjectSetupString(SourceGroupType::CUSTOM_COMMAND))
