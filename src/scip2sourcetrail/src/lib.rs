@@ -108,6 +108,16 @@ pub fn normalize(path: &str) -> String {
     s
 }
 
+/// The form two paths are compared in. An existing file is resolved first,
+/// so that a Windows 8.3 short name (`C:/Users/RUNNER~1/...`) or a symlink
+/// matches the long path the indexer wrote.
+pub fn comparable(path: &str) -> String {
+    match std::fs::canonicalize(path) {
+        Ok(p) => normalize(&p.to_string_lossy()),
+        Err(_) => normalize(path),
+    }
+}
+
 /// A SCIP range (0-based, end exclusive; three or four numbers) in
 /// Sourcetrail coordinates (1-based, end inclusive).
 pub fn to_range(r: &[i32]) -> Option<Range> {
@@ -599,10 +609,10 @@ pub fn convert(index: &Index, options: &Options) -> Result<Stats, String> {
         let by_path: HashMap<String, &Document> = index
             .documents
             .iter()
-            .map(|d| (normalize(&join(&d.relative_path)), d))
+            .map(|d| (comparable(&join(&d.relative_path)), d))
             .collect();
         for s in &options.sources {
-            match by_path.get(&normalize(s)) {
+            match by_path.get(&comparable(s)) {
                 Some(d) => selected.push((d, s.clone())),
                 None => missing.push(s.clone()),
             }
@@ -699,6 +709,24 @@ mod tests {
         );
         assert_eq!(to_range(&[1, 2]), None);
         assert_eq!(to_range(&[3, 0, 2, 0]), None);
+    }
+
+    #[test]
+    fn comparable_paths_resolve_existing_files() {
+        let dir = std::env::temp_dir().join("scip2sourcetrail-comparable");
+        std::fs::create_dir_all(dir.join("sub")).unwrap();
+        std::fs::write(dir.join("f.cs"), "").unwrap();
+        let d = dir.to_string_lossy().replace('\\', "/");
+        // `..` and other spellings of an existing file meet; a missing file
+        // still compares by its normalized text.
+        assert_eq!(
+            comparable(&format!("{d}/sub/../f.cs")),
+            comparable(&format!("{d}/f.cs"))
+        );
+        assert_eq!(
+            comparable("/no/such/./file.rs"),
+            normalize("/no/such/file.rs")
+        );
     }
 
     #[test]
