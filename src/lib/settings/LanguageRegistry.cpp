@@ -21,6 +21,8 @@ LanguageRegistry::LanguageRegistry()
 	registerLanguage({"java", LanguageType::JAVA, "Java", {".java"}});
 	registerLanguage({"python", LanguageType::PYTHON, "Python", {".py"}});
 	registerLanguage({"odin", LanguageType::ODIN, "Odin", {".odin"}});
+	registerLanguage({"rust", LanguageType::RUST, "Rust", {".rs"}});
+	registerLanguage({"csharp", LanguageType::CSHARP, "C#", {".cs"}});
 	registerLanguage({"custom", LanguageType::CUSTOM, "Custom", {}});
 
 	registerSourceGroupType(SourceGroupType::C_EMPTY, LanguageType::C);
@@ -36,6 +38,8 @@ LanguageRegistry::LanguageRegistry()
 
 	registerSourceGroupType(SourceGroupType::PYTHON_EMPTY, LanguageType::PYTHON);
 	registerSourceGroupType(SourceGroupType::ODIN_EMPTY, LanguageType::ODIN);
+	registerSourceGroupType(SourceGroupType::RUST_SCIP, LanguageType::RUST);
+	registerSourceGroupType(SourceGroupType::CSHARP_SCIP, LanguageType::CSHARP);
 
 	registerSourceGroupType(SourceGroupType::CUSTOM_COMMAND, LanguageType::CUSTOM);
 }

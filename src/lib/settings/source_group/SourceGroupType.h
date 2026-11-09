@@ -22,6 +22,8 @@ enum class SourceGroupType
 
 	PYTHON_EMPTY,
 	ODIN_EMPTY,
+	RUST_SCIP,
+	CSHARP_SCIP,
 
 	CUSTOM_COMMAND
 };

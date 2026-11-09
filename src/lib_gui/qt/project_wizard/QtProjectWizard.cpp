@@ -23,6 +23,7 @@
 #include "SourceGroupSettingsCustomCommand.h"
 #include "SourceGroupSettingsPythonEmpty.h"
 #include "SourceGroupSettingsOdinEmpty.h"
+#include "SourceGroupSettingsScip.h"
 #include "SourceGroupSettingsUnloadable.h"
 #include "ToolChain.h"
 #include "language_packages.h"
@@ -975,6 +976,11 @@ void QtProjectWizard::selectedProjectType(SourceGroupType sourceGroupType)
 	case SourceGroupType::ODIN_EMPTY:
 		settings = std::make_shared<SourceGroupSettingsOdinEmpty>(
 			sourceGroupId, m_projectSettings.get());
+		break;
+	case SourceGroupType::RUST_SCIP:
+	case SourceGroupType::CSHARP_SCIP:
+		settings = std::make_shared<SourceGroupSettingsScip>(
+			sourceGroupType, sourceGroupId, m_projectSettings.get());
 		break;
 	case SourceGroupType::CUSTOM_COMMAND:
 		settings = std::make_shared<SourceGroupSettingsCustomCommand>(

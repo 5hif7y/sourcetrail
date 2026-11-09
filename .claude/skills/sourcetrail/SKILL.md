@@ -1,7 +1,7 @@
 ---
 name: sourcetrail
 description: Relaciones del código desde una base .srctrldb de Sourcetrail, sea cual sea el
-  lenguaje que se indexó (C, C++, Python, Odin, Java). Usar para preguntas de relación entre
+  lenguaje que se indexó (C, C++, Python, Odin, Java, Rust, C#). Usar para preguntas de relación entre
   símbolos que pedirían recorrer muchos archivos con Grep - quién llama a una función, a quién
   llama, quién usa un campo o un tipo, quién hereda o sobrescribe, qué miembros tiene una clase -
   y para consultar la base con SQL. Si el proyecto no tiene base, armarla con el indexador de
@@ -15,7 +15,7 @@ Dos responsabilidades separadas:
 
 - **El indexador** (el CLI de Sourcetrail) resuelve el lenguaje: parsea el código y escribe una
   base `.srctrldb`. Qué lenguajes hay depende de cómo se compiló el fork (C y C++ con Clang,
-  Python, Odin, Java).
+  Python, Odin, Java; Rust y C# por SCIP con `scip2sourcetrail`).
 - **Esta skill** consulta la base. El esquema es el mismo para todos los lenguajes, así que las
   consultas no saben de qué lenguaje vino cada símbolo: solo leen nodos, aristas y ubicaciones.
 

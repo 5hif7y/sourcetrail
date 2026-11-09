@@ -64,6 +64,41 @@ int main()
 		stringToSourceGroupType("not a source group") == SourceGroupType::UNKNOWN,
 		"unknown source group string");
 
+	// Rust and C# through SCIP indexers.
+	const LanguageDescriptor* rust = registry.findById("rust");
+	check(rust && rust->type == LanguageType::RUST && rust->displayName == "Rust", "Rust descriptor");
+	check(
+		rust && rust->sourceExtensions.size() == 1 && rust->sourceExtensions[0] == ".rs",
+		"Rust extension");
+	const LanguageDescriptor* csharp = registry.findById("csharp");
+	check(
+		csharp && csharp->type == LanguageType::CSHARP && csharp->displayName == "C#",
+		"C# descriptor");
+	check(
+		csharp && csharp->sourceExtensions.size() == 1 && csharp->sourceExtensions[0] == ".cs",
+		"C# extension");
+	check(
+		getLanguageTypeForSourceGroupType(SourceGroupType::RUST_SCIP) == LanguageType::RUST,
+		"Rust source group mapping");
+	check(
+		getLanguageTypeForSourceGroupType(SourceGroupType::CSHARP_SCIP) == LanguageType::CSHARP,
+		"C# source group mapping");
+	for (SourceGroupType type: {SourceGroupType::RUST_SCIP, SourceGroupType::CSHARP_SCIP})
+	{
+		check(
+			stringToSourceGroupType(sourceGroupTypeToId(type)) == type,
+			"SCIP source group id round-trip: " + sourceGroupTypeToId(type));
+		check(
+			stringToSourceGroupType(sourceGroupTypeToString(type)) == type,
+			"SCIP source group name round-trip: " + sourceGroupTypeToString(type));
+		check(
+			stringToSourceGroupType(sourceGroupTypeToProjectSetupString(type)) == type,
+			"SCIP source group setup string round-trip");
+	}
+	check(sourceGroupTypeToId(SourceGroupType::RUST_SCIP) == "rust_scip", "Rust source group id");
+	check(
+		sourceGroupTypeToId(SourceGroupType::CSHARP_SCIP) == "csharp_scip", "C# source group id");
+
 	// Plugin-style registration: a descriptor can be added without an enum case
 	// or a central switch. Unknown is used because built-in LanguageType values
 	// are already owned by the built-in descriptors.

@@ -1,0 +1,23 @@
+[package]
+name = "scip2sourcetrail"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.81"
+description = "Converts a SCIP index into a Sourcetrail database (.srctrldb)"
+license = "GPL-3.0-only"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "scip2sourcetrail"
+path = "src/main.rs"
+
+[dependencies]
+# protobuf must match the exact version the scip crate pins.
+scip = "=0.10.0"
+protobuf = "=3.7.2"
+
+[dev-dependencies]
+rusqlite = { version = "0.32", features = ["bundled"] }

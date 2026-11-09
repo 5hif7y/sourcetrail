@@ -36,6 +36,61 @@ jobs:
       - name: Test
         run: ctest --test-dir build/plugin-context -C Release --output-on-failure
 
+  writer-abi:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S src/odin_writer -B build/writer-abi -DCMAKE_BUILD_TYPE=Release -DSODB_WRITER_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build/writer-abi --config Release
+
+      - name: Test
+        run: ctest --test-dir build/writer-abi -C Release --output-on-failure
+
+  scip2sourcetrail:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the writer shim
+        run: |
+          cmake -S src/odin_writer -B build/odin_writer -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/odin_writer --config Release
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # The tests that run the real indexers skip themselves without these.
+      - name: Install the SCIP indexers
+        shell: bash
+        run: |
+          rustup component add rust-analyzer
+          dotnet tool install --tool-path "${{ runner.temp }}/dotnet-tools" scip-dotnet
+          echo "${{ runner.temp }}/dotnet-tools" >> "$GITHUB_PATH"
+
+      - name: Test
+        working-directory: src/scip2sourcetrail
+        run: cargo test --locked -- --nocapture
+
+      - name: C# binding smoke test
+        run: dotnet run --project src/odin_writer/bindings/csharp/smoke -- build/csharp-smoke.srctrldb
+
   language-registry:
     strategy:
       fail-fast: false

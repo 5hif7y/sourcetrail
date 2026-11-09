@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Smoke test of the C# binding: "dotnet run" with a scratch .srctrldb path.
+       The writer shim comes from SodbWriterDir (default: build/odin_writer
+       at the repository root, as src/odin_writer/CMakeLists.txt builds it). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <SodbWriterDir Condition="'$(SodbWriterDir)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\..\build\odin_writer</SodbWriterDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\Sodb.cs" />
+    <None Include="$(SodbWriterDir)\bin\sourcetrail_odin_writer.dll" Condition="Exists('$(SodbWriterDir)\bin\sourcetrail_odin_writer.dll')" CopyToOutputDirectory="PreserveNewest" Link="sourcetrail_odin_writer.dll" />
+    <None Include="$(SodbWriterDir)\libsourcetrail_odin_writer.so" Condition="Exists('$(SodbWriterDir)\libsourcetrail_odin_writer.so')" CopyToOutputDirectory="PreserveNewest" Link="libsourcetrail_odin_writer.so" />
+    <None Include="$(SodbWriterDir)\libsourcetrail_odin_writer.dylib" Condition="Exists('$(SodbWriterDir)\libsourcetrail_odin_writer.dylib')" CopyToOutputDirectory="PreserveNewest" Link="libsourcetrail_odin_writer.dylib" />
+  </ItemGroup>
+</Project>

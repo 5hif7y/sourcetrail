@@ -53,14 +53,17 @@ within="${within//\'/\'\'}"
 # Camino rápido: si después de quitar los \ts\tp vacíos solo queda la firma del último nivel,
 # basta reemplazar \tn por el separador. Si no (la clase local de una función, el tipo dentro de
 # una plantilla de función: ~1,4 % de los nodos de Unreal), lv recorre los niveles uno por uno.
+# Un \ts\tp es vacío solo si cierra el nivel (le sigue \tn o el final): en \ts\tp() el prefijo
+# está vacío pero la firma no. Por eso y se arma con un \tn al final, que x vuelve a sacar.
 # sym es una tabla temporal: cada nombre se decodifica una sola vez por llamada.
 # En lv, $h es el nivel que se consume en cada paso.
 h="substr(r, 1, instr(r, char(9)||'n') - 1)"
 symtab="
-CREATE TEMP VIEW nm0 AS SELECT id, type, serialized_name AS raw,
-  substr(serialized_name, 1, instr(serialized_name, char(9)||'m') - 1) AS d,
-  replace(substr(serialized_name, instr(serialized_name, char(9)||'m') + 2),
-    char(9)||'s'||char(9)||'p', '') AS x FROM node;
+CREATE TEMP VIEW nm0 AS SELECT id, type, raw, d, substr(y, 1, length(y) - 2) AS x FROM (
+  SELECT id, type, serialized_name AS raw,
+    substr(serialized_name, 1, instr(serialized_name, char(9)||'m') - 1) AS d,
+    replace(substr(serialized_name, instr(serialized_name, char(9)||'m') + 2)||char(9)||'n',
+      char(9)||'s'||char(9)||'p'||char(9)||'n', char(9)||'n') AS y FROM node);
 CREATE TEMP VIEW nm AS SELECT id, type, CASE
   WHEN instr(x, char(9)||'s') = 0 OR instr(substr(x, instr(x, char(9)||'s')), char(9)||'n') = 0 THEN
     CASE WHEN x GLOB '.:main:.*' THEN 'main'

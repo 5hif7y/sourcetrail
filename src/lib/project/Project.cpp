@@ -534,7 +534,9 @@ void Project::buildIndex(RefreshInfo info, std::shared_ptr<DialogView> dialogVie
 		{
 			if (sourceGroup->getType() == SourceGroupType::CUSTOM_COMMAND ||
 				sourceGroup->getType() == SourceGroupType::PYTHON_EMPTY ||
-				sourceGroup->getType() == SourceGroupType::ODIN_EMPTY)
+				sourceGroup->getType() == SourceGroupType::ODIN_EMPTY ||
+				sourceGroup->getType() == SourceGroupType::RUST_SCIP ||
+				sourceGroup->getType() == SourceGroupType::CSHARP_SCIP)
 			{
 				customIndexerCommandProvider->addProvider(
 					sourceGroup->getIndexerCommandProvider(info));

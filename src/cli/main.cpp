@@ -17,6 +17,7 @@
 #include "SourceGroupFactoryModuleCustom.h"
 #include "SourceGroupFactoryModulePython.h"
 #include "OdinPlugin.h"
+#include "ScipPlugin.h"
 #include "PluginManager.h"
 #include <boost/dll.hpp>
 #include "AppPath.h"
@@ -172,6 +173,7 @@ int main(int argc, char* argv[])
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModuleCustom>());
 	SourceGroupFactory::getInstance()->addModule(std::make_shared<SourceGroupFactoryModulePython>());
 	st::plugin::ensureOdinPluginLoaded();
+	st::plugin::ensureScipPluginLoaded();
 
 	signal(SIGINT, signalHandler);
 	signal(SIGTERM, signalHandler);
