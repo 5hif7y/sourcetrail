@@ -36,6 +36,26 @@ jobs:
       - name: Test
         run: ctest --test-dir build/plugin-context -C Release --output-on-failure
 
+  writer-abi:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S src/odin_writer -B build/writer-abi -DCMAKE_BUILD_TYPE=Release -DSODB_WRITER_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build/writer-abi --config Release
+
+      - name: Test
+        run: ctest --test-dir build/writer-abi -C Release --output-on-failure
+
   language-registry:
     strategy:
       fail-fast: false

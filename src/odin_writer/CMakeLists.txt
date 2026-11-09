@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
+# sourcetrail_db is a static library linked into a shared one.
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # The writer core is vendored for reproducible builds. Pass
 # -DSOURCETRAILDB_DIR=... to build against a standalone checkout instead.
@@ -46,6 +48,11 @@ target_include_directories(sourcetrail_db
 		"${SDB}/external/json/include"
 		"${SDB}/external/cpp_sqlite/include"
 )
+if(NOT WIN32)
+	# The bundled SQLite uses threads and dlopen.
+	find_package(Threads REQUIRED)
+	target_link_libraries(sourcetrail_db PUBLIC Threads::Threads ${CMAKE_DL_LIBS})
+endif()
 
 add_library(sourcetrail_odin_writer SHARED
 	sourcetrail_odin_writer.cpp
