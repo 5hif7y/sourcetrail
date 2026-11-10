@@ -39,8 +39,17 @@ done
 cli="${SOURCETRAIL_CLI:-$(command -v sourcetrail_cli || true)}"
 [ -x "$cli" ] || { echo "no está el CLI de Sourcetrail: $cli (poné SOURCETRAIL_CLI)" >&2; exit 1; }
 
-# Rutas en el formato que lee Sourcetrail en Windows (C:/...).
-win() { if command -v cygpath > /dev/null; then cygpath -m "$1"; else echo "$1"; fi; }
+# Rutas en el formato que lee Sourcetrail en Windows (C:/...). cygpath lo resuelve en
+# Git Bash/MSYS; en WSL no está, así que /mnt/<unidad>/... se traduce a <UNIDAD>:/...
+win() {
+	if command -v cygpath > /dev/null 2>&1; then cygpath -m "$1"; return; fi
+	case "$1" in
+		/mnt/[A-Za-z]/*)
+			drive="$(printf '%s' "${1#/mnt/}" | cut -c1 | tr 'a-z' 'A-Z')"
+			printf '%s:/%s\n' "$drive" "${1#/mnt/?/}" ;;
+		*) printf '%s\n' "$1" ;;
+	esac
+}
 # Texto dentro del XML: & < > escapados (TinyXML los decodifica al leer el proyecto). Los
 # reemplazos van entre comillas: sin ellas, bash 5.2 lee el & como el texto encontrado.
 xml() { local s="${1//&/"&amp;"}"; s="${s//</"&lt;"}"; printf '%s' "${s//>/"&gt;"}"; }

@@ -67,6 +67,27 @@ en C#. Los dos escriben un índice SCIP, y `scip2sourcetrail` lo convierte a la 
 - **En C#, `scip-dotnet` no da el cuerpo de cada definición.** `scip2sourcetrail` lo saca del texto
   (llaves, `=>`, `;`). Las referencias de `using` y de `namespace` cuelgan del archivo.
 
+## WSL
+
+Los scripts aceptan rutas de WSL y de Windows: `/mnt/c/...` se traduce a `C:/...` cuando el
+programa es un `.exe`, y una base pedida como `C:/...` se busca en `/mnt/c/...`. No hace falta
+`cygpath` (no viene en WSL); sí hace falta un `sqlite3` (el de la distribución sirve) o
+`SRCTRL_SQLITE` apuntando a un `sqlite3.exe`. Si la copia de la skill no trae el `.exe` al lado de
+`scripts/` (no se versiona), apuntarlo a mano.
+
+- **El CLI puede no salir.** A veces queda vivo después de escribir la base. La base está completa
+  cuando `srctrl <base> stats` responde con archivos indexados; ahí se puede terminar el proceso.
+- **`rust-toolchain.toml` con un canal que no está instalado.** El indexador corre el
+  `rust-analyzer` de rustup, que intenta descargar ese canal. Antes de indexar:
+  `rustup override set stable --path <proyecto>` y después `rustup override unset --path <proyecto>`.
+- **Workspaces con dependencias git y submódulos.** `cargo fetch` puede quedarse horas en un
+  submódulo (por ejemplo el repo de JS de un bundler). El indexador espera ese fetch. Para medir
+  una parte del workspace, reemplazar esas dependencias por stubs locales, o indexar un workspace
+  que no incluya esos miembros, y restaurar `Cargo.toml`, `Cargo.lock` y los `Cargo.toml` tocados
+  al terminar.
+- **Memoria.** Un workspace grande se lleva varios GB: `rust-analyzer` sobre 1.600 archivos y
+  400.000 líneas tardó unos 7 minutos y dejó una base de 136 MB.
+
 ## Comprobar
 
 ```sh

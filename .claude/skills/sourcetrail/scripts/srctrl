@@ -21,9 +21,35 @@ usage() { awk 'NR > 1 && !/^#/ { exit } NR > 1 { sub(/^# ?/, ""); print }' "$0";
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 sqlite="${SRCTRL_SQLITE:-}"
 if [ -z "$sqlite" ]; then
-	if [ -x "$here/sqlite3.exe" ]; then sqlite="$here/sqlite3.exe"; else sqlite="$(command -v sqlite3 || true)"; fi
+	for candidate in "$here/sqlite3.exe" "$here/../sqlite3.exe"; do
+		if [ -x "$candidate" ]; then sqlite="$candidate"; break; fi
+	done
+	[ -n "$sqlite" ] || sqlite="$(command -v sqlite3 || true)"
 fi
 [ -n "$sqlite" ] || { echo "falta sqlite3: poné SRCTRL_SQLITE o sqlite3 en el PATH" >&2; exit 1; }
+
+# sqlite3.exe es un binario de Windows: necesita la ruta en su formato. Un
+# sqlite3 nativo la toma tal cual. cygpath lo resuelve en Git Bash/MSYS; en WSL
+# no está, así que /mnt/<unidad>/... se traduce a <UNIDAD>:/...
+win() {
+	if command -v cygpath > /dev/null 2>&1; then cygpath -m "$1"; return; fi
+	case "$1" in
+		/mnt/[A-Za-z]/*)
+			drive="$(printf '%s' "${1#/mnt/}" | cut -c1 | tr 'a-z' 'A-Z')"
+			printf '%s:/%s\n' "$drive" "${1#/mnt/?/}" ;;
+		*) printf '%s\n' "$1" ;;
+	esac
+}
+# La prueba de existencia usa la ruta del shell; --database acepta también C:/...
+posix() {
+	case "$1" in
+		[A-Za-z]:/*)
+			drive="$(printf '%s' "${1%%:*}" | tr 'A-Z' 'a-z')"
+			printf '/mnt/%s/%s\n' "$drive" "${1#*:}" ;;
+		*) printf '%s\n' "$1" ;;
+	esac
+}
+is_windows_exe() { case "$(basename "$1")" in *.exe) return 0 ;; esac; return 1; }
 
 db="$1"; query="$2"; shift 2
 name=""; limit=50; within=
@@ -36,7 +62,9 @@ while [ $# -gt 0 ]; do
 done
 # limit va sin comillas al SQL: solo dígitos.
 [[ "$limit" =~ ^[0-9]+$ ]] || { echo "--limit espera un número: $limit" >&2; exit 2; }
-[ -f "$db" ] || { echo "no existe la base: $db" >&2; exit 1; }
+db_file="$db"
+[ -f "$db_file" ] || db_file="$(posix "$db")"
+[ -f "$db_file" ] || { echo "no existe la base: $db" >&2; exit 1; }
 case "$query" in
 	callers|callees|refs|members) [ -n "$name" ] || { echo "$query necesita un nombre" >&2; exit 2; } ;;
 	sql) [ -n "$name" ] || { echo "sql necesita una consulta" >&2; exit 2; } ;;
@@ -149,4 +177,6 @@ esac
 
 # stats no usa sym: se salta su costo (decodificar todos los nombres).
 [ "$query" = stats ] || prelude="$symtab$prelude"
-"$sqlite" -readonly -separator ' | ' "$db" "$prelude$sql"
+db_arg="$db_file"
+if is_windows_exe "$sqlite"; then db_arg="$(win "$db_file")"; fi
+"$sqlite" -readonly -separator ' | ' "$db_arg" "$prelude$sql"
